@@ -7,13 +7,36 @@
 global.chrome = {
   storage: {
     local: {
-      get: jest.fn(() => Promise.resolve({})),
+      get: jest.fn((keys) => {
+        // Return empty object structure that matches expected format
+        if (typeof keys === 'string') {
+          return Promise.resolve({ [keys]: undefined });
+        }
+        if (Array.isArray(keys)) {
+          const result = {};
+          keys.forEach(key => result[key] = undefined);
+          return Promise.resolve(result);
+        }
+        return Promise.resolve({});
+      }),
       set: jest.fn(() => Promise.resolve()),
       remove: jest.fn(() => Promise.resolve()),
       clear: jest.fn(() => Promise.resolve())
     },
     sync: {
-      get: jest.fn(() => Promise.resolve({})),
+      get: jest.fn((keys) => {
+        // Return empty object structure that matches expected format
+        if (typeof keys === 'string') {
+          // For settings key, return undefined (which will be handled by DEFAULT_SETTINGS fallback)
+          return Promise.resolve({ [keys]: undefined });
+        }
+        if (Array.isArray(keys)) {
+          const result = {};
+          keys.forEach(key => result[key] = undefined);
+          return Promise.resolve(result);
+        }
+        return Promise.resolve({});
+      }),
       set: jest.fn(() => Promise.resolve()),
       remove: jest.fn(() => Promise.resolve()),
       clear: jest.fn(() => Promise.resolve())
@@ -37,6 +60,11 @@ global.chrome = {
   tabs: {
     sendMessage: jest.fn(),
     query: jest.fn()
+  },
+  notifications: {
+    create: jest.fn(),
+    clear: jest.fn(),
+    getAll: jest.fn()
   }
 } as any;
 

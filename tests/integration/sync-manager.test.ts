@@ -4,30 +4,65 @@
 
 import { SyncManager } from '../../src/background/sync-manager.js';
 import { ExtensionStorage } from '../../src/shared/storage.js';
+
 import type { TextSnippet, ExtensionSettings } from '../../src/shared/types.js';
 import { DEFAULT_SETTINGS } from '../../src/shared/constants.js';
 
-// Mock chrome APIs
-const mockChrome = {
-  storage: {
-    local: new Map(),
-    sync: new Map(),
-  },
-  notifications: {
-    create: jest.fn(),
-  },
-};
-
-(global as any).chrome = mockChrome;
+// Use the same chrome mock as other tests (from setup.ts)
+// The global chrome mock is already set up by Jest setup
 
 describe('SyncManager Integration', () => {
   let syncManager: SyncManager;
 
+  let mockStorage: { [key: string]: any } = {};
+
   beforeEach(async () => {
-    // Clear mock storage
-    mockChrome.storage.local.clear();
-    mockChrome.storage.sync.clear();
+    // Clear Jest mocks
+    jest.clearAllMocks();
+    mockStorage = {}; // Reset mock storage for each test
     
+    // Mock chrome.storage.local.get
+    (chrome.storage.local.get as jest.Mock).mockImplementation(async (keys: string | string[]) => {
+      const result: { [key: string]: any } = {};
+      const keysArray = Array.isArray(keys) ? keys : [keys];
+      for (const key of keysArray) {
+        if (mockStorage[key]) {
+          result[key] = mockStorage[key];
+        }
+      }
+      return result;
+    });
+
+    // Mock chrome.storage.local.set
+    (chrome.storage.local.set as jest.Mock).mockImplementation(async (items: { [key: string]: any }) => {
+      for (const key in items) {
+        mockStorage[key] = items[key];
+      }
+    });
+
+    // Mock ExtensionStorage.setSyncStatus
+    jest.spyOn(ExtensionStorage, 'setSyncStatus').mockResolvedValue(undefined);
+
+    // Mock chrome.storage.sync.get and set for settings
+    (chrome.storage.sync.get as jest.Mock).mockImplementation(async (keys: string | string[]) => {
+      const result: { [key: string]: any } = {};
+      const keysArray = Array.isArray(keys) ? keys : [keys];
+      for (const key of keysArray) {
+        if (mockStorage[key]) {
+          result[key] = mockStorage[key];
+        }
+      }
+      return result;
+    });
+
+    (chrome.storage.sync.set as jest.Mock).mockImplementation(async (items: { [key: string]: any }) => {
+      for (const key in items) {
+        mockStorage[key] = items[key];
+      }
+    });
+
+    // Reset the SyncManager singleton
+    (SyncManager as any).instance = undefined;
     syncManager = SyncManager.getInstance();
     
     // Set up default settings
@@ -88,6 +123,18 @@ describe('SyncManager Integration', () => {
     ];
 
     beforeEach(async () => {
+      // Mock chrome.storage directly for this test
+      const mockStorage = {
+        'snippets': mockSnippets
+      };
+      
+      (chrome.storage.local.get as jest.Mock).mockImplementation((keys) => {
+        if (keys === 'snippets') {
+          return Promise.resolve(mockStorage);
+        }
+        return Promise.resolve({});
+      });
+      
       await ExtensionStorage.setSnippets(mockSnippets);
     });
 
@@ -97,6 +144,9 @@ describe('SyncManager Integration', () => {
     });
 
     it('should get sync statistics', async () => {
+      // Set up the local cloud provider first
+      await syncManager.setCloudProvider('local');
+      
       const stats = await syncManager.getSyncStats();
       
       expect(stats.totalSnippets).toBe(2);
@@ -121,8 +171,22 @@ describe('SyncManager Integration', () => {
       // Set up a provider that will fail
       await syncManager.setCloudProvider('google-drive');
       
-      // Sync should fail but not throw (depending on implementation)
-      await expect(syncManager.syncNow()).rejects.toThrow();
+      // Mock the downloadSnippets method of the currentAdapter to throw an error
+      // @ts-ignore
+      syncManager['currentAdapter'].downloadSnippets = jest.fn().mockRejectedValue(new Error('Simulated sync error'));
+
+      try {
+        await syncManager.syncNow();
+        // If we reach here, it means syncNow() did NOT throw, which is unexpected.
+        fail('syncNow() should have thrown an error');
+      } catch (e) {
+        // Expected: syncNow() throws an error
+        expect(ExtensionStorage.setSyncStatus).toHaveBeenCalledTimes(1);
+        expect(ExtensionStorage.setSyncStatus).toHaveBeenCalledWith(expect.objectContaining({
+          isOnline: false,
+          error: 'Simulated sync error'
+        }));
+      }
     });
 
     it('should handle authentication errors', async () => {

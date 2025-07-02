@@ -24,6 +24,12 @@ class OptionsApp {
     triggerDelaySlider: document.getElementById('triggerDelaySlider') as HTMLInputElement,
     triggerDelayValue: document.getElementById('triggerDelayValue') as HTMLElement,
 
+    // Local filesystem sources
+    setupLocalSourcesButton: document.getElementById('setupLocalSourcesButton') as HTMLButtonElement,
+    scopedSourcesList: document.getElementById('scopedSourcesList') as HTMLElement,
+    syncAllSourcesButton: document.getElementById('syncAllSourcesButton') as HTMLButtonElement,
+    refreshSourcesButton: document.getElementById('refreshSourcesButton') as HTMLButtonElement,
+
     // Cloud sync settings
     cloudProviderSelect: document.getElementById('cloudProviderSelect') as HTMLSelectElement,
     autoSyncCheckbox: document.getElementById('autoSyncCheckbox') as HTMLInputElement,
@@ -87,7 +93,9 @@ class OptionsApp {
       await this.loadSettings();
       await this.updateUI();
       await this.updateDataStats();
+      await this.refreshScopedSources();
       this.updateVersion();
+      this.handleAnchorNavigation();
     } catch (error) {
       console.error('Failed to initialize options page:', error);
       this.showStatus('Failed to load settings', 'error');
@@ -107,6 +115,11 @@ class OptionsApp {
       this.updateTriggerDelayValue();
       this.saveSettings();
     });
+
+    // Local filesystem sources
+    this.elements.setupLocalSourcesButton.addEventListener('click', () => this.handleSetupLocalSources());
+    this.elements.syncAllSourcesButton.addEventListener('click', () => this.handleSyncAllSources());
+    this.elements.refreshSourcesButton.addEventListener('click', () => this.refreshScopedSources());
 
     // Cloud settings
     this.elements.cloudProviderSelect.addEventListener('change', () => this.handleProviderChange());
@@ -502,6 +515,181 @@ class OptionsApp {
   }
 
   /**
+   * Handle setup of local filesystem sources
+   */
+  private async handleSetupLocalSources(): Promise<void> {
+    try {
+      this.elements.setupLocalSourcesButton.disabled = true;
+      this.elements.setupLocalSourcesButton.textContent = '⏳ Setting up folders...';
+      
+      // Check if File System Access API is supported
+      if (!('showDirectoryPicker' in window)) {
+        throw new Error('File System Access API not supported in this browser');
+      }
+      
+      const scopes: ('personal' | 'team' | 'org')[] = ['personal', 'team', 'org'];
+      let setupCount = 0;
+      
+      for (const scope of scopes) {
+        try {
+          this.showStatus(`Please select your ${scope} snippets folder...`, 'info');
+          
+          const directoryHandle = await (window as any).showDirectoryPicker({
+            mode: 'readwrite',
+            startIn: 'documents',
+            id: `puffpuffpaste-${scope}-snippets`
+          });
+
+          // Send the directory handle to the service worker
+          const response = await chrome.runtime.sendMessage({
+            type: 'ADD_LOCAL_FILESYSTEM_SOURCE',
+            scope,
+            directoryHandle
+          });
+
+          if (response.success) {
+            setupCount++;
+            this.showStatus(`✅ Added ${scope} source: ${directoryHandle.name}`, 'success');
+          } else {
+            throw new Error(response.error || `Failed to add ${scope} source`);
+          }
+          
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            this.showStatus(`⏭️ Skipped ${scope} folder selection`, 'info');
+            continue;
+          }
+          console.error(`Failed to setup ${scope} source:`, error);
+          this.showStatus(`❌ Failed to setup ${scope} source: ${error.message}`, 'error');
+        }
+      }
+      
+      if (setupCount > 0) {
+        this.showStatus(`Successfully set up ${setupCount} local folder source(s)!`, 'success');
+        await this.refreshScopedSources();
+      } else {
+        this.showStatus('No local folder sources were set up', 'warning');
+      }
+      
+    } catch (error) {
+      console.error('Setup local sources error:', error);
+      this.showStatus('Failed to setup local sources: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+    } finally {
+      this.elements.setupLocalSourcesButton.disabled = false;
+      this.elements.setupLocalSourcesButton.textContent = '📁 Setup Local Folder Sources';
+    }
+  }
+
+  /**
+   * Handle sync all scoped sources
+   */
+  private async handleSyncAllSources(): Promise<void> {
+    try {
+      this.elements.syncAllSourcesButton.disabled = true;
+      this.elements.syncAllSourcesButton.textContent = '⏳ Syncing...';
+      
+      const response = await chrome.runtime.sendMessage({ 
+        type: 'SYNC_ALL_SCOPED_SOURCES' 
+      });
+      
+      if (response.success) {
+        const snippetCount = response.data?.length || 0;
+        this.showStatus(`Successfully synced ${snippetCount} snippets from all sources!`, 'success');
+        await this.refreshScopedSources();
+        await this.updateDataStats();
+      } else {
+        throw new Error(response.error || 'Failed to sync sources');
+      }
+    } catch (error) {
+      console.error('Sync all sources error:', error);
+      this.showStatus('Failed to sync sources: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+    } finally {
+      this.elements.syncAllSourcesButton.disabled = false;
+      this.elements.syncAllSourcesButton.textContent = '🔄 Sync All Sources';
+    }
+  }
+
+  /**
+   * Refresh scoped sources display
+   */
+  private async refreshScopedSources(): Promise<void> {
+    try {
+      // Get scoped sources status
+      const statusResponse = await chrome.runtime.sendMessage({ 
+        type: 'GET_SCOPED_SYNC_STATUS' 
+      });
+      
+      if (statusResponse.success) {
+        this.updateScopedSourcesList(statusResponse.data);
+      }
+    } catch (error) {
+      console.error('Failed to refresh scoped sources:', error);
+    }
+  }
+
+  /**
+   * Update scoped sources list display
+   */
+  private updateScopedSourcesList(statusData: any): void {
+    const container = this.elements.scopedSourcesList;
+    container.innerHTML = '';
+    
+    if (!statusData || Object.keys(statusData).length === 0) {
+      container.innerHTML = `
+        <div class="no-sources">
+          <p>No local folder sources configured yet.</p>
+          <p>Click "Setup Local Folder Sources" to get started.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Group by scope
+    const scopes = ['personal', 'team', 'org'];
+    
+    scopes.forEach(scope => {
+      const scopeSources = Object.entries(statusData).filter(([key, data]: [string, any]) => 
+        data.scope === scope
+      );
+      
+      if (scopeSources.length > 0) {
+        const scopeSection = document.createElement('div');
+        scopeSection.className = 'scope-section';
+        
+        const scopeHeader = document.createElement('h4');
+        scopeHeader.className = 'scope-header';
+        scopeHeader.textContent = scope.charAt(0).toUpperCase() + scope.slice(1);
+        scopeSection.appendChild(scopeHeader);
+        
+        scopeSources.forEach(([key, data]: [string, any]) => {
+          const sourceItem = document.createElement('div');
+          sourceItem.className = 'source-item';
+          
+          const lastSyncText = data.lastSync 
+            ? this.formatRelativeTime(new Date(data.lastSync))
+            : 'Never';
+          
+          sourceItem.innerHTML = `
+            <div class="source-info">
+              <div class="source-name">${data.name}</div>
+              <div class="source-details">
+                ${data.snippetCount} snippets • Last sync: ${lastSyncText}
+              </div>
+            </div>
+            <div class="source-priority priority-${scope}">
+              ${scope.charAt(0).toUpperCase()}
+            </div>
+          `;
+          
+          scopeSection.appendChild(sourceItem);
+        });
+        
+        container.appendChild(scopeSection);
+      }
+    });
+  }
+
+  /**
    * Update trigger delay value display
    */
   private updateTriggerDelayValue(): void {
@@ -557,6 +745,34 @@ class OptionsApp {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  /**
+   * Handle anchor navigation from URL hash
+   */
+  private handleAnchorNavigation(): void {
+    const hash = window.location.hash;
+    if (hash) {
+      const targetId = hash.substring(1); // Remove the # symbol
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        // Scroll to the element with smooth behavior
+        targetElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+        
+        // Add a highlight effect to draw attention
+        targetElement.style.transition = 'background-color 0.5s ease';
+        targetElement.style.backgroundColor = '#e3f2fd';
+        
+        // Remove the highlight after 2 seconds
+        setTimeout(() => {
+          targetElement.style.backgroundColor = '';
+        }, 2000);
+      }
+    }
   }
 
   /**

@@ -12,10 +12,13 @@
     <header class="header">
       <div class="header-content">
         <div class="logo-section">
-          <img src="../assets/icons/icon-48.png" alt="Text Expander" class="logo">
+          <picture>
+            <source srcset="../icons/logo.webp" type="image/webp">
+            <img src="../icons/logo.png" alt="PuffPuffPaste" class="logo">
+          </picture>
           <div>
-            <h1>Text Expander</h1>
-            <p>Collaborative Text Expansion with Cloud Sync</p>
+            <h1>PuffPuffPaste</h1>
+            <p>Blow up your words! Collaborative Text Expansion with Cloud Sync</p>
           </div>
         </div>
         <div class="header-actions">
@@ -73,6 +76,42 @@
               <input type="range" id="triggerDelaySlider" class="setting-slider" 
                      min="0" max="1000" step="50" value="100">
               <p class="setting-description">Delay before triggering text expansion</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Local Filesystem Sources -->
+        <section class="settings-section" id="local-folder-sources">
+          <h2 class="section-title">Local Folder Sources</h2>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="scoped-sources-info">
+                <p class="setting-description">
+                  Set up local folders for your snippet sources. You can configure three levels:
+                  <strong>Personal</strong> (highest priority), <strong>Team</strong>, and <strong>Organization</strong> (lowest priority).
+                  When the same trigger exists in multiple sources, the higher priority source takes precedence.
+                </p>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <button id="setupLocalSourcesButton" class="primary-button">
+                📁 Setup Local Folder Sources
+              </button>
+              <p class="setting-description">Select folders for Personal, Team, and Organization snippet libraries</p>
+            </div>
+
+            <div class="setting-item">
+              <div id="scopedSourcesList" class="scoped-sources-list">
+                <!-- Dynamically populated with configured sources -->
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="sync-actions">
+                <button id="syncAllSourcesButton" class="secondary-button">🔄 Sync All Sources</button>
+                <button id="refreshSourcesButton" class="secondary-button">↻ Refresh Status</button>
+              </div>
             </div>
           </div>
         </section>

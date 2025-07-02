@@ -295,7 +295,14 @@ class PopupApp {
   /**
    * Show add snippet modal
    */
-  private showAddSnippetModal(): void {
+  private async showAddSnippetModal(): Promise<void> {
+    // Check if storage is configured before allowing snippet creation
+    if (!(await this.isStorageConfigured())) {
+      this.showStorageSetupToast();
+      this.openSettingsToLocalSources();
+      return;
+    }
+
     this.currentEditingSnippet = null;
     this.elements.modalTitle.textContent = 'Add Snippet';
     this.elements.snippetForm.reset();
@@ -389,6 +396,51 @@ class PopupApp {
    */
   private openSettings(): void {
     chrome.runtime.openOptionsPage();
+  }
+
+  /**
+   * Open settings page with anchor to Local Folder Sources section
+   */
+  private openSettingsToLocalSources(): void {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('options/options.html#local-folder-sources')
+    });
+  }
+
+  /**
+   * Check if storage is properly configured
+   */
+  private async isStorageConfigured(): Promise<boolean> {
+    try {
+      if (!this.settings) {
+        await this.loadSettings();
+      }
+
+      // Check if cloud provider is configured (not just 'local')
+      if (this.settings?.cloudProvider && this.settings.cloudProvider !== 'local') {
+        // Check if cloud provider has valid credentials
+        const credentials = await chrome.storage.local.get(['cloudCredentials']);
+        return credentials.cloudCredentials && 
+               credentials.cloudCredentials.provider === this.settings.cloudProvider;
+      }
+
+      // Check if local filesystem sources are configured
+      const scopedSources = await chrome.storage.local.get(['scopedSources']);
+      const sources = scopedSources.scopedSources || [];
+      
+      // Consider storage configured if there are any local filesystem sources
+      return sources.some((source: any) => source.provider === 'local-filesystem');
+    } catch (error) {
+      console.error('Failed to check storage configuration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Show toast message about storage setup requirement
+   */
+  private showStorageSetupToast(): void {
+    this.showSyncStatus('You need to select where to store your snippets before you can create any', 'info');
   }
 
   /**

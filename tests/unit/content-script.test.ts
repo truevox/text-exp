@@ -3,21 +3,21 @@
  * Following TDD approach - tests written first to define expected behavior
  */
 
-import { TriggerDetector, TriggerState } from '../../src/content/trigger-detector';
+import { ContentScript } from '../../src/content/content-script';
+import { EnhancedTriggerDetector, TriggerState } from '../../src/content/enhanced-trigger-detector';
 import { TextReplacer } from '../../src/content/text-replacer';
 import { PlaceholderHandler } from '../../src/content/placeholder-handler';
 import { ExtensionStorage } from '../../src/shared/storage';
 import { TextSnippet } from '../../src/shared/types';
 
-// Mock dependencies
-jest.mock('../../src/content/trigger-detector');
+jest.mock('../../src/content/enhanced-trigger-detector');
 jest.mock('../../src/content/text-replacer');
 jest.mock('../../src/content/placeholder-handler');
 jest.mock('../../src/shared/storage');
 jest.mock('../../src/shared/messaging');
 
 describe('ContentScript', () => {
-  let mockTriggerDetector: jest.Mocked<TriggerDetector>;
+  let mockTriggerDetector: jest.Mocked<EnhancedTriggerDetector>;
   let mockTextReplacer: jest.Mocked<TextReplacer>;
   let mockPlaceholderHandler: jest.Mocked<PlaceholderHandler>;
   let mockExtensionStorage: jest.Mocked<typeof ExtensionStorage>;
@@ -46,51 +46,12 @@ describe('ContentScript', () => {
     };
 
     // Mock dependencies
-    mockTriggerDetector = {
-      processInput: jest.fn(),
-      processInputWithContext: jest.fn(),
-      getPrefix: jest.fn(() => ';'),
-      getLoadedSnippetsCount: jest.fn(() => 5),
-      updateSnippets: jest.fn(),
-      reset: jest.fn(),
-      getCurrentState: jest.fn(() => ({ state: TriggerState.IDLE }))
-    } as any;
-
-    mockTextReplacer = {
-      replaceText: jest.fn(),
-      insertTextAtCursor: jest.fn(),
-      replaceSelectedText: jest.fn(),
-      getSelectedText: jest.fn(),
-      getCursorPosition: jest.fn(),
-      setCursorPosition: jest.fn(),
-      clearText: jest.fn(),
-      undoLastReplacement: jest.fn()
-    } as any;
-
-    mockPlaceholderHandler = {
-      promptForVariables: jest.fn(),
-      replaceVariables: jest.fn(),
-      hasVariables: jest.fn()
-    } as any;
-
-    mockExtensionStorage = {
-      getSettings: jest.fn(),
-      setSettings: jest.fn(),
-      getSnippets: jest.fn(),
-      setSnippets: jest.fn(),
-      findSnippetByTrigger: jest.fn(),
-      addSnippet: jest.fn(),
-      updateSnippet: jest.fn(),
-      deleteSnippet: jest.fn()
-    } as any;
-
-    // Mock constructors
-    (TriggerDetector as jest.MockedClass<typeof TriggerDetector>).mockImplementation(() => mockTriggerDetector);
-    (TextReplacer as jest.MockedClass<typeof TextReplacer>).mockImplementation(() => mockTextReplacer);
-    (PlaceholderHandler as jest.MockedClass<typeof PlaceholderHandler>).mockImplementation(() => mockPlaceholderHandler);
+    mockTriggerDetector = new (EnhancedTriggerDetector as any)();
+    mockTextReplacer = new (TextReplacer as any)();
+    mockPlaceholderHandler = new (PlaceholderHandler as any)();
 
     // Mock ExtensionStorage static methods
-    Object.assign(ExtensionStorage, mockExtensionStorage);
+    mockExtensionStorage = ExtensionStorage as jest.Mocked<typeof ExtensionStorage>;
 
     // Set up default mock returns
     mockExtensionStorage.getSettings.mockResolvedValue({
@@ -174,15 +135,11 @@ describe('ContentScript', () => {
 
   describe('Initialization', () => {
     test('should initialize content script when enabled', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Allow time for async initialization
       await new Promise(resolve => setTimeout(resolve, 0));
       
-      expect(TriggerDetector).toHaveBeenCalledWith([], ';');
-      expect(TextReplacer).toHaveBeenCalled();
-      expect(PlaceholderHandler).toHaveBeenCalled();
       expect(mockExtensionStorage.getSettings).toHaveBeenCalled();
       expect(mockExtensionStorage.getSnippets).toHaveBeenCalled();
     });
@@ -198,20 +155,18 @@ describe('ContentScript', () => {
         showNotifications: true
       });
 
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Allow time for async initialization
       await new Promise(resolve => setTimeout(resolve, 0));
       
-      expect(console.log).toHaveBeenCalledWith('Text Expander is disabled');
+      expect(console.log).toHaveBeenCalledWith('PuffPuffPaste is disabled');
     });
 
     test('should handle initialization errors gracefully', async () => {
       mockExtensionStorage.getSettings.mockRejectedValue(new Error('Storage error'));
 
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Allow time for async initialization
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -222,8 +177,7 @@ describe('ContentScript', () => {
 
   describe('Text Input Detection', () => {
     test('should detect text input elements', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
 
       expect(contentScript['isTextInput'](mockInput)).toBe(true);
       expect(contentScript['isTextInput'](mockTextarea)).toBe(true);
@@ -231,8 +185,7 @@ describe('ContentScript', () => {
     });
 
     test('should reject non-text input elements', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
 
       const mockButton = { tagName: 'BUTTON', type: 'button' } as HTMLElement;
       const mockDiv = { tagName: 'DIV', contentEditable: 'false' } as HTMLElement;
@@ -242,8 +195,7 @@ describe('ContentScript', () => {
     });
 
     test('should handle different input types correctly', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
 
       const emailInput = { tagName: 'INPUT', type: 'email' } as HTMLElement;
       const searchInput = { tagName: 'INPUT', type: 'search' } as HTMLElement;
@@ -259,8 +211,7 @@ describe('ContentScript', () => {
 
   describe('Trigger Detection and Processing', () => {
     test('should process simple trigger on input', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -287,8 +238,7 @@ describe('ContentScript', () => {
     });
 
     test('should handle trigger with variables', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -322,8 +272,7 @@ describe('ContentScript', () => {
     });
 
     test('should handle non-matching triggers gracefully', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -347,26 +296,23 @@ describe('ContentScript', () => {
 
   describe('Enable/Disable Functionality', () => {
     test('should enable content script', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
 
       contentScript.setEnabled(true);
 
-      expect(console.log).toHaveBeenCalledWith('Text Expander enabled');
+      expect(console.log).toHaveBeenCalledWith('PuffPuffPaste enabled');
     });
 
     test('should disable content script', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
 
       contentScript.setEnabled(false);
 
-      expect(console.log).toHaveBeenCalledWith('Text Expander disabled');
+      expect(console.log).toHaveBeenCalledWith('PuffPuffPaste disabled');
     });
 
     test('should not process input when disabled', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Wait for initialization then disable
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -384,8 +330,7 @@ describe('ContentScript', () => {
 
   describe('Error Handling', () => {
     test('should handle trigger processing errors', async () => {
-      const { ContentScript } = await import('../../src/content/content-script');
-      const contentScript = new ContentScript();
+      const contentScript = new ContentScript(mockTriggerDetector, mockTextReplacer, mockPlaceholderHandler);
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 0));

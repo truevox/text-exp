@@ -1,46 +1,43 @@
 # 🚀 PuffPuffPaste - Current Status & Next Steps
 
-## ✅ RESOLVED: Content Script ES Module Problem
+## ✅ Recently Completed
+- Added storage validation for "Add Snippet" button (v0.5.5)
+- Added anchor navigation to Local Folder Sources section (v0.5.6)
+- When users click "Add Snippet" without storage configured, shows toast and opens options page directly to `#local-folder-sources` with smooth scroll and highlight
 
-The extension has been successfully rebranded to "PuffPuffPaste" with the slogan "Blow up your words!" and all icons are properly configured. **The content script bundling issue and version sync problems have been completely resolved!**
+## 🚨 CRITICAL BUGS TO FIX IMMEDIATELY
 
-### Solution Implemented
+### 1. Options Page Initialization Failure
+**Error**: `TypeError: Cannot read properties of undefined (reading 'toString')`
+**Location**: `options.js:1:5686` in `updateUI` method and `options.js:1:9641` in `updateDataStats` method
+**Impact**: Options page completely broken, can't configure settings
 
-1. **Created Dedicated Vite Config** - Built `vite.content.config.ts` for content script-specific IIFE bundling
-2. **Replaced Manual Bundling** - Replaced fragile manual script concatenation with proper Vite library mode
-3. **Added Version Sync System** - Created `scripts/sync-version.js` to auto-sync version from package.json to runtime
-4. **Updated Build Pipeline** - Modified build scripts to use proper dependency management
+### 2. Service Worker Notification Errors
+**Error**: `TypeError: Cannot read properties of undefined (reading 'create')`
+**Location**: `service-worker.js:1:21472` in `showNotification` method
+**Impact**: Sync operations failing, causing cascade of errors
 
-### Current Files Status
+### 3. Popup Sync Error
+**Error**: `Sync failed: t.forEach is not a function`
+**Location**: Popup sync button
+**Impact**: Manual sync broken in popup
 
-- ✅ Extension builds successfully with `npm run build`
-- ✅ Content script properly built as IIFE (45.16 kB) without variable conflicts  
-- ✅ Version automatically synced (v0.5.2) between package.json and runtime
-- ✅ Background service worker works and shows correct version
-- ✅ Built-in test snippet (`;htest` → "Hello World!") is configured
-- 🔄 **Ready for Testing**: Extension should now function without runtime errors
+### 4. Snippets Not Persisting
+**Issue**: New snippets can be created but don't appear in list
+**Impact**: Core functionality broken
 
-### Key Technical Fixes
+## 🔧 URGENT FIXES NEEDED
 
-- **`vite.content.config.ts`** - Dedicated content script build configuration
-- **`scripts/sync-version.js`** - Automatic version synchronization
-- **`build-content-script.js`** - Simplified Vite-based content script builder
-- **`src/utils/version.ts`** - Auto-generated with correct logVersion export
+1. **Fix `updateUI` method in options.ts** - likely null/undefined value being called with `.toString()`
+2. **Fix `showNotification` in sync-manager.ts** - `chrome.notifications` may be undefined in service worker
+3. **Fix popup sync forEach error** - check array handling in sync response
+4. **Debug snippet persistence** - check if snippets are saved but not loaded properly
 
-### Test Plan
+## 📁 Key Files to Investigate
+- `/src/options/options.ts` - `updateUI()` and `updateDataStats()` methods
+- `/src/background/sync-manager.ts` - `showNotification()` method  
+- `/src/popup/popup.ts` - sync button handler
+- `/src/shared/storage.ts` - snippet persistence methods
 
-1. ✅ Build extension: `npm run build` (Working)
-2. Load in Chrome developer mode from `build/` directory
-3. Navigate to any text field  
-4. Type `;htest` followed by space/tab
-5. Should expand to "Hello World!" without console errors
-6. First use should show customization modal
-
-### Technical Architecture
-
-- **Content Script**: Properly bundled IIFE with all dependencies inlined
-- **Background Service Worker**: ESM module with correct version logging
-- **Version Management**: Automatic sync between package.json and runtime
-- **Build Process**: Robust Vite-based bundling replacing manual concatenation
-
-The extension architecture is now solid and should function properly in Chrome without the previous `ReferenceError: n is not defined` errors.
+## 🎯 Current Version: 0.5.6
+All critical bugs introduced recently, extension was working before storage validation feature.

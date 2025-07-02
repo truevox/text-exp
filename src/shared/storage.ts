@@ -20,7 +20,7 @@ export class ExtensionStorage {
    */
   static async getSnippets(): Promise<TextSnippet[]> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.SNIPPETS);
-    return result[STORAGE_KEYS.SNIPPETS] || [];
+    return result?.[STORAGE_KEYS.SNIPPETS] || [];
   }
 
   /**
@@ -76,7 +76,8 @@ export class ExtensionStorage {
    */
   static async getSettings(): Promise<ExtensionSettings> {
     const result = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
-    return { ...DEFAULT_SETTINGS, ...result[STORAGE_KEYS.SETTINGS] };
+    const storedSettings = result?.[STORAGE_KEYS.SETTINGS];
+    return { ...DEFAULT_SETTINGS, ...(storedSettings || {}) };
   }
 
   /**
@@ -96,7 +97,7 @@ export class ExtensionStorage {
    */
   static async getSyncStatus(): Promise<SyncStatus | null> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.SYNC_STATUS);
-    return result[STORAGE_KEYS.SYNC_STATUS] || null;
+    return result?.[STORAGE_KEYS.SYNC_STATUS] || null;
   }
 
   /**
@@ -113,7 +114,7 @@ export class ExtensionStorage {
    */
   static async getCloudCredentials(): Promise<CloudCredentials | null> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.CLOUD_CREDENTIALS);
-    return result[STORAGE_KEYS.CLOUD_CREDENTIALS] || null;
+    return result?.[STORAGE_KEYS.CLOUD_CREDENTIALS] || null;
   }
 
   /**
@@ -137,7 +138,7 @@ export class ExtensionStorage {
    */
   static async getLastSync(): Promise<Date | null> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.LAST_SYNC);
-    const timestamp = result[STORAGE_KEYS.LAST_SYNC];
+    const timestamp = result?.[STORAGE_KEYS.LAST_SYNC];
     return timestamp ? new Date(timestamp) : null;
   }
 
@@ -211,5 +212,22 @@ export class ExtensionStorage {
     } catch (error) {
       throw new Error('Invalid backup data format');
     }
+  }
+
+  /**
+   * Get scoped sources
+   */
+  static async getScopedSources(): Promise<any[]> {
+    const result = await chrome.storage.local.get('scopedSources');
+    return result?.scopedSources || [];
+  }
+
+  /**
+   * Save scoped sources
+   */
+  static async setScopedSources(sources: any[]): Promise<void> {
+    await chrome.storage.local.set({
+      scopedSources: sources
+    });
   }
 }

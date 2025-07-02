@@ -46,7 +46,22 @@ export interface SyncStatus {
 /**
  * Supported cloud storage providers
  */
-export type CloudProvider = 'google-drive' | 'dropbox' | 'onedrive' | 'local';
+export type CloudProvider = 'google-drive' | 'dropbox' | 'onedrive' | 'local' | 'local-filesystem';
+
+/**
+ * Snippet scopes for multi-tier sync architecture
+ */
+export type SnippetScope = 'personal' | 'department' | 'org';
+
+/**
+ * Scoped source configuration
+ */
+export interface SyncedSource {
+  name: SnippetScope;
+  adapter: CloudAdapter;
+  folderId: string;
+  displayName: string;
+}
 
 /**
  * Cloud authentication credentials
@@ -87,7 +102,7 @@ export interface CloudAdapter {
   /**
    * Download snippets from cloud storage
    */
-  downloadSnippets(): Promise<TextSnippet[]>;
+  downloadSnippets(folderId: string): Promise<TextSnippet[]>;
   
   /**
    * Sync local changes with remote storage

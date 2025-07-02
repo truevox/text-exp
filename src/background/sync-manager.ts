@@ -5,13 +5,15 @@
 
 import { ExtensionStorage } from '../shared/storage.js';
 import { getCloudAdapterFactory } from './cloud-adapters/index.js';
+import { MultiScopeSyncManager } from './multi-scope-sync-manager.js';
 import type { 
   CloudAdapter, 
   CloudProvider, 
   TextSnippet, 
   SyncStatus, 
   CloudCredentials,
-  ExtensionSettings 
+  ExtensionSettings, 
+  SyncedSource
 } from '../shared/types.js';
 import { DEFAULT_SETTINGS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../shared/constants.js';
 
@@ -20,11 +22,14 @@ import { DEFAULT_SETTINGS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../shared/co
  */
 export class SyncManager {
   private static instance: SyncManager;
-  private currentAdapter: CloudAdapter | null = null;
+  private currentAdapter: CloudAdapter | null = null; // Primary adapter, e.g., for personal snippets
+  private multiScopeSyncManager: MultiScopeSyncManager;
   private syncInProgress = false;
   private syncInterval: number | null = null;
 
-  private constructor() {}
+  private constructor() {
+    this.multiScopeSyncManager = new MultiScopeSyncManager();
+  }
 
   /**
    * Get singleton instance
@@ -92,6 +97,8 @@ export class SyncManager {
    */
   async isAuthenticated(): Promise<boolean> {
     if (!this.currentAdapter) {
+      // If no current adapter, consider it not authenticated for now.
+      // In a multi-scope setup, we might check if any adapter is authenticated.
       return false;
     }
     
@@ -106,55 +113,57 @@ export class SyncManager {
       throw new Error('Sync already in progress');
     }
 
-    if (!this.currentAdapter) {
-      throw new Error('No cloud provider configured');
-    }
-
-    if (!await this.isAuthenticated()) {
-      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
-    }
-
     this.syncInProgress = true;
+    let finalSyncStatus: SyncStatus; // Declare here to be accessible in finally
 
     try {
-      // Get local snippets
-      const localSnippets = await ExtensionStorage.getSnippets();
-      
-      // Sync with cloud
-      const mergedSnippets = await this.currentAdapter.syncSnippets(localSnippets);
+      // For now, hardcode sources. In the future, these will come from settings.
+      const sources: SyncedSource[] = [];
+      if (this.currentAdapter) {
+        // Assuming currentAdapter is always the personal one for now
+        sources.push({
+          name: 'personal',
+          adapter: this.currentAdapter,
+          folderId: 'personal-folder-id', // Placeholder
+          displayName: 'My Personal Snippets',
+        });
+      }
+
+      // TODO: Add department and org sources based on user settings
+
+      const mergedSnippets = await this.multiScopeSyncManager.syncAndMerge(sources);
       
       // Update local storage with merged results
       await ExtensionStorage.setSnippets(mergedSnippets);
       
-      // Update sync status
-      const syncStatus: SyncStatus = {
-        provider: this.currentAdapter.provider,
+      // Notify success
+      await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
+      
+      // Update last sync time
+      await ExtensionStorage.setLastSync(new Date());
+
+      // Initialize final status as success
+      finalSyncStatus = {
+        provider: this.currentAdapter?.provider || 'local',
         lastSync: new Date(),
         isOnline: true,
         hasChanges: false
       };
-      
-      await ExtensionStorage.setSyncStatus(syncStatus);
-      await ExtensionStorage.setLastSync(new Date());
-      
-      // Notify success
-      await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
-      
+
     } catch (error) {
       console.error('Sync failed:', error);
       
-      // Update sync status with error
-      const syncStatus: SyncStatus = {
-        provider: this.currentAdapter.provider,
-        lastSync: await ExtensionStorage.getLastSync(),
+      // Update final status to error
+      finalSyncStatus = {
+        provider: this.currentAdapter?.provider || 'local',
+        lastSync: await ExtensionStorage.getLastSync(), // Keep previous last sync time on failure
         isOnline: false,
         hasChanges: true,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
-      
-      await ExtensionStorage.setSyncStatus(syncStatus);
       throw error;
     } finally {
+      await ExtensionStorage.setSyncStatus(finalSyncStatus); // Set status once
       this.syncInProgress = false;
     }
   }
@@ -182,7 +191,7 @@ export class SyncManager {
     this.stopAutoSync();
     
     const intervalMs = intervalMinutes * 60 * 1000;
-    this.syncInterval = window.setInterval(() => {
+    this.syncInterval = setInterval(() => {
       this.syncNow().catch(error => {
         console.error('Auto-sync failed:', error);
       });

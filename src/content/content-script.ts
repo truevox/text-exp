@@ -3,7 +3,7 @@
  * Main entry point for text expansion functionality on web pages
  */
 
-import { TriggerDetector } from './trigger-detector';
+import { EnhancedTriggerDetector } from './enhanced-trigger-detector';
 import { TextReplacer } from './text-replacer';
 import { PlaceholderHandler } from './placeholder-handler';
 import { createMessageHandler, createSuccessResponse, createErrorResponse } from '../shared/messaging';
@@ -14,18 +14,22 @@ import { ExtensionStorage } from '../shared/storage';
  * Main content script class
  */
 export class ContentScript {
-  private triggerDetector: TriggerDetector;
+  private triggerDetector: EnhancedTriggerDetector;
   private textReplacer: TextReplacer;
   private placeholderHandler: PlaceholderHandler;
   private messageHandler = createMessageHandler();
   private isEnabled = true;
   private activeElement: HTMLElement | null = null;
 
-  constructor() {
+  constructor(
+    triggerDetector?: EnhancedTriggerDetector,
+    textReplacer?: TextReplacer,
+    placeholderHandler?: PlaceholderHandler
+  ) {
     // Initialize with empty snippets and default prefix
-    this.triggerDetector = new TriggerDetector([], ';');
-    this.textReplacer = new TextReplacer();
-    this.placeholderHandler = new PlaceholderHandler();
+    this.triggerDetector = triggerDetector || new EnhancedTriggerDetector([], ';');
+    this.textReplacer = textReplacer || new TextReplacer();
+    this.placeholderHandler = placeholderHandler || new PlaceholderHandler();
     
     this.initialize();
   }

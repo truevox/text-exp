@@ -7,6 +7,7 @@ import type { CloudAdapter, CloudProvider, CloudAdapterFactory } from '../../sha
 import { GoogleDriveAdapter } from './google-drive-adapter.js';
 import { DropboxAdapter } from './dropbox-adapter.js';
 import { OneDriveAdapter } from './onedrive-adapter.js';
+import { LocalFilesystemAdapter } from './local-filesystem-adapter.js';
 
 /**
  * Factory class for creating cloud adapters
@@ -77,6 +78,7 @@ export class CloudAdapterFactoryImpl implements CloudAdapterFactory {
     this.adapters.set('google-drive', () => new GoogleDriveAdapter());
     this.adapters.set('dropbox', () => new DropboxAdapter());
     this.adapters.set('onedrive', () => new OneDriveAdapter());
+    this.adapters.set('local-filesystem', () => new LocalFilesystemAdapter());
     
     // Local storage is handled by the extension's built-in storage
     this.adapters.set('local', () => new LocalStorageAdapter());
