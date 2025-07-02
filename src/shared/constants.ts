@@ -34,6 +34,8 @@ export const DEFAULT_SETTINGS = {
   triggerDelay: 100, // milliseconds
   caseSensitive: false,
   enableSharedSnippets: true,
+  triggerPrefix: ';',
+  excludePasswords: true,
 };
 
 /**

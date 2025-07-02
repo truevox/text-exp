@@ -127,6 +127,8 @@ export interface ExtensionSettings {
   triggerDelay: number; // milliseconds
   caseSensitive: boolean;
   enableSharedSnippets: boolean;
+  triggerPrefix: string;
+  excludePasswords: boolean;
 }
 
 /**
