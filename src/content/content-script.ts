@@ -7,7 +7,7 @@ import { TriggerDetector } from './trigger-detector.js';
 import { TextReplacer } from './text-replacer.js';
 import { PlaceholderHandler } from './placeholder-handler.js';
 import { createMessageHandler, createSuccessResponse, createErrorResponse } from '../shared/messaging.js';
-import type { ExpandTextMessage, VariablePromptMessage, TextSnippet } from '../shared/types.js';
+import type { ExpandTextMessage, VariablePromptMessage, TextSnippet, ReplacementContext } from '../shared/types.js';
 import { ExtensionStorage } from '../shared/storage.js';
 
 /**
@@ -210,7 +210,7 @@ export class ContentScript {
    * Expand text without variables
    */
   private async expandText(snippet: TextSnippet, element: HTMLElement, result: any): Promise<void> {
-    const context = this.createReplacementContext(element, snippet.trigger, result);
+    const context = this.createReplacementContext(element, snippet.trigger, snippet);
     if (context) {
       this.textReplacer.replaceText(context, snippet.content);
       
@@ -228,7 +228,7 @@ export class ContentScript {
     element: HTMLElement,
     result: any
   ): Promise<void> {
-    const context = this.createReplacementContext(element, snippet.trigger, result);
+    const context = this.createReplacementContext(element, snippet.trigger, snippet);
     if (context) {
       const expandedContent = this.placeholderHandler.replaceVariables(snippet.content, variables);
       this.textReplacer.replaceText(context, expandedContent);
@@ -249,18 +249,12 @@ export class ContentScript {
         return createErrorResponse('No active text input found');
       }
       
-      // Create a basic replacement context for manual expansion
-      const mockResult = {
-        isMatch: true,
-        trigger: message.snippet.trigger,
-        matchEnd: this.getCursorPosition(activeElement)
-      };
+      // For manual expansion, insert at cursor position
+      const expandedContent = message.variables 
+        ? this.placeholderHandler.replaceVariables(message.snippet.content, message.variables)
+        : message.snippet.content;
       
-      if (message.variables) {
-        await this.expandWithVariables(message.snippet, message.variables, activeElement, mockResult);
-      } else {
-        await this.expandText(message.snippet, activeElement, mockResult);
-      }
+      this.textReplacer.insertTextAtCursor(expandedContent, activeElement);
       
       return createSuccessResponse();
     } catch (error) {
@@ -338,7 +332,7 @@ export class ContentScript {
   /**
    * Create replacement context for text replacer
    */
-  private createReplacementContext(element: HTMLElement, trigger: string, result: any): any {
+  private createReplacementContext(element: HTMLElement, trigger: string, snippet: TextSnippet): ReplacementContext | null {
     const text = this.getElementText(element);
     const cursorPosition = this.getCursorPosition(element);
     
@@ -352,10 +346,10 @@ export class ContentScript {
     
     return {
       element,
-      text,
-      triggerStart,
-      triggerEnd: triggerStart + trigger.length,
-      cursorPosition
+      startOffset: triggerStart,
+      endOffset: triggerStart + trigger.length,
+      trigger,
+      snippet
     };
   }
 

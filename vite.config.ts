@@ -101,6 +101,10 @@ export default defineConfig(({ mode }) => {
           {
             src: 'public/icons/*',
             dest: 'icons'
+          },
+          {
+            src: 'scripts/setup-test-data.js',
+            dest: 'scripts'
           }
         ]
       }),
