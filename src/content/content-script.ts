@@ -13,15 +13,17 @@ import { ExtensionStorage } from '../shared/storage.js';
 /**
  * Main content script class
  */
-class ContentScript {
+export class ContentScript {
   private triggerDetector: TriggerDetector;
   private textReplacer: TextReplacer;
   private placeholderHandler: PlaceholderHandler;
   private messageHandler = createMessageHandler();
   private isEnabled = true;
+  private activeElement: HTMLElement | null = null;
 
   constructor() {
-    this.triggerDetector = new TriggerDetector();
+    // Initialize with empty snippets and default prefix
+    this.triggerDetector = new TriggerDetector([], ';');
     this.textReplacer = new TextReplacer();
     this.placeholderHandler = new PlaceholderHandler();
     
@@ -42,12 +44,27 @@ class ContentScript {
         return;
       }
       
+      // Load snippets and update trigger detector
+      await this.loadSnippets();
+      
       this.setupEventListeners();
       this.setupMessageHandlers();
       
       console.log('✅ Text Expander content script initialized');
     } catch (error) {
       console.error('Failed to initialize content script:', error);
+    }
+  }
+
+  /**
+   * Load snippets from storage and update trigger detector
+   */
+  private async loadSnippets(): Promise<void> {
+    try {
+      const snippets = await ExtensionStorage.getSnippets();
+      this.triggerDetector.updateSnippets(snippets);
+    } catch (error) {
+      console.error('Failed to load snippets:', error);
     }
   }
 
@@ -92,9 +109,13 @@ class ContentScript {
     if (!this.isTextInput(target)) return;
     
     try {
-      const trigger = this.triggerDetector.detectTrigger(target);
-      if (trigger) {
-        await this.processTrigger(trigger, target);
+      const text = this.getElementText(target);
+      const cursorPosition = this.getCursorPosition(target);
+      
+      const result = this.triggerDetector.processInput(text, cursorPosition);
+      
+      if (result.isMatch && result.trigger) {
+        await this.processTrigger(result.trigger, target, result);
       }
     } catch (error) {
       console.error('Error processing input:', error);
@@ -111,10 +132,14 @@ class ContentScript {
     
     // Check for expansion trigger (Tab or Space)
     if ((event.key === 'Tab' || event.key === ' ') && this.isTextInput(target)) {
-      const trigger = this.triggerDetector.detectTrigger(target);
-      if (trigger) {
+      const text = this.getElementText(target);
+      const cursorPosition = this.getCursorPosition(target);
+      
+      const result = this.triggerDetector.processInput(text, cursorPosition);
+      
+      if (result.potentialTrigger) {
         event.preventDefault();
-        await this.processTrigger(trigger, target);
+        await this.processTrigger(result.potentialTrigger, target, result);
       }
     }
   }
@@ -125,7 +150,9 @@ class ContentScript {
   private handleFocusIn(event: Event): void {
     const target = event.target as HTMLElement;
     if (this.isTextInput(target)) {
-      this.triggerDetector.setActiveElement(target);
+      this.activeElement = target;
+      // Load fresh snippets when focusing on a new element
+      this.loadSnippets();
     }
   }
 
@@ -133,7 +160,9 @@ class ContentScript {
    * Handle focus out events
    */
   private handleFocusOut(event: Event): void {
-    this.triggerDetector.setActiveElement(null);
+    this.activeElement = null;
+    // Reset the detector state
+    this.triggerDetector.reset();
   }
 
   /**
@@ -157,7 +186,7 @@ class ContentScript {
   /**
    * Process detected trigger
    */
-  private async processTrigger(trigger: string, element: HTMLElement): Promise<void> {
+  private async processTrigger(trigger: string, element: HTMLElement, result: any): Promise<void> {
     try {
       const snippet = await ExtensionStorage.findSnippetByTrigger(trigger);
       
@@ -168,9 +197,9 @@ class ContentScript {
       // Check if snippet has variables
       if (snippet.variables && snippet.variables.length > 0) {
         const variables = await this.placeholderHandler.promptForVariables(snippet);
-        await this.expandWithVariables(snippet, variables, element);
+        await this.expandWithVariables(snippet, variables, element, result);
       } else {
-        await this.expandText(snippet, element);
+        await this.expandText(snippet, element, result);
       }
     } catch (error) {
       console.error('Error processing trigger:', error);
@@ -180,8 +209,8 @@ class ContentScript {
   /**
    * Expand text without variables
    */
-  private async expandText(snippet: TextSnippet, element: HTMLElement): Promise<void> {
-    const context = this.triggerDetector.getReplacementContext(element, snippet.trigger);
+  private async expandText(snippet: TextSnippet, element: HTMLElement, result: any): Promise<void> {
+    const context = this.createReplacementContext(element, snippet.trigger, result);
     if (context) {
       this.textReplacer.replaceText(context, snippet.content);
       
@@ -196,9 +225,10 @@ class ContentScript {
   private async expandWithVariables(
     snippet: TextSnippet, 
     variables: Record<string, string>, 
-    element: HTMLElement
+    element: HTMLElement,
+    result: any
   ): Promise<void> {
-    const context = this.triggerDetector.getReplacementContext(element, snippet.trigger);
+    const context = this.createReplacementContext(element, snippet.trigger, result);
     if (context) {
       const expandedContent = this.placeholderHandler.replaceVariables(snippet.content, variables);
       this.textReplacer.replaceText(context, expandedContent);
@@ -219,10 +249,17 @@ class ContentScript {
         return createErrorResponse('No active text input found');
       }
       
+      // Create a basic replacement context for manual expansion
+      const mockResult = {
+        isMatch: true,
+        trigger: message.snippet.trigger,
+        matchEnd: this.getCursorPosition(activeElement)
+      };
+      
       if (message.variables) {
-        await this.expandWithVariables(message.snippet, message.variables, activeElement);
+        await this.expandWithVariables(message.snippet, message.variables, activeElement, mockResult);
       } else {
-        await this.expandText(message.snippet, activeElement);
+        await this.expandText(message.snippet, activeElement, mockResult);
       }
       
       return createSuccessResponse();
@@ -268,6 +305,58 @@ class ContentScript {
     }
     
     return false;
+  }
+
+  /**
+   * Get text content from element
+   */
+  private getElementText(element: HTMLElement): string {
+    if (element.tagName.toLowerCase() === 'input' || element.tagName.toLowerCase() === 'textarea') {
+      return (element as HTMLInputElement | HTMLTextAreaElement).value;
+    } else if (element.contentEditable === 'true') {
+      return element.textContent || '';
+    }
+    return '';
+  }
+
+  /**
+   * Get cursor position in element
+   */
+  private getCursorPosition(element: HTMLElement): number {
+    if (element.tagName.toLowerCase() === 'input' || element.tagName.toLowerCase() === 'textarea') {
+      return (element as HTMLInputElement | HTMLTextAreaElement).selectionStart || 0;
+    } else if (element.contentEditable === 'true') {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        return range.startOffset;
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Create replacement context for text replacer
+   */
+  private createReplacementContext(element: HTMLElement, trigger: string, result: any): any {
+    const text = this.getElementText(element);
+    const cursorPosition = this.getCursorPosition(element);
+    
+    // Find trigger position by looking backwards from cursor
+    const beforeCursor = text.substring(0, cursorPosition);
+    const triggerStart = beforeCursor.lastIndexOf(trigger);
+    
+    if (triggerStart === -1) {
+      return null;
+    }
+    
+    return {
+      element,
+      text,
+      triggerStart,
+      triggerEnd: triggerStart + trigger.length,
+      cursorPosition
+    };
   }
 
   /**

@@ -7,16 +7,16 @@
 global.chrome = {
   storage: {
     local: {
-      get: jest.fn(),
-      set: jest.fn(),
-      remove: jest.fn(),
-      clear: jest.fn()
+      get: jest.fn(() => Promise.resolve({})),
+      set: jest.fn(() => Promise.resolve()),
+      remove: jest.fn(() => Promise.resolve()),
+      clear: jest.fn(() => Promise.resolve())
     },
     sync: {
-      get: jest.fn(),
-      set: jest.fn(),
-      remove: jest.fn(),
-      clear: jest.fn()
+      get: jest.fn(() => Promise.resolve({})),
+      set: jest.fn(() => Promise.resolve()),
+      remove: jest.fn(() => Promise.resolve()),
+      clear: jest.fn(() => Promise.resolve())
     }
   },
   runtime: {
