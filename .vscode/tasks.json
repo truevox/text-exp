@@ -1,0 +1,280 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: Build Extension",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev:extension"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Build extension in development mode with instructions"
+    },
+    {
+      "label": "Dev: Watch Mode",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"],
+      "detail": "Watch for changes and rebuild automatically"
+    },
+    {
+      "label": "Build: Production",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Build extension for production"
+    },
+    {
+      "label": "Test: All",
+      "type": "shell",
+      "command": "npm",
+      "args": ["test"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Run all tests"
+    },
+    {
+      "label": "Test: Watch",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:watch"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Run tests in watch mode"
+    },
+    {
+      "label": "Test: E2E",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:e2e"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Run end-to-end tests"
+    },
+    {
+      "label": "Lint: Check",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": ["$eslint-stylish"],
+      "detail": "Run ESLint to check for issues"
+    },
+    {
+      "label": "Lint: Fix",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "lint:fix"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": ["$eslint-stylish"],
+      "detail": "Run ESLint and fix auto-fixable issues"
+    },
+    {
+      "label": "Format: Check",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "format:check"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Check code formatting with Prettier"
+    },
+    {
+      "label": "Format: Fix",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "format"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Format code with Prettier"
+    },
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "type-check"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Run TypeScript type checking"
+    },
+    {
+      "label": "Type Check: Watch",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "type-check:watch"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"],
+      "detail": "Run TypeScript type checking in watch mode"
+    },
+    {
+      "label": "Version: Bump Feature",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "version:feature"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Bump feature version and build"
+    },
+    {
+      "label": "Version: Bump Fix",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "version:fix"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Bump fix version and build"
+    },
+    {
+      "label": "Clean: Build",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "clean"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "detail": "Clean build directories"
+    },
+    {
+      "label": "Validate: All",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "validate"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "problemMatcher": ["$tsc", "$eslint-stylish"],
+      "detail": "Run full validation (type-check, lint, format-check, test)"
+    }
+  ]
+}

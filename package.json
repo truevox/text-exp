@@ -1,0 +1,67 @@
+{
+  "name": "collaborative-text-expander",
+  "version": "0.4.0",
+  "description": "A collaborative text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --mode development --watch",
+    "dev:extension": "node scripts/dev-extension.js",
+    "build": "vite build --mode production",
+    "build:dev": "vite build --mode development",
+    "preview": "vite preview",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "version:bump": "node scripts/bump-version.js && npm run build",
+    "version:feature": "node scripts/bump-version.js feature && npm run build",
+    "version:fix": "node scripts/bump-version.js fix && npm run build",
+    "clean": "rm -rf build dist",
+    "clean:all": "rm -rf build dist node_modules && npm install",
+    "validate": "npm run type-check && npm run lint && npm run format:check && npm run test"
+  },
+  "keywords": [
+    "chrome-extension",
+    "text-expander",
+    "snippets",
+    "collaboration",
+    "productivity",
+    "cloud-sync"
+  ],
+  "author": "Marvin Bentley II",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.246",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.6.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "@vitejs/plugin-react": "^4.1.0",
+    "crx": "^5.0.1",
+    "eslint": "^8.49.0",
+    "fast-glob": "^3.3.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.0.2",
+    "jsdom": "^26.1.0",
+    "playwright": "^1.38.0",
+    "prettier": "^3.0.3",
+    "rollup": "^3.29.4",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.9",
+    "vite-plugin-static-copy": "^0.17.0",
+    "webext-bridge": "^6.0.1"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

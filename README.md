@@ -61,31 +61,220 @@ As a user, I want...
 
 ## Technical Architecture
 
-![Architecture Diagram - High-level architecture of the Chrome extension, showing how snippet data flows from Google Drive to the extension and into web pages.]
+![Architecture Diagram - High-level architecture of the Chrome extension, showing how snippet data flows from multiple cloud providers through the unified CloudAdapter interface to the extension and into web pages.]
 
-At a high level, the extension will consist of a **background script (service worker)**, one or more **content scripts**, and possibly a **popup/options page** for settings. Key architectural components and data flow:
+At a high level, the extension will consist of a **background script (service worker)**, one or more **content scripts**, and possibly a **popup/options page** for settings. The architecture is built around a **unified CloudAdapter interface** that abstracts cloud provider interactions and supports **multi-scope synchronization** ("Org Mode").
 
-### Google Drive Integration
-- The extension uses Google Drive as the primary cloud storage for snippet libraries. On first setup, the extension requests authentication via Google OAuth (using Chrome's `identity` API for a seamless OAuth2 flow). The user then selects (or provides IDs for) two locations in Drive:
-  - **Personal Snippets Folder/File:** Only accessible by the user containing their private snippets
-  - **Shared Snippets Folder/File:** A shared Drive location (e.g. a folder shared with a team) containing team snippets
+### CloudAdapter Pattern: Unified Cloud Integration
+
+The **CloudAdapter** is a foundational JavaScript interface that abstracts away individual cloud provider SDKs, enabling:
+
+- **Provider Isolation:** Keeps cloud-specific code in separate, pluggable modules
+- **Unified Sync Engine:** Single sync mechanism supports multiple cloud services
+- **Easy Extension:** New cloud providers can be added without touching core logic
+- **Browser-Only:** Runs entirely client-side—no server, no proxy, no middleman
+- **Maintainability:** Clean separation of concerns and testable components
+
+#### Multi-Scope Sync Architecture ("Org Mode")
+
+The extension supports three independent snippet scopes, each synchronized from separate cloud folders:
+
+| Scope | Description | Ownership/Control |
+|-------|-------------|------------------|
+| **personal** | User's private snippets folder | User-chosen |
+| **department** | Team/group shared folder | Admin-assigned |
+| **org** | Organization-wide snippets | Globally managed |
+
+Each scope represents a separate folder synced independently, then merged non-destructively into a unified snippet library for expansion.
+
+### CloudAdapter Interface Specification
+
+Every CloudAdapter implementation must provide:
+
+```typescript
+interface CloudAdapter {
+  // 🔐 Authentication
+  signIn(): Promise<void>              // OAuth flow via chrome.identity
+  isSignedIn(): boolean                // Check credential validity
+  getUserInfo(): Promise<UserInfo>     // User ID/email for UI
+  
+  // 📁 Folder Selection  
+  selectFolder(): Promise<void>        // Picker or manual folder ID
+  getSelectedFolderInfo(): Promise<FolderInfo>  // Folder metadata
+  
+  // 🔄 Change Tracking
+  listFiles(): Promise<CloudFile[]>    // Current folder contents
+  listChanges(sinceCursor?: string): Promise<CloudChange[]>  // Delta sync
+  getDeltaCursor(): Promise<string>    // Checkpoint for resumption
+  
+  // ⬇️ File Access
+  downloadFile(fileId: string): Promise<Blob>  // File content retrieval
+  getFileMetadata(fileId: string): Promise<FileMetadata>  // Name, size, modified
+  
+  // ⬆️ Upload Support (Optional - MVP focuses on read-only)
+  uploadFile?(path: string, blob: Blob): Promise<void>
+}
+```
+
+#### SyncedSource Objects
+
+Each synchronized folder is represented as a `SyncedSource`:
+
+```typescript
+interface SyncedSource {
+  name: 'personal' | 'department' | 'org'
+  adapter: CloudAdapter
+  folderId: string
+  displayName: string
+}
+```
+
+All synced sources merge into a single active snippet set with configurable priority rules (personal > department > org by default).
+
+#### Supported Cloud Providers
+
+The CloudAdapter architecture supports multiple cloud storage backends:
+
+- ✅ **GoogleDriveAdapter** - via Google Drive API v3 and gapi.client
+- ✅ **DropboxAdapter** - via Dropbox SDK for JavaScript  
+- ✅ **OneDriveAdapter** - via Microsoft Graph API or File Picker
+- 🔄 **BackblazeAdapter** - via AWS SDK v3 to B2 S3-compatible endpoint
+- 🧪 **ExperimentalRcloneAdapter** - via wasm-compiled rclone (research)
+
+### Data Storage and State Management
+
+The extension maintains several categories of data in different storage locations:
+
+| Data Type | Storage Location | Purpose |
+|-----------|-----------------|----------|
+| **Auth tokens** | `chrome.storage.local` (per provider) | OAuth credentials, refresh tokens |
+| **Selected folders** | `chrome.storage.sync` | Folder IDs sync across browsers |
+| **Snippet content** | Extension FileSystem API / IndexedDB | Downloaded snippet data for offline use |
+| **Sync cursors** | Local storage (namespaced) | Delta sync checkpoints per adapter/folder |
+
+**Privacy & Security:** All data stays local and private—no remote servers, no telemetry. OAuth credentials only communicate with official cloud provider endpoints.
 
 ### Snippet Storage Format
-- Each snippet library (personal or shared) will be stored in a human-readable format on Drive. For maintainability, **JSON** is a strong candidate (e.g. a `snippets.json` file per user or group). JSON is easy to parse for the extension and easy to edit for users with technical skill. Alternatively, a Google Doc or Sheet could be used to allow non-technical editing:
-  - **Option 1:** JSON files - e.g. `personal_snippets.json` and `team_snippets.json`. Each contains an array or object mapping triggers to snippet content and metadata
-  - **Option 2:** Google Doc - e.g. a structured document where each snippet is listed (the extension would use Drive APIs to read and parse the document content)
-  - **Option 3:** Google Sheet - with columns like "Trigger" and "Content" (and perhaps columns for dynamic fields and snippet-specific variations). The extension reads the sheet via the Sheets API
 
-For MVP, JSON is likely simplest (structured, and can be cached for offline use easily). We will define a clear JSON schema for snippets (see **Data Models** below). The Google Drive API allows us to fetch file content as JSON; using Drive also means users can leverage Google Drive's sharing and versioning. **Background Script Service Worker:** This is the Chrome extension coordinator that handles data syncing and global events. On extension load (and periodically thereafter), the background script will connect to Google Drive (using stored OAuth credentials to fetch snippet data from Drive). It will retrieve both the personal and shared snippet files (or all files in designated snippet folders). Changes on Drive (e.g. if the user or a collaborator updated a snippet) will be detected by comparing timestamps or using the Drive Changes API. When changes are found, the background script pulls the latest data. The background script merges the personal and shared snippets into a unified in-memory **snippet database** (with logic to handle conflicts or user-specific overrides, see **Core Logic** below). It then stores this data in local storage (e.g. Chrome's `storage.local` or IndexedDB for persistence without requiring the background script to always be running).
+Each snippet library uses a human-readable **JSON format** for maintainability and version control:
 
-### Local Snippet Cache and Two-way Sync
-- The background script serves as the **local snippet cache**. The background script should also handle **two-way sync** if editing from the extension is allowed: e.g. if the user adds/edits a snippet via a popup UI (future feature), the background script would update the local cache and push changes to the appropriate Google Drive file. All Drive sync operations will be done in the background, asynchronously. Critically, **snippet expansion should never wait on a Drive request**. The extension will always use the local cached snippet data for expansions, while sync runs on a timed interval or Drive change notifications. This ensures a seamless, offline-capable user experience.
+**Example personal_snippets.json:**
+```json
+{
+  "snippets": [
+    {
+      "trigger": ";gb",
+      "content": "Goodbye!",
+      "type": "text",
+      "scope": "personal"
+    },
+    {
+      "trigger": ";intro",
+      "content": "Hello {name}, it was great meeting you at {event}!",
+      "type": "text",
+      "placeholders": [
+        {"name": "name", "prompt": "Person's name"},
+        {"name": "event", "prompt": "Event name"}
+      ]
+    }
+  ]
+}
+```
 
-### Content Scripts
-- The extension will inject a **content script** into pages, ideally all pages or specific domains as needed) that listens for user keystrokes in text input fields and editable areas. Responsibilities: **Trigger Detection:** As the user types, the content script monitors the text. It checks for snippet trigger patterns (e.g. a word starting with `;` or a predefined prefix followed by a termination character like space, Enter, or punctuation - this behavior can be configurable). For efficiency, it might track recently typed characters rather than scanning all text. **Verification & Expansion:** When a potential snippet trigger is detected, the content script verifies it against the snippet list (which it can get from the background script or have preloaded). This could be done via a quick message to the background (`is `;gb` a snippet?`) or by having the snippet list directly in content script memory. **In-place Replacement:** The content script will **replace the shorthand with the full expansion**. The replacement method depends on the context. In a plain `<input>` or `<textarea>`, the content script can simulate a series of backspaces to remove the trigger text, then insert the snippet text. In a rich text editor or contenteditable area (Gmail compose, Google Docs), the content script can insert HTML nodes (for formatted text/images) at the care position. **Dynamic Placeholder Prompts:** If the snippet requires user input (placeholders), the expansion will **pause** and request input. Implementation-wise, this could mean the content script sends a message to background or directly triggers a prompt UI component (either built-in with the extension bundle).
+### Background Service Worker Architecture
 
-### Image Handling
-- If a snippet includes an image, the content script might include a reference (like an image URL or a base64 string). The content script requires smart insertion. Since images will likely be stored as separate files (or embedded data) in the snippet, the content might include a reference to an image blob) is inserted. A preview step could be implemented: e.g. when the trigger is recognized, show a small thumbnail in the prompt UI, and only insert on confirmation. For MVP, images can insert directly to keep it simple, assuming the snippet content is trusted. **Context Awareness:** The content script should be smart about where it expands. It will not operate in sensitive fields like password inputs (to avoid security issues or unwanted expansions). It may also avoid expanding inside certain sites (if needed) or allow the user to blacklist certain sites. **Options/Settings Page:** The extension will include an Options page (or a popup) for configuration: Google Drive authentication status and an option to re-authenticate or switch accounts. Seeing (but likely limited snippets (possibly using the Google Picker API to let the user select a file/folder visually). Preferences such as the snippet trigger prefix character (default `;`), whether expansion occurs on space or immediately (some expansions might require a delimiter to avoid conflicts). A simple snippet management list - showing all snippet triggers and their content (read-only or with edit capabilities). For MVP, full editing might not be implemented (since users can edit the Drive files directly), but at least viewing or searching snippets would help usability. **Performance & Footprint:** The architecture is designed to minimize impact. Content scripts should be lightweight and avoid heavy work on every keystroke beyond checking a buffer of the last few characters against known triggers. We can optimize by only looking for the prefix character and, only if detected, accumulate the potential trigger text. The snippet list can be stored in a JavaScript object/dictionary for O(1) lookup by trigger. If many snippets are present, we might implement a trie or prefix match structure for efficiency, especially to handle overlapping triggers (see **Edge Cases**). All network calls (Drive sync) happen in the background and are infrequent (e.g. on startup, then maybe every X minutes or upon specific user actions). This avoids slowing down content script execution. The extension should be built on **Chrome Manifest V3** for modern standards (service worker based), which suspends when idle. We avoid persistent background pages for efficiency. The data can be persisted in `chrome.storage.local` or IndexedDB for persistence without requiring the background script to always be running.
+The **background script** coordinates multi-provider synchronization:
+
+1. **Multi-Provider Sync:** Manages authentication and sync for each configured CloudAdapter
+2. **Scope Coordination:** Handles personal, department, and org-level folder synchronization
+3. **Conflict Resolution:** Merges snippets from multiple sources with configurable priority
+4. **Change Detection:** Uses provider-specific delta APIs for efficient updates
+5. **Local Caching:** Stores merged snippet database in `chrome.storage.local` for offline access
+6. **Background Sync:** Periodic sync without blocking snippet expansion
+
+### Sync Engine and Offline Operation
+
+The **SyncManager** coordinates all CloudAdapter instances:
+
+```typescript
+interface SyncManager {
+  // Multi-provider coordination
+  registerAdapter(scope: ScopeType, adapter: CloudAdapter): void
+  syncAll(): Promise<SyncResult[]>
+  syncScope(scope: ScopeType): Promise<SyncResult>
+  
+  // Merged snippet access
+  getActiveSnippets(): Promise<Snippet[]>
+  resolveConflicts(snippets: Snippet[]): Snippet[]
+}
+```
+
+**Offline-First Design:**
+- ✅ **Instant Expansion:** Snippets expand immediately from local cache
+- ✅ **Background Sync:** Cloud sync happens asynchronously without blocking
+- ✅ **Offline Capability:** Full functionality without internet connection
+- ✅ **Conflict Resolution:** Smart merging when multiple sources have same triggers
+
+**Two-way Sync (Future):** While MVP focuses on read-only sync, the architecture supports bidirectional updates where users can edit snippets via the extension UI and push changes back to appropriate cloud folders.
+
+### Content Scripts and Expansion Engine
+
+The **content script** handles real-time trigger detection and snippet expansion:
+
+**Core Responsibilities:**
+- **Universal Monitoring:** Listens for keystrokes in all text input contexts
+- **Trigger Detection:** Monitors for configured prefixes (default `;`) using efficient state machines
+- **Context Awareness:** Handles various input types (input, textarea, contenteditable, rich editors)
+- **Smart Replacement:** Performs in-place text substitution without disrupting surrounding content
+- **Placeholder Processing:** Manages dynamic content with user input prompts
+
+**Architecture Integration:**
+- **Unified Snippet Access:** Queries merged snippet database from background script
+- **Scope Awareness:** Can display snippet source (personal/department/org) in expansion UI
+- **Offline Capability:** Works entirely from local cache, no cloud dependencies during expansion
+
+### Performance & Modern Architecture
+
+**Lightweight Design:**
+- **Efficient Trigger Detection:** O(1) snippet lookup using optimized data structures
+- **Minimal Keystroke Processing:** Only monitors for prefix characters to reduce overhead
+- **Smart Context Detection:** Avoids expansion in password fields and sensitive contexts
+- **Manifest V3 Compliance:** Service worker architecture with automatic suspension when idle
+
+**Multi-Provider Efficiency:**
+- **Unified Caching:** Single lookup table for all scopes and providers
+- **Background Sync:** All cloud operations happen asynchronously without blocking expansion
+- **Delta Sync:** Only downloads changed files using provider-specific change APIs
+- **Intelligent Merging:** Conflict resolution happens once during sync, not during expansion
+
+### Image and Rich Content Support
+
+The CloudAdapter architecture enables sophisticated content handling:
+
+- **Multi-Format Support:** Text, HTML, images, and mixed content snippets
+- **Cloud-Agnostic Storage:** Images stored alongside snippets in any supported cloud provider
+- **Offline Image Cache:** Images downloaded and cached locally for offline access
+- **Smart Insertion:** Context-aware insertion for different editor types (plain text, rich text, contenteditable)
+
+## CloudAdapter Implementation Roadmap
+
+### How to Add a New CloudAdapter
+
+1. **Implement the CloudAdapter interface** with provider-specific authentication and file operations
+2. **Handle OAuth flow** using `chrome.identity.launchWebAuthFlow` for the provider's endpoints
+3. **Implement change detection** using the provider's delta/webhook APIs when available
+4. **Add provider registration** to the SyncManager configuration
+5. **Create provider-specific UI** for folder selection (picker or manual ID input)
+6. **Write comprehensive tests** covering authentication, sync, and error scenarios
+
+### Current Implementation Status
+
+| Provider | Auth | Folder Selection | File Sync | Change Detection | Status |
+|----------|------|------------------|-----------|-----------------|--------|
+| Google Drive | ✅ | ✅ | ✅ | ✅ | **Complete** |
+| Dropbox | 🔄 | 🔄 | ⏳ | ⏳ | *In Progress* |
+| OneDrive | ⏳ | ⏳ | ⏳ | ⏳ | *Planned* |
+| Backblaze B2 | ⏳ | ⏳ | ⏳ | ⏳ | *Research* |
 
 ## Core Logic and Data Models
 
@@ -143,15 +332,23 @@ We will implement merging logic such that after sync, we have a unified map of `
 - The result is one combined snippet table for expansion lookups
 
 ### Dynamic Placeholder Handling
-The core logic for expansion will need to handle placeholders:
 
-- We can identify placeholders in content by a syntax like `{placeholder}` or maybe `${placeholder}` syntax). The snippet data might include a list of placeholder definitions (with optional default values or descriptions as prompts)
-- When the expansion is triggered, if placeholders exist, the expansion routine will **pause** and request input. Implementation-wise, this could mean the content script sends a message to background or directly triggers a prompt UI component (for simpler cases the content script bundle)
-- After the user fills the values, the snippet content string is populated (simple find-and-replace of placeholders), and then the final string is inserted. Then the script inserts the snippet text with those placeholders replaced by the provided values
+The CloudAdapter architecture supports sophisticated placeholder processing across all cloud providers:
 
-For a simple case of a single `{name}` placeholder, the UI could be inline like the extension could show a highlighted blank or `<name>` text selected, so the user can directly type the value in place. However, a more robust approach is an overlay form if multiple fields are needed. **Image Handling:** If a snippet includes an image, the snippet content might include a reference (like an image URL or embedded data). Since images will likely be stored as separate files (or embedded data) in the snippet, the content might include a reference like an image blob) is inserted. A preview step could be implemented: e.g. when the trigger is recognized, show a small thumbnail in the prompt UI, and only insert on confirmation. For MVP images can insert directly to keep it simple, assuming the snippet content is trusted.
+**Placeholder Syntax:**
+- Standard format: `{placeholder}` with optional descriptions
+- Snippet metadata includes placeholder definitions with prompts
+- Support for default values and validation rules
 
-We must also consider special placeholders like `{cursor}` (common in TextExpander) which indicate where the cursor should end up after expansion, or date/time macros, etc. These are advanced features and might be beyond MVP, but our data model could reserve some token for cursor placement if needed in future.
+**Cross-Provider Compatibility:**
+- Placeholders work identically regardless of cloud storage backend
+- Consistent user experience across personal, department, and org snippets
+- Smart merging handles placeholder conflicts between scopes
+
+**Advanced Features:**
+- Special tokens like `{cursor}` for post-expansion cursor positioning
+- Date/time macros that work offline
+- Conditional placeholder logic for complex snippets
 
 ### Trigger Detection & Expansion Logic
 We will likely implement a **trie or automaton** for detecting snippet triggers as the user types, especially to handle **overlapping triggers**. For example, if there's `;a` and `;addr` as separate snippets, and the user types `;addr`, a naive approach might prematurely expand on `;a`. We need to detect the longest possible match. This is a known issue in other text expanders, and solutions include waiting for a short delay or using delimiters. Our approach:
@@ -163,15 +360,42 @@ Alternatively, require an explicit terminator key (like pressing Space or Enter)
 
 The content script logic will carefully replace text so as not to disrupt the surrounding text. In a plain text field, we may need to use `document.execCommand('insertHTML', ...)`; if not available, try using DOM ranges. In a rich text editor or contenteditable area (Gmail compose, Google Docs), the content script can insert HTML nodes (for formatted text/images) at the care position.
 
-### Local Cache & Offline
-The snippet data (post-merge) will be stored in `chrome.storage.local` or an IndexedDB database) this serves as the **local snippet cache**. The background script should also handle **two-way sync** if editing from the extension is allowed: e.g. if the user adds/edits a snippet via a popup UI (future feature), the background script would update the local cache and push changes to the appropriate Google Drive file. All Drive sync operations will be done in the background, asynchronously.
+### Multi-Provider Offline Architecture
 
-This cache allows the extension to function offline indefinitely with the last known snippet data. If the user creates a new snippet on another device or edits a Drive file, merges might be needed at next sync for MVP we might assume low chance of complex conflicts (since typically one user or one location will update at a time).
+The CloudAdapter system provides robust offline functionality:
 
-### Security Considerations
-- The extension will not expose Google credentials directly; it uses OAuth tokens managed by Chrome's APIs. Snippet content itself is not highly sensitive (except perhaps if users store things like passwords - we might warn against expanding sensitive info in the clear). Google Drive handles the storage security, and we respect the user's access only (only files the user selects)
-- Expanding content from shared libraries means one user could put malicious content in a snippet that expands for others (e.g. a script tag or huge text). We should sanitize or plain-text any snippet content that will be inserted into a contenteditable to avoid injecting unwanted scripts. Likely, we treat snippet content as literal text/HTML to insert; if we allow HTML, we will strip `<script>` or other dangerous tags to avoid text expanders.
-- The extension should also be careful not to expand inside `<input type="password">` or similar fields to avoid both security issues and useless behavior.
+**Unified Local Cache:**
+- Single cached database merges snippets from all configured cloud providers
+- IndexedDB storage handles large snippet libraries with images
+- Automatic cache invalidation based on cloud provider change detection
+
+**Scope-Aware Caching:**
+- Personal, department, and org snippets cached independently
+- Conflict resolution happens during sync, not during expansion
+- Priority-based merging ensures consistent behavior offline
+
+**Sync State Management:**
+- Per-provider sync cursors track incremental changes
+- Failed syncs retry automatically with exponential backoff
+- Graceful degradation when specific providers are unavailable
+
+### Security & Privacy Considerations
+
+**Multi-Provider Security:**
+- Each CloudAdapter handles OAuth tokens independently via Chrome's identity API
+- No credentials shared between providers or sent to third-party servers
+- Provider-specific permission scopes minimize access to only necessary files
+
+**Content Security:**
+- HTML sanitization prevents script injection from any cloud provider
+- Consistent security policies across all snippet sources (personal, department, org)
+- Warning system for sensitive content in shared organizational snippets
+
+**Privacy by Design:**
+- All snippet content processed locally in the browser
+- No telemetry or usage data sent to external servers
+- Cloud providers only see standard OAuth API calls, not snippet content
+- Users maintain full control over which folders each scope can access
 
 ## UX and Design Ideas
 
@@ -286,21 +510,34 @@ The extension should not send snippet content anywhere except Google Drive. All 
 
 ## Third-Party API and Library Recommendations
 
-### Google Drive API
-Utilizing the Google Drive REST API is essential for accessing snippet files. Specifically:
+### CloudAdapter Dependencies
 
-- Use the `files.get` endpoint to fetch the snippet file contents (as JSON or exported format). We might use the `alt=media` query to directly download the file content.
-- Use the `changes.list` or simply poll file `modifiedTime` periodically to detect updates.
-- Use Drive's file IDs (which we store after user selects) to reference the files. The extension will need the Drive scope (`drive.file` creates files, or `...auth/drive.readonly` if just reading existing files. Possibly `drive.appdata` if we choose to store in a hidden appdata file, but since we want user-accessible files, normal Drive scope is better.
+**Google Drive Integration:**
+- Google Drive API v3 for file operations and change detection
+- Google Picker API for user-friendly folder selection
+- `gapi.client` library for authenticated API calls
 
-### Google Picker API
-For a nice file/folder selection, the Google Picker SDK can be used. This provides a UI to choose a file/folder from the user's Drive. It requires including the Google API script and some setup, Alternatively, we can let advanced users paste a folder ID to avoid adding this dependency for MVP.
+**Multi-Provider Support:**
+- **Dropbox:** Dropbox SDK for JavaScript with OAuth2 flow
+- **OneDrive:** Microsoft Graph API or OneDrive Picker
+- **Backblaze B2:** AWS SDK v3 configured for S3-compatible endpoints
+- **Experimental:** WebAssembly rclone for universal cloud provider support
 
-### Chrome Extensions APIs
-- `chrome.identity` for OAuth2 flow (Chrome will handle token retrieval and refresh, simplifying auth).
-- `chrome.storage.local` for storing snippet data and user settings (unlimited-ish storage).
-- `chrome.runtime.sendMessage` or `chrome.tabs.sendMessage` for communication between content scripts and background.
-- `chrome.commands` if we add keyboard shortcuts (like a hotkey to open snippet search).
+**Chrome Extension APIs:**
+- `chrome.identity` - OAuth2 flows for all cloud providers
+- `chrome.storage.local` - CloudAdapter configurations and auth tokens
+- `chrome.storage.sync` - Selected folder IDs (sync across browsers)
+- `chrome.runtime.sendMessage` - Background/content script communication
+- `chrome.commands` - Keyboard shortcuts for snippet management
+
+### CloudAdapter Architecture Benefits
+
+This unified approach provides:
+- **Consistency:** Same user experience regardless of cloud provider
+- **Reliability:** Fallback options if one provider has issues
+- **Future-Proof:** Easy to add new providers without architectural changes
+- **Enterprise-Ready:** Department and org-level snippet management
+- **No Vendor Lock-in:** Users can switch providers without losing functionality
 
 ### Libraries/Frameworks
 We aim to keep the extension lightweight. A large framework isn't necessary for background or content scripts (plain JS with perhaps some utility libs is fine). But some libraries could be helpful:
@@ -339,7 +576,70 @@ In summary, the extension can largely be built with **vanilla JavaScript** and C
 
 ## Overall Summary
 
-Overall, this requirements document outlines a feature-complete MVP that focuses on **core text expansion functionality**, collaborative sharing, and an intuitive user experience. With these specifications, we can move into design and implementation confident that the major use cases and challenges are well-understood. Let's build something flexible, powerful, and unobtrusive - a text expander that feels like a natural extension of the user's typing flow, whether they're online or offline, alone or collaborating with a team.
+This requirements document outlines a **CloudAdapter-driven architecture** that revolutionizes collaborative text expansion through:
+
+**🏗️ Unified Architecture:**
+- Single interface supporting multiple cloud providers (Google Drive, Dropbox, OneDrive, Backblaze B2)
+- Clean separation between cloud operations and snippet expansion logic
+- Extensible design for future provider additions
+
+**👥 Multi-Scope Collaboration ("Org Mode"):**
+- Personal snippets for individual productivity
+- Department-level sharing for team coordination
+- Organization-wide snippet libraries for enterprise consistency
+- Smart conflict resolution and priority-based merging
+
+**⚡ Performance & Reliability:**
+- Offline-first design with local caching
+- Background synchronization without blocking expansions
+- Efficient delta sync using provider-specific change APIs
+- Browser-only operation with no server dependencies
+
+**🔒 Security & Privacy:**
+- OAuth-only authentication directly with cloud providers
+- No third-party servers handling user data
+- Configurable permission scopes per provider
+- Content sanitization and secure expansion contexts
+
+Let's build a **flexible, powerful, and unobtrusive** text expander that scales from individual users to enterprise organizations while maintaining the natural typing flow users expect, whether online or offline, across any supported cloud storage backend.
+
+### ASCII Flow Diagram
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Personal      │    │   Department    │    │   Organization  │
+│   Snippets      │    │   Snippets      │    │   Snippets      │
+│                 │    │                 │    │                 │
+│ GoogleDrive     │    │ Dropbox         │    │ OneDrive        │
+│ /personal/      │    │ /team-alpha/    │    │ /company-wide/  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   CloudAdapter Interface                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │GoogleDrive  │  │   Dropbox   │  │  OneDrive   │   ...       │
+│  │   Adapter   │  │   Adapter   │  │   Adapter   │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SyncManager                                │
+│  • Merge snippets from all sources                             │
+│  • Resolve conflicts (personal > dept > org)                   │
+│  • Cache unified snippet database locally                      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Content Script                                │
+│  • Monitor keystrokes for triggers                             │
+│  • Expand snippets from unified cache                          │
+│  • Handle placeholders and rich content                        │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Sources
 
@@ -353,3 +653,7 @@ Overall, this requirements document outlines a feature-complete MVP that focuses
 4. How to access Google Drive API from Chrome extension running on non-Chrome browsers
 
 5. Best Text Expander Chrome Extension: r/chrome_extensions
+
+6. CloudAdapter Pattern - Inspired by adapter design patterns for cloud service abstraction
+
+7. Chrome Extension Manifest V3 - Service worker architecture and modern extension development

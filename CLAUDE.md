@@ -50,20 +50,72 @@ For every feature:
 * Large‑scale analysis (files >1000 lines).
 * Bulk data tasks (e.g., diff hundreds of snippet records).
 * Research‑heavy work (UX patterns, Chrome extension best practices).
+* Analyzing entire codebases or large directories.
+* Comparing multiple large files.
+* Need to understand project-wide patterns or architecture.
+* Current context window is insufficient for the task.
+* Working with files totaling more than 100KB.
+* Verifying if specific features, patterns, or security measures are implemented.
+* Checking for the presence of certain coding patterns across the entire codebase.
 * Anything that nets a significant token saving.
 
-#### Command Syntax
+#### File and Directory Inclusion Syntax
 
+Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the gemini command:
+
+**Single file analysis:**
 ```bash
-gemini -p "TASK_TYPE: [context] QUERY"
+gemini -p "@src/main.py Explain this file's purpose and structure"
 ```
 
-*Task types & examples remain unchanged from the template.*
+**Multiple files:**
+```bash
+gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
+```
+
+**Entire directory:**
+```bash
+gemini -p "@src/ Summarize the architecture of this codebase"
+```
+
+**Multiple directories:**
+```bash
+gemini -p "@src/ @tests/ Analyze test coverage for the source code"
+```
+
+**Current directory and subdirectories:**
+```bash
+gemini -p "@./ Give me an overview of this entire project"
+# Or use --all_files flag:
+gemini --all_files -p "Analyze the project structure and dependencies"
+```
+
+#### Implementation Verification Examples
+
+**Check if a feature is implemented:**
+```bash
+gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
+```
+
+**Verify authentication implementation:**
+```bash
+gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
+```
+
+**Check for specific patterns:**
+```bash
+gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
+```
+
+**Verify error handling:**
+```bash
+gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
+```
 
 #### Collaboration Workflow
 
 1. **Claude** spots a large task.
-2. **Gemini** crunches it.
+2. **Gemini** crunches it with `@` syntax for file/directory inclusion.
 3. **Claude** reviews & applies.
 4. **Document** decisions in repo.
 
@@ -87,7 +139,11 @@ After core logic works, ask Claude to provide screenshots or mock‑ups for:
 ### 📦 Version Management
 
 * **Bump version with EVERY commit** (update `manifest.json` and `package.json`).
-* Stay in `0.x.y` pre‑1.0 until launch approval; then switch to SemVer MAJOR.MINOR.PATCH.
+* **Stay in `0.x.y` pre‑1.0 until launch approval** (keep breaking changes number at 0).
+* **Use 0.x.y format**: 0.1.0 → 0.2.0 (feature), 0.1.0 → 0.1.1 (fix).
+* **Version logged to console** on extension startup for debugging.
+* **Use npm scripts**: `npm run version:feature` or `npm run version:fix`.
+* Switch to SemVer MAJOR.MINOR.PATCH only after launch approval.
 
 ---
 

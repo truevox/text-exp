@@ -1,0 +1,376 @@
+/**
+ * Sync Manager for Collaborative Text Expander
+ * Orchestrates synchronization between local storage and cloud providers
+ */
+
+import { ExtensionStorage } from '../shared/storage.js';
+import { getCloudAdapterFactory } from './cloud-adapters/index.js';
+import type { 
+  CloudAdapter, 
+  CloudProvider, 
+  TextSnippet, 
+  SyncStatus, 
+  CloudCredentials,
+  ExtensionSettings 
+} from '../shared/types.js';
+import { DEFAULT_SETTINGS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../shared/constants.js';
+
+/**
+ * Manages synchronization between local and cloud storage
+ */
+export class SyncManager {
+  private static instance: SyncManager;
+  private currentAdapter: CloudAdapter | null = null;
+  private syncInProgress = false;
+  private syncInterval: number | null = null;
+
+  private constructor() {}
+
+  /**
+   * Get singleton instance
+   */
+  static getInstance(): SyncManager {
+    if (!SyncManager.instance) {
+      SyncManager.instance = new SyncManager();
+    }
+    return SyncManager.instance;
+  }
+
+  /**
+   * Initialize sync manager with current settings
+   */
+  async initialize(): Promise<void> {
+    const settings = await ExtensionStorage.getSettings();
+    await this.setCloudProvider(settings.cloudProvider);
+    
+    if (settings.autoSync) {
+      this.startAutoSync(settings.syncInterval);
+    }
+  }
+
+  /**
+   * Set the active cloud provider
+   */
+  async setCloudProvider(provider: CloudProvider): Promise<void> {
+    try {
+      const factory = getCloudAdapterFactory();
+      this.currentAdapter = factory.createAdapter(provider);
+      
+      // Try to initialize with stored credentials
+      const credentials = await ExtensionStorage.getCloudCredentials();
+      if (credentials && credentials.provider === provider) {
+        await this.currentAdapter.initialize(credentials);
+      }
+    } catch (error) {
+      console.error('Failed to set cloud provider:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Authenticate with the current cloud provider
+   */
+  async authenticate(): Promise<CloudCredentials> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    try {
+      const credentials = await this.currentAdapter.authenticate();
+      await this.currentAdapter.initialize(credentials);
+      await ExtensionStorage.setCloudCredentials(credentials);
+      
+      return credentials;
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+  }
+
+  /**
+   * Check if currently authenticated
+   */
+  async isAuthenticated(): Promise<boolean> {
+    if (!this.currentAdapter) {
+      return false;
+    }
+    
+    return this.currentAdapter.isAuthenticated();
+  }
+
+  /**
+   * Perform manual sync
+   */
+  async syncNow(): Promise<void> {
+    if (this.syncInProgress) {
+      throw new Error('Sync already in progress');
+    }
+
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    this.syncInProgress = true;
+
+    try {
+      // Get local snippets
+      const localSnippets = await ExtensionStorage.getSnippets();
+      
+      // Sync with cloud
+      const mergedSnippets = await this.currentAdapter.syncSnippets(localSnippets);
+      
+      // Update local storage with merged results
+      await ExtensionStorage.setSnippets(mergedSnippets);
+      
+      // Update sync status
+      const syncStatus: SyncStatus = {
+        provider: this.currentAdapter.provider,
+        lastSync: new Date(),
+        isOnline: true,
+        hasChanges: false
+      };
+      
+      await ExtensionStorage.setSyncStatus(syncStatus);
+      await ExtensionStorage.setLastSync(new Date());
+      
+      // Notify success
+      await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
+      
+    } catch (error) {
+      console.error('Sync failed:', error);
+      
+      // Update sync status with error
+      const syncStatus: SyncStatus = {
+        provider: this.currentAdapter.provider,
+        lastSync: await ExtensionStorage.getLastSync(),
+        isOnline: false,
+        hasChanges: true,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+      
+      await ExtensionStorage.setSyncStatus(syncStatus);
+      throw error;
+    } finally {
+      this.syncInProgress = false;
+    }
+  }
+
+  /**
+   * Get current sync status
+   */
+  async getSyncStatus(): Promise<SyncStatus | null> {
+    if (!this.currentAdapter) {
+      return null;
+    }
+    
+    try {
+      return await this.currentAdapter.getSyncStatus();
+    } catch (error) {
+      console.error('Failed to get sync status:', error);
+      return await ExtensionStorage.getSyncStatus();
+    }
+  }
+
+  /**
+   * Start automatic synchronization
+   */
+  startAutoSync(intervalMinutes: number): void {
+    this.stopAutoSync();
+    
+    const intervalMs = intervalMinutes * 60 * 1000;
+    this.syncInterval = window.setInterval(() => {
+      this.syncNow().catch(error => {
+        console.error('Auto-sync failed:', error);
+      });
+    }, intervalMs);
+    
+    console.log(`Auto-sync started with ${intervalMinutes} minute interval`);
+  }
+
+  /**
+   * Stop automatic synchronization
+   */
+  stopAutoSync(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+      console.log('Auto-sync stopped');
+    }
+  }
+
+  /**
+   * Upload local snippets to cloud
+   */
+  async uploadSnippets(snippets?: TextSnippet[]): Promise<void> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    const snippetsToUpload = snippets || await ExtensionStorage.getSnippets();
+    await this.currentAdapter.uploadSnippets(snippetsToUpload);
+  }
+
+  /**
+   * Download snippets from cloud
+   */
+  async downloadSnippets(): Promise<TextSnippet[]> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    return this.currentAdapter.downloadSnippets();
+  }
+
+  /**
+   * Delete snippets from cloud storage
+   */
+  async deleteSnippets(snippetIds: string[]): Promise<void> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    await this.currentAdapter.deleteSnippets(snippetIds);
+  }
+
+  /**
+   * Force sync from cloud (overwrite local)
+   */
+  async forceDownload(): Promise<void> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    try {
+      const cloudSnippets = await this.currentAdapter.downloadSnippets();
+      await ExtensionStorage.setSnippets(cloudSnippets);
+      
+      await this.showNotification('Snippets downloaded from cloud');
+    } catch (error) {
+      console.error('Force download failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Force sync to cloud (overwrite remote)
+   */
+  async forceUpload(): Promise<void> {
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured');
+    }
+
+    if (!await this.isAuthenticated()) {
+      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
+    }
+
+    try {
+      const localSnippets = await ExtensionStorage.getSnippets();
+      await this.currentAdapter.uploadSnippets(localSnippets);
+      
+      await this.showNotification('Snippets uploaded to cloud');
+    } catch (error) {
+      console.error('Force upload failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear cloud credentials and reset sync
+   */
+  async disconnect(): Promise<void> {
+    this.stopAutoSync();
+    await ExtensionStorage.clearCloudCredentials();
+    this.currentAdapter = null;
+    
+    // Reset to local storage
+    await this.setCloudProvider('local');
+  }
+
+  /**
+   * Handle settings changes
+   */
+  async onSettingsChanged(newSettings: ExtensionSettings): Promise<void> {
+    // Update cloud provider if changed
+    if (this.currentAdapter?.provider !== newSettings.cloudProvider) {
+      await this.setCloudProvider(newSettings.cloudProvider);
+    }
+    
+    // Update auto-sync settings
+    if (newSettings.autoSync) {
+      this.startAutoSync(newSettings.syncInterval);
+    } else {
+      this.stopAutoSync();
+    }
+  }
+
+  /**
+   * Get sync statistics
+   */
+  async getSyncStats(): Promise<{
+    totalSnippets: number;
+    lastSync: Date | null;
+    syncProvider: CloudProvider;
+    isOnline: boolean;
+  }> {
+    const snippets = await ExtensionStorage.getSnippets();
+    const lastSync = await ExtensionStorage.getLastSync();
+    const syncStatus = await this.getSyncStatus();
+    
+    return {
+      totalSnippets: snippets.length,
+      lastSync,
+      syncProvider: this.currentAdapter?.provider || 'local',
+      isOnline: syncStatus?.isOnline || false
+    };
+  }
+
+  /**
+   * Show notification to user
+   */
+  private async showNotification(message: string): Promise<void> {
+    const settings = await ExtensionStorage.getSettings();
+    
+    if (settings.showNotifications) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon-48.png',
+        title: 'Text Expander',
+        message
+      });
+    }
+  }
+
+  /**
+   * Check if sync is currently in progress
+   */
+  isSyncInProgress(): boolean {
+    return this.syncInProgress;
+  }
+
+  /**
+   * Get current cloud provider
+   */
+  getCurrentProvider(): CloudProvider | null {
+    return this.currentAdapter?.provider || null;
+  }
+}
