@@ -1,8 +1,8 @@
-# Collaborative Text Expansion Chrome Extension - Requirements Document
+# PuffPuffPaste - Chrome Extension Requirements Document
 
 ## Scope and Goals
 
-The goal is to develop a **collaborative text expansion Chrome extension** that streamlines repetitive typing for individuals and teams. This extension will allow users to define shorthand **snippets** that expand into longer text or images, with support for dynamic placeholders and shared snippet libraries. Key objectives include:
+**Blow up your words!** PuffPuffPaste is a powerful text expansion Chrome extension that streamlines repetitive typing for individuals and teams. This extension will allow users to define shorthand **snippets** that expand into longer text or images, with support for dynamic placeholders and shared snippet libraries. Key objectives include:
 
 - **Time Savings & Consistency:** Automate insertion of frequently used text (emails, greetings, signatures, etc.) to save time and maintain consistency
 - **Collaboration:** Enable teams to share common snippet libraries via Google Drive so everyone uses up-to-date templates (e.g. shared email replies, responses)

@@ -143,7 +143,7 @@ const TEST_SETTINGS = {
  */
 async function setupTestData() {
   try {
-    console.log('🚀 Setting up test data for Collaborative Text Expander...');
+    console.log('🚀 Setting up test data for PuffPuffPaste...');
     
     // Set test snippets
     await chrome.storage.local.set({

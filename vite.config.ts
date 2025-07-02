@@ -99,7 +99,7 @@ export default defineConfig(({ mode }) => {
             dest: 'options'
           },
           {
-            src: 'public/icons/*',
+            src: 'src/assets/icons/*',
             dest: 'icons'
           },
           {

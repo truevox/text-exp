@@ -40,7 +40,7 @@ export class ContentScript {
       this.isEnabled = settings.enabled;
       
       if (!this.isEnabled) {
-        console.log('Text Expander is disabled');
+        console.log('PuffPuffPaste is disabled');
         return;
       }
       
@@ -50,7 +50,7 @@ export class ContentScript {
       this.setupEventListeners();
       this.setupMessageHandlers();
       
-      console.log('✅ Text Expander content script initialized');
+      console.log('✅ PuffPuffPaste content script initialized');
     } catch (error) {
       console.error('Failed to initialize content script:', error);
     }
@@ -358,7 +358,7 @@ export class ContentScript {
    */
   setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
-    console.log(`Text Expander ${enabled ? 'enabled' : 'disabled'}`);
+    console.log(`PuffPuffPaste ${enabled ? 'enabled' : 'disabled'}`);
   }
 }
 

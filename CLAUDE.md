@@ -6,7 +6,7 @@ My name is Marvin Bentley II.
 
 ## 🎯 Purpose
 
-This file configures **Claude Code** to follow a disciplined, **TDD‑first** workflow for the **Collaborative Text‑Expander Chrome Extension (CTE)** project. Claude acts as a structured partner: it reads docs, plans, writes failing tests first, implements just enough code to pass, and commits in small, verifiable steps.
+This file configures **Claude Code** to follow a disciplined, **TDD‑first** workflow for the **PuffPuffPaste Chrome Extension** project. Claude acts as a structured partner: it reads docs, plans, writes failing tests first, implements just enough code to pass, and commits in small, verifiable steps.
 
 ## FYI
 
@@ -184,5 +184,5 @@ Examples:
 4. Polish UI mock‑ups.
 5. PR with focused, verified changes.
 
-Let’s build the Collaborative Text‑Expander extension step‑by‑step—clean, and test‑driven!
+Let’s build the PuffPuffPaste extension step‑by‑step—clean, and test‑driven!
 

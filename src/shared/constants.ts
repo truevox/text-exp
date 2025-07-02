@@ -6,9 +6,9 @@
  * Extension configuration
  */
 export const EXTENSION_CONFIG = {
-  NAME: 'Collaborative Text Expander',
-  VERSION: '0.1.0',
-  DESCRIPTION: 'Expand text snippets with cloud synchronization',
+  NAME: 'PuffPuffPaste',
+  VERSION: '0.5.0',
+  DESCRIPTION: 'Blow up your words! Expand text snippets with cloud synchronization',
 } as const;
 
 /**

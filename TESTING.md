@@ -1,4 +1,4 @@
-# 🧪 Testing Guide - Collaborative Text Expander
+# 🧪 Testing Guide - PuffPuffPaste
 
 ## ✅ Current Testing Status
 
@@ -71,7 +71,7 @@ showStorageContents(); // See all snippets
 
 ### Console Logs
 - Open DevTools on any page to see content script logs
-- Look for "✅ Text Expander content script initialized"
+- Look for "✅ PuffPuffPaste content script initialized"
 - Expansion logs: "Expanded ';hello' → 'Hello!...'"
 
 ### Common Issues

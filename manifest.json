@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Collaborative Text Expander",
+  "name": "PuffPuffPaste",
   "version": "0.5.0",
-  "description": "A collaborative text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
+  "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "permissions": [
     "storage",
     "identity",
@@ -31,7 +31,7 @@
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Collaborative Text Expander",
+    "default_title": "PuffPuffPaste",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",

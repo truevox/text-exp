@@ -47,7 +47,7 @@ export class DriveClient {
         snippets,
         lastModified: new Date().toISOString(),
         version: '1.0',
-        source: 'collaborative-text-expander'
+        source: 'puffpuffpaste'
       };
       
       // Check if file already exists
@@ -177,7 +177,7 @@ export class DriveClient {
     const metadata = {
       name: this.FILE_NAME,
       mimeType: this.MIME_TYPE,
-      description: 'Collaborative Text Expander snippets backup'
+      description: 'PuffPuffPaste snippets backup'
     };
     
     const form = new FormData();
