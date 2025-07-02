@@ -10,7 +10,7 @@ logVersion();
 
 // Extension installation and startup
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('📦 Collaborative Text Expander installed:', details.reason);
+  console.log('📦 PuffPuffPaste installed:', details.reason);
   
   if (details.reason === 'install') {
     console.log('🎉 First installation - initializing extension');

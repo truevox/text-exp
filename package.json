@@ -1,13 +1,13 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
     "dev": "vite build --mode development --watch",
     "dev:extension": "node scripts/dev-extension.js",
-    "build": "vite build --mode production",
-    "build:dev": "vite build --mode development",
+    "build": "node scripts/sync-version.js && vite build --mode production && node build-content-script.js",
+    "build:dev": "node scripts/sync-version.js && vite build --mode development && vite build --mode development --config vite.content.config.ts",
     "preview": "vite preview",
     "test": "jest",
     "test:e2e": "playwright test",

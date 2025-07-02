@@ -3,12 +3,12 @@
  * Main entry point for text expansion functionality on web pages
  */
 
-import { TriggerDetector } from './trigger-detector.js';
-import { TextReplacer } from './text-replacer.js';
-import { PlaceholderHandler } from './placeholder-handler.js';
-import { createMessageHandler, createSuccessResponse, createErrorResponse } from '../shared/messaging.js';
-import type { ExpandTextMessage, VariablePromptMessage, TextSnippet, ReplacementContext } from '../shared/types.js';
-import { ExtensionStorage } from '../shared/storage.js';
+import { TriggerDetector } from './trigger-detector';
+import { TextReplacer } from './text-replacer';
+import { PlaceholderHandler } from './placeholder-handler';
+import { createMessageHandler, createSuccessResponse, createErrorResponse } from '../shared/messaging';
+import type { ExpandTextMessage, VariablePromptMessage, TextSnippet, ReplacementContext } from '../shared/types';
+import { ExtensionStorage } from '../shared/storage';
 
 /**
  * Main content script class
@@ -62,6 +62,28 @@ export class ContentScript {
   private async loadSnippets(): Promise<void> {
     try {
       const snippets = await ExtensionStorage.getSnippets();
+      const settings = await ExtensionStorage.getSettings();
+      
+      // Add built-in test snippet if not disabled
+      if (!settings.disableTestSnippet) {
+        const testTrigger = settings.testTrigger || ';htest';
+        
+        const builtInTestSnippet: TextSnippet = {
+          id: 'builtin-test',
+          trigger: testTrigger,
+          content: 'Hello World!',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          variables: [],
+          tags: ['builtin', 'test'],
+          isBuiltIn: true
+        };
+        
+        snippets.push(builtInTestSnippet);
+        console.log('📝 Added built-in test snippet with trigger:', testTrigger);
+      }
+      
+      console.log('📚 Loaded snippets:', snippets.length, 'total');
       this.triggerDetector.updateSnippets(snippets);
     } catch (error) {
       console.error('Failed to load snippets:', error);
@@ -112,9 +134,14 @@ export class ContentScript {
       const text = this.getElementText(target);
       const cursorPosition = this.getCursorPosition(target);
       
+      console.log('🔍 Input event:', { text, cursorPosition, textLength: text.length });
+      
       const result = this.triggerDetector.processInput(text, cursorPosition);
       
+      console.log('🎯 Trigger detection result:', result);
+      
       if (result.isMatch && result.trigger) {
+        console.log('✨ Match found! Processing trigger:', result.trigger);
         await this.processTrigger(result.trigger, target, result);
       }
     } catch (error) {
@@ -135,11 +162,19 @@ export class ContentScript {
       const text = this.getElementText(target);
       const cursorPosition = this.getCursorPosition(target);
       
+      console.log('⌨️ Keydown trigger check:', { key: event.key, text, cursorPosition });
+      
       const result = this.triggerDetector.processInput(text, cursorPosition);
       
-      if (result.potentialTrigger) {
+      console.log('🔍 Keydown trigger result:', result);
+      
+      if (result.potentialTrigger || (result.isMatch && result.trigger)) {
+        console.log('🚀 Preventing default and processing trigger');
         event.preventDefault();
-        await this.processTrigger(result.potentialTrigger, target, result);
+        const triggerToProcess = result.trigger || result.potentialTrigger;
+        if (triggerToProcess) {
+          await this.processTrigger(triggerToProcess, target, result);
+        }
       }
     }
   }
@@ -187,22 +222,62 @@ export class ContentScript {
    * Process detected trigger
    */
   private async processTrigger(trigger: string, element: HTMLElement, result: any): Promise<void> {
+    console.log('🎯 Processing trigger:', { trigger, element, result });
+    
     try {
-      const snippet = await ExtensionStorage.findSnippetByTrigger(trigger);
+      let snippet = await ExtensionStorage.findSnippetByTrigger(trigger);
+      
+      // If not found in storage, check if it's the built-in test snippet
+      if (!snippet) {
+        const settings = await ExtensionStorage.getSettings();
+        const testTrigger = settings.testTrigger || ';htest';
+        
+        if (trigger === testTrigger && !settings.disableTestSnippet) {
+          // Create the built-in test snippet
+          snippet = {
+            id: 'builtin-test',
+            trigger: testTrigger,
+            content: 'Hello World!',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            variables: [],
+            tags: ['builtin', 'test'],
+            isBuiltIn: true
+          };
+          console.log('🧪 Using built-in test snippet:', snippet);
+        }
+      }
+      
+      console.log('🔍 Found snippet:', snippet);
       
       if (!snippet) {
+        console.log('❌ No matching snippet found for trigger:', trigger);
         return; // No matching snippet found
+      }
+      
+      // Handle built-in test snippet customization
+      if (snippet.isBuiltIn && snippet.id === 'builtin-test') {
+        console.log('🧪 Built-in test snippet detected');
+        const settings = await ExtensionStorage.getSettings();
+        console.log('⚙️ Settings:', settings);
+        if (!settings.hasSeenTestSnippet) {
+          console.log('👋 First time seeing test snippet - showing customization');
+          await this.showTestSnippetCustomization();
+          return; // Don't expand on first use, just show customization
+        }
       }
       
       // Check if snippet has variables
       if (snippet.variables && snippet.variables.length > 0) {
+        console.log('📝 Snippet has variables, prompting...');
         const variables = await this.placeholderHandler.promptForVariables(snippet);
         await this.expandWithVariables(snippet, variables, element, result);
       } else {
+        console.log('✨ Expanding simple snippet');
         await this.expandText(snippet, element, result);
       }
     } catch (error) {
-      console.error('Error processing trigger:', error);
+      console.error('❌ Error processing trigger:', error);
     }
   }
 
@@ -210,12 +285,19 @@ export class ContentScript {
    * Expand text without variables
    */
   private async expandText(snippet: TextSnippet, element: HTMLElement, result: any): Promise<void> {
+    console.log('🚀 expandText called with:', { snippet, element });
+    
     const context = this.createReplacementContext(element, snippet.trigger, snippet);
+    console.log('📍 Replacement context:', context);
+    
     if (context) {
+      console.log('✅ Context valid, calling textReplacer');
       this.textReplacer.replaceText(context, snippet.content);
       
       // Log expansion for analytics
-      console.log(`Expanded "${snippet.trigger}" → "${snippet.content.substring(0, 50)}..."`);
+      console.log(`✨ Expanded "${snippet.trigger}" → "${snippet.content.substring(0, 50)}..."`);
+    } else {
+      console.log('❌ Invalid replacement context');
     }
   }
 
@@ -351,6 +433,117 @@ export class ContentScript {
       trigger,
       snippet
     };
+  }
+
+  /**
+   * Show test snippet customization modal
+   */
+  private async showTestSnippetCustomization(): Promise<void> {
+    return new Promise((resolve) => {
+      const modal = this.createTestCustomizationModal(resolve);
+      document.body.appendChild(modal);
+      
+      // Focus the input field
+      const input = modal.querySelector('input') as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+
+  /**
+   * Create test snippet customization modal
+   */
+  private createTestCustomizationModal(onComplete: () => void): HTMLElement {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    `;
+
+    modal.innerHTML = `
+      <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #333;">
+        🧪 Test Snippet Found!
+      </h2>
+      <p style="margin: 0 0 20px 0; color: #666; line-height: 1.4;">
+        PuffPuffPaste includes a built-in test snippet to verify basic functionality. 
+        You can customize or disable it:
+      </p>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #555;">
+          Trigger (current: ;htest):
+        </label>
+        <input type="text" id="customTrigger" value=";htest" 
+               style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+        <button id="disableBtn" style="padding: 8px 16px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Disable Test
+        </button>
+        <button id="saveBtn" style="padding: 8px 16px; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 4px; cursor: pointer; font-size: 14px;">
+          Save & Continue
+        </button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+
+    // Handle buttons
+    const saveBtn = modal.querySelector('#saveBtn') as HTMLButtonElement;
+    const disableBtn = modal.querySelector('#disableBtn') as HTMLButtonElement;
+    const input = modal.querySelector('#customTrigger') as HTMLInputElement;
+
+    saveBtn.addEventListener('click', async () => {
+      const newTrigger = input.value.trim();
+      if (newTrigger && newTrigger !== ';htest') {
+        await ExtensionStorage.setSettings({ testTrigger: newTrigger });
+      }
+      await ExtensionStorage.setSettings({ hasSeenTestSnippet: true });
+      await this.loadSnippets(); // Reload with new trigger
+      document.body.removeChild(overlay);
+      onComplete();
+    });
+
+    disableBtn.addEventListener('click', async () => {
+      await ExtensionStorage.setSettings({ 
+        disableTestSnippet: true,
+        hasSeenTestSnippet: true 
+      });
+      await this.loadSnippets(); // Reload without test snippet
+      document.body.removeChild(overlay);
+      onComplete();
+    });
+
+    // Handle Enter key
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveBtn.click();
+      }
+    });
+
+    return overlay;
   }
 
   /**

@@ -17,6 +17,7 @@ export interface TextSnippet {
   updatedAt: Date;
   isShared?: boolean;
   sharedBy?: string;
+  isBuiltIn?: boolean;
 }
 
 /**
@@ -129,6 +130,10 @@ export interface ExtensionSettings {
   enableSharedSnippets: boolean;
   triggerPrefix: string;
   excludePasswords: boolean;
+  // Built-in test snippet settings
+  testTrigger?: string;
+  disableTestSnippet?: boolean;
+  hasSeenTestSnippet?: boolean;
 }
 
 /**

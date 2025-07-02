@@ -24,17 +24,37 @@ npm run build
 
 ### 3. Setup Test Data
 
-1. Open the extension's background page:
+1. Open the extension's service worker console:
    - Go to `chrome://extensions/`
-   - Click "Inspect views: background page" under our extension
-2. In the console, run:
+   - Click "Inspect views: service worker" under our extension
+2. In the console, copy and paste this setup code:
    ```javascript
-   // Load the setup script
-   const script = document.createElement('script');
-   script.src = chrome.runtime.getURL('scripts/setup-test-data.js');
-   document.head.appendChild(script);
+   // Setup test data directly in service worker
+   const SAMPLE_SNIPPETS = [
+     { id: 'greeting-hello', trigger: ';hello', content: 'Hello! How are you doing today?', createdAt: new Date('2024-01-01'), updatedAt: new Date('2024-01-01'), variables: [], tags: ['greeting', 'casual'] },
+     { id: 'greeting-goodbye', trigger: ';gb', content: 'Goodbye! Have a great day!', createdAt: new Date('2024-01-01'), updatedAt: new Date('2024-01-01'), variables: [], tags: ['greeting', 'farewell'] },
+     { id: 'date-today', trigger: ';today', content: new Date().toLocaleDateString(), createdAt: new Date('2024-01-01'), updatedAt: new Date('2024-01-01'), variables: [], tags: ['date', 'utility'] },
+     { id: 'email-signature', trigger: ';sig', content: 'Best regards,\n{name}\n{title}\n{company}', createdAt: new Date('2024-01-01'), updatedAt: new Date('2024-01-01'), variables: [{ name: 'name', placeholder: 'Your name', required: true, type: 'text' }, { name: 'title', placeholder: 'Your job title', required: true, type: 'text' }, { name: 'company', placeholder: 'Company name', required: true, type: 'text' }], tags: ['email', 'signature', 'professional'] }
+   ];
    
-   // Then run setup
+   const TEST_SETTINGS = { enabled: true, cloudProvider: 'local', autoSync: false, syncInterval: 30, showNotifications: true, triggerDelay: 100, caseSensitive: false, enableSharedSnippets: true, triggerPrefix: ';', excludePasswords: true };
+   
+   // Setup function
+   async function setupTestData() {
+     try {
+       console.log('🚀 Setting up test data for PuffPuffPaste...');
+       await chrome.storage.local.set({ 'snippets': SAMPLE_SNIPPETS });
+       await chrome.storage.sync.set({ 'settings': TEST_SETTINGS });
+       await chrome.storage.local.set({ 'syncStatus': { lastSync: new Date().toISOString(), status: 'idle', error: null, snippetCount: SAMPLE_SNIPPETS.length } });
+       console.log(`✅ Added ${SAMPLE_SNIPPETS.length} test snippets`);
+       console.log('🎉 Test data setup complete!');
+       SAMPLE_SNIPPETS.forEach(snippet => console.log(`  ${snippet.trigger} - ${snippet.content.substring(0, 50)}...`));
+     } catch (error) {
+       console.error('❌ Failed to setup test data:', error);
+     }
+   }
+   
+   // Run setup
    setupTestData();
    ```
 

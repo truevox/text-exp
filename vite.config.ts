@@ -20,6 +20,9 @@ function chromeExtensionPlugin(): Plugin {
       manifest.action.default_popup = 'popup/popup.html';
       manifest.options_page = 'options/options.html';
       
+      // Background service worker can be a module
+      manifest.background.type = 'module';
+      
       this.emitFile({
         type: 'asset',
         fileName: 'manifest.json',
@@ -54,21 +57,18 @@ export default defineConfig(({ mode }) => {
       minify: isDev ? false : 'terser',
       rollupOptions: {
         input: {
+          // Background service worker as ES module
           'background/service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
-          'content/content-script': resolve(__dirname, 'src/content/content-script.ts'),
+          // Content script built separately with vite.content.config.ts
+          // UI components as ES modules  
           'popup/popup': resolve(__dirname, 'src/popup/popup.ts'),
           'options/options': resolve(__dirname, 'src/options/options.ts'),
         },
         output: {
           entryFileNames: '[name].js',
           chunkFileNames: '[name]-[hash].js',
-          assetFileNames: (assetInfo) => {
-            const name = assetInfo.name || '';
-            if (name.endsWith('.css')) {
-              return '[name].[ext]';
-            }
-            return '[name].[ext]';
-          }
+          assetFileNames: '[name].[ext]',
+          format: 'esm', // Use ESM for most files, convert content script after
         },
         external: ['chrome']
       },

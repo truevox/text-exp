@@ -74,8 +74,15 @@ export class TriggerDetector {
     return this.snippets.length;
   }
 
-  processInput(input: string): TriggerMatch {
-    return this.processInputWithContext(input, 0);
+  processInput(input: string, cursorPosition?: number): TriggerMatch {
+    // If no cursor position provided, check from beginning
+    if (cursorPosition === undefined) {
+      return this.processInputWithContext(input, 0);
+    }
+    
+    // Look for trigger at or before cursor position
+    const textUpToCursor = input.substring(0, cursorPosition);
+    return this.processInputWithContext(textUpToCursor, 0);
   }
 
   processInputWithContext(input: string, contextStart: number): TriggerMatch {

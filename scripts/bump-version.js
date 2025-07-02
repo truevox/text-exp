@@ -89,6 +89,17 @@ function main() {
 const currentVersion = getCurrentVersion();
 console.log(`🏷️  Current version: ${currentVersion}`);
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check if script is being run directly
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const isMain = process.argv[1] === __filename;
+
+console.log('Debug:', { 
+  __filename, 
+  'process.argv[1]': process.argv[1], 
+  isMain 
+});
+
+if (isMain) {
   main();
 }
