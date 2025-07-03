@@ -128,8 +128,8 @@ export class SyncManager {
 
     // Check if we need to authenticate first for cloud providers
     if (provider !== 'local') {
-      const isConnected = await this.currentAdapter.isConnected();
-      if (!isConnected) {
+      const isAuthenticated = await this.currentAdapter.isAuthenticated();
+      if (!isAuthenticated) {
         console.log(`🔐 Not authenticated with ${provider}, authenticating first...`);
         const credentials = await this.authenticate();
         await this.currentAdapter.initialize(credentials);

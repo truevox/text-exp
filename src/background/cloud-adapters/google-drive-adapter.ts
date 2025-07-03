@@ -262,6 +262,32 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
+   * Check if the adapter is authenticated (has valid credentials)
+   */
+  async isAuthenticated(): Promise<boolean> {
+    if (!this.credentials?.accessToken) {
+      return false;
+    }
+    
+    // Check if token is expired
+    if (this.credentials.expiresAt && this.credentials.expiresAt < new Date()) {
+      console.log('🔐 Google Drive token expired');
+      return false;
+    }
+    
+    // Test the connection with a simple API call
+    try {
+      const response = await fetch(
+        `${GoogleDriveAdapter.DRIVE_API}/about?fields=user`,
+        { headers: this.getAuthHeaders() }
+      );
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get authorization headers
    */
   private getAuthHeaders(): Record<string, string> {
