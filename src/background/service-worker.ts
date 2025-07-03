@@ -6,6 +6,9 @@
 import { logVersion } from '../utils/version.js';
 import { SyncManager } from './sync-manager.js';
 import { ScopedSourceManager } from './scoped-source-manager.js';
+import { ImageProcessor } from './image-processor.js';
+import { sanitizeHtml } from '../shared/sanitizer.js';
+import { ExtensionStorage } from '../shared/storage.js';
 
 // Log version on startup
 logVersion();
@@ -13,6 +16,7 @@ logVersion();
 // Initialize managers
 let syncManager: SyncManager;
 let scopedSourceManager: ScopedSourceManager;
+let imageProcessor: ImageProcessor;
 
 // Extension installation and startup
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -21,6 +25,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // Initialize managers
   syncManager = SyncManager.getInstance();
   scopedSourceManager = ScopedSourceManager.getInstance();
+  imageProcessor = new ImageProcessor();
   
   await syncManager.initialize();
   await scopedSourceManager.initialize();
@@ -65,6 +70,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'AUTHENTICATE_CLOUD':
           const credentials = await syncManager.authenticate();
           sendResponse({ success: true, data: credentials });
+          break;
+          
+        case 'SELECT_CLOUD_FOLDER':
+          const selectedFolder = await syncManager.selectFolder(message.provider, message.scope);
+          sendResponse({ success: true, data: selectedFolder });
           break;
           
         case 'SYNC_SNIPPETS':
@@ -116,8 +126,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'ADD_SNIPPET':
+          let snippetContentToAdd = message.snippet.content;
+          if (message.snippet.contentType === 'html') {
+            snippetContentToAdd = sanitizeHtml(snippetContentToAdd);
+            snippetContentToAdd = await imageProcessor.processHtmlContent(snippetContentToAdd);
+          }
           const newSnippet = {
             ...message.snippet,
+            content: snippetContentToAdd,
             id: crypto.randomUUID(), // Generate a unique ID
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -127,13 +143,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'UPDATE_SNIPPET':
-          await ExtensionStorage.updateSnippet(message.id, message.updates);
+          let snippetContentToUpdate = message.updates.content;
+          if (message.updates.contentType === 'html') {
+            snippetContentToUpdate = sanitizeHtml(snippetContentToUpdate);
+            snippetContentToUpdate = await imageProcessor.processHtmlContent(snippetContentToUpdate);
+          }
+          await ExtensionStorage.updateSnippet(message.id, { ...message.updates, content: snippetContentToUpdate });
+          sendResponse({ success: true });
+          break;
+
+        case 'DELETE_SNIPPET':
+          await ExtensionStorage.deleteSnippet(message.id);
           sendResponse({ success: true });
           break;
 
         case 'GET_SNIPPETS':
           const snippets = await ExtensionStorage.getSnippets();
           sendResponse({ success: true, data: snippets });
+          break;
+          
+        case 'GET_SETTINGS':
+          const settings = await ExtensionStorage.getSettings();
+          sendResponse({ success: true, data: settings });
+          break;
+
+        case 'UPDATE_SETTINGS':
+          await ExtensionStorage.setSettings(message.settings);
+          sendResponse({ success: true });
           break;
           
         default:

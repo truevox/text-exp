@@ -33,7 +33,12 @@ export class MessageSender {
       chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
+        } else if (response && response.success === false) {
+          reject(new Error(response.error || 'Unknown error'));
+        } else if (response && response.success === true) {
+          resolve(response.data);
         } else {
+          // Fallback for responses that don't follow the wrapper format
           resolve(response);
         }
       });
@@ -238,6 +243,27 @@ export class SyncMessages {
    */
   static async syncSnippets(): Promise<void> {
     return MessageSender.sendToBackground('SYNC_SNIPPETS');
+  }
+
+  /**
+   * Trigger cloud authentication
+   */
+  static async authenticateCloud(): Promise<void> {
+    return MessageSender.sendToBackground('AUTHENTICATE_CLOUD');
+  }
+
+  /**
+   * Trigger cloud folder selection
+   */
+  static async selectCloudFolder(provider: CloudProvider, scope: SnippetScope): Promise<{ folderId: string, folderName: string }> {
+    return MessageSender.sendToBackground('SELECT_CLOUD_FOLDER', { provider, scope });
+  }
+
+  /**
+   * Trigger cloud disconnect
+   */
+  static async disconnectCloud(): Promise<void> {
+    return MessageSender.sendToBackground('DISCONNECT_CLOUD');
   }
 }
 
