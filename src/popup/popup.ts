@@ -23,7 +23,6 @@ class PopupApp {
     emptyState: document.getElementById('emptyState') as HTMLElement,
     loadingState: document.getElementById('loadingState') as HTMLElement,
     addSnippetButton: document.getElementById('addSnippetButton') as HTMLButtonElement,
-    addFirstSnippet: document.getElementById('addFirstSnippet') as HTMLButtonElement,
     syncButton: document.getElementById('syncButton') as HTMLButtonElement,
     settingsButton: document.getElementById('settingsButton') as HTMLButtonElement,
     syncStatus: document.getElementById('syncStatus') as HTMLElement,
@@ -73,7 +72,6 @@ class PopupApp {
 
     // Buttons
     this.elements.addSnippetButton.addEventListener('click', () => this.showAddSnippetModal());
-    this.elements.addFirstSnippet.addEventListener('click', () => this.showAddSnippetModal());
     this.elements.syncButton.addEventListener('click', () => this.syncSnippets());
     this.elements.settingsButton.addEventListener('click', () => this.openSettings());
 

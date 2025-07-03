@@ -126,6 +126,16 @@ export class SyncManager {
       throw new Error(`Folder selection not supported for ${provider} provider.`);
     }
 
+    // Check if we need to authenticate first for cloud providers
+    if (provider !== 'local') {
+      const isConnected = await this.currentAdapter.isConnected();
+      if (!isConnected) {
+        console.log(`🔐 Not authenticated with ${provider}, authenticating first...`);
+        const credentials = await this.authenticate();
+        await this.currentAdapter.initialize(credentials);
+      }
+    }
+
     try {
       const folderHandle = await this.currentAdapter.selectFolder();
       // For local-filesystem, folderHandle is FileSystemDirectoryHandle

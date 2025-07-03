@@ -24,24 +24,33 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
+      const authUrl = this.buildAuthUrl();
+      console.log('🔐 Google Drive auth URL:', authUrl);
+      
       chrome.identity.launchWebAuthFlow({
-        url: this.buildAuthUrl(),
+        url: authUrl,
         interactive: true
       }, (redirectUrl) => {
         if (chrome.runtime.lastError) {
+          console.error('🚫 OAuth error:', chrome.runtime.lastError.message);
           reject(new Error(chrome.runtime.lastError.message));
           return;
         }
         
         if (!redirectUrl) {
+          console.error('🚫 No redirect URL received');
           reject(new Error('Authentication cancelled'));
           return;
         }
         
+        console.log('✅ OAuth redirect URL received:', redirectUrl);
+        
         try {
           const credentials = this.parseAuthResponse(redirectUrl);
+          console.log('✅ OAuth credentials parsed successfully');
           resolve(credentials);
         } catch (error) {
+          console.error('🚫 Failed to parse OAuth response:', error);
           reject(error);
         }
       });
@@ -115,18 +124,29 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   async selectFolder(): Promise<{ folderId: string; folderName: string }> {
     try {
+      console.log('📁 Fetching Google Drive folders...');
+      
+      // Check if we have valid credentials
+      const authHeaders = this.getAuthHeaders();
+      console.log('🔑 Auth headers:', authHeaders);
+      
       // Get list of folders from Google Drive
       const response = await fetch(
         `${GoogleDriveAdapter.DRIVE_API}/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name)&orderBy=name`,
-        { headers: this.getAuthHeaders() }
+        { headers: authHeaders }
       );
       
+      console.log('📁 Folders API response status:', response.status, response.statusText);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📁 Folders API error response:', errorText);
         throw new Error(`Failed to fetch folders: ${response.statusText}`);
       }
       
       const data = await response.json();
       const folders = data.files || [];
+      console.log('📁 Found folders:', folders.length);
       
       if (folders.length === 0) {
         // Create a default folder
@@ -200,12 +220,20 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     // Get client ID from manifest.json oauth2 configuration
     const manifest = chrome.runtime.getManifest();
     const clientId = manifest.oauth2?.client_id || '';
+    const redirectUri = chrome.identity.getRedirectURL();
+    
+    console.log('🔧 OAuth configuration:', {
+      clientId,
+      redirectUri,
+      authUrl: CLOUD_PROVIDERS['google-drive'].authUrl,
+      scopes: CLOUD_PROVIDERS['google-drive'].scopes
+    });
     
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'token',
       scope: CLOUD_PROVIDERS['google-drive'].scopes.join(' '),
-      redirect_uri: chrome.identity.getRedirectURL()
+      redirect_uri: redirectUri
     });
     
     return `${CLOUD_PROVIDERS['google-drive'].authUrl}?${params.toString()}`;

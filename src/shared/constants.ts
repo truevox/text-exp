@@ -46,7 +46,7 @@ export const CLOUD_PROVIDERS = {
   'google-drive': {
     name: 'Google Drive',
     icon: 'google-drive.svg',
-    authUrl: 'https://accounts.google.com/oauth/authorize',
+    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     scopes: ['https://www.googleapis.com/auth/drive.file'],
   },
   'dropbox': {
