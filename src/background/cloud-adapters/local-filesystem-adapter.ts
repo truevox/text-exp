@@ -1,248 +1,159 @@
-/**
- * Local Filesystem CloudAdapter implementation
- * Handles loading snippets from local file system using File System Access API
- */
+import { CloudAdapter, CloudCredentials, TextSnippet, SyncStatus, SyncedSource } from '../../shared/types';
+import { BaseCloudAdapter } from './base-adapter';
 
-import { BaseCloudAdapter } from './base-adapter.js';
-import type { CloudCredentials, TextSnippet } from '../../shared/types.js';
-import { SYNC_CONFIG } from '../../shared/constants.js';
+export class LocalFilesystemAdapter extends BaseCloudAdapter implements CloudAdapter {
+  provider: 'local-filesystem' = 'local-filesystem';
+  private _directoryHandle: FileSystemDirectoryHandle | null = null;
 
-/**
- * Local filesystem adapter for loading snippets from local files
- */
-export class LocalFilesystemAdapter extends BaseCloudAdapter {
-  readonly provider = 'local-filesystem' as const;
-  
-  private directoryHandle: FileSystemDirectoryHandle | null = null;
-  private fileHandle: FileSystemFileHandle | null = null;
-
-  /**
-   * Authenticate with local filesystem (select folder)
-   */
-  async authenticate(): Promise<CloudCredentials> {
-    try {
-      // Check if File System Access API is supported
-      if (!('showDirectoryPicker' in window)) {
-        throw new Error('File System Access API not supported in this browser');
-      }
-
-      // Show directory picker
-      this.directoryHandle = await window.showDirectoryPicker({
-        mode: 'readwrite',
-        startIn: 'documents'
-      });
-
-      // Return mock credentials for local filesystem
-      return {
-        provider: this.provider,
-        accessToken: 'local-filesystem',
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
-      };
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Folder selection cancelled');
-      }
-      throw new Error(`Failed to select folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  constructor() {
+    super();
   }
 
-  /**
-   * Upload snippets to local file system
-   */
+  async initialize(credentials?: CloudCredentials): Promise<void> {
+    // For local filesystem, initialization might involve restoring a handle
+    // This method is primarily for setting up the adapter, not re-obtaining handles.
+    // Handles are re-obtained by ScopedSourceManager and set via setDirectoryHandle.
+    this.isInitialized = true;
+  }
+
+  setDirectoryHandle(handle: FileSystemDirectoryHandle): void {
+    this._directoryHandle = handle;
+  }
+
+  private get directoryHandle(): FileSystemDirectoryHandle {
+    if (!this._directoryHandle) {
+      throw new Error('Local directory handle not set or permission not granted.');
+    }
+    return this._directoryHandle;
+  }
+
+  async authenticate(): Promise<CloudCredentials> {
+    // Authentication for local filesystem is essentially selecting a folder
+    throw new Error('Authentication not applicable for LocalFilesystemAdapter. Use selectFolder instead.');
+  }
+
+  async isAuthenticated(): Promise<boolean> {
+    return !!this.directoryHandle;
+  }
+
+  async getSyncStatus(): Promise<SyncStatus> {
+    return {
+      provider: this.provider,
+      isOnline: true, // Local filesystem is always "online" in terms of connectivity
+      hasChanges: false, // This will be determined by listChanges
+      lastSync: null, // Will be updated by SyncManager
+    };
+  }
+
   async uploadSnippets(snippets: TextSnippet[]): Promise<void> {
     if (!this.directoryHandle) {
-      throw new Error('No directory selected');
+      throw new Error('Local directory not selected or permission not granted.');
     }
-
-    const sanitizedSnippets = this.sanitizeSnippets(snippets);
-    const data = JSON.stringify(sanitizedSnippets, null, 2);
-
     try {
-      // Get or create the snippets file
-      this.fileHandle = await this.directoryHandle.getFileHandle(SYNC_CONFIG.FILE_NAME, {
-        create: true
-      });
-
-      // Write to file
-      const writable = await this.fileHandle.createWritable();
-      await writable.write(data);
+      const fileName = 'snippets.json'; // Standard file name for local snippets
+      const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(snippets, null, 2));
       await writable.close();
+      console.log('Snippets uploaded to local filesystem.');
     } catch (error) {
-      throw new Error(`Failed to save snippets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to upload snippets to local filesystem:', error);
+      throw error;
     }
   }
 
-  /**
-   * Download snippets from local file system
-   */
   async downloadSnippets(): Promise<TextSnippet[]> {
     if (!this.directoryHandle) {
-      throw new Error('No directory selected');
+      throw new Error('Local directory not selected or permission not granted.');
     }
-
     try {
-      // Try to get the snippets file
-      this.fileHandle = await this.directoryHandle.getFileHandle(SYNC_CONFIG.FILE_NAME);
-      
-      // Read file content
-      const file = await this.fileHandle.getFile();
+      const fileName = 'snippets.json';
+      const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: false });
+      const file = await fileHandle.getFile();
       const content = await file.text();
-
-      if (!content.trim()) {
-        return []; // Empty file
-      }
-
-      try {
-        const snippets = JSON.parse(content) as TextSnippet[];
-        return snippets.map(snippet => ({
-          ...snippet,
-          createdAt: new Date(snippet.createdAt),
-          updatedAt: new Date(snippet.updatedAt)
-        }));
-      } catch (parseError) {
-        console.error('Failed to parse snippets file:', parseError);
+      return JSON.parse(content);
+    } catch (error: any) {
+      if (error.name === 'NotFoundError') {
+        console.warn('Snippets file not found in local directory. Returning empty array.');
         return [];
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'NotFoundError') {
-        // File doesn't exist yet, return empty array
-        return [];
-      }
-      throw new Error(`Failed to load snippets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to download snippets from local filesystem:', error);
+      throw error;
     }
   }
 
-  /**
-   * Delete snippets from local file system
-   */
   async deleteSnippets(snippetIds: string[]): Promise<void> {
-    // For local filesystem, we re-write the file without the deleted snippets
-    const currentSnippets = await this.downloadSnippets();
-    const filteredSnippets = currentSnippets.filter(
-      snippet => !snippetIds.includes(snippet.id)
-    );
-    
-    await this.uploadSnippets(filteredSnippets);
+    // For local filesystem, we'll re-write the entire file without the deleted snippets
+    const existingSnippets = await this.downloadSnippets();
+    const updatedSnippets = existingSnippets.filter(s => !snippetIds.includes(s.id));
+    await this.uploadSnippets(updatedSnippets);
   }
 
-  /**
-   * Validate stored credentials (always valid for local filesystem)
-   */
-  protected async validateCredentials(): Promise<boolean> {
-    return this.directoryHandle !== null;
-  }
-
-  /**
-   * Check connectivity (always true for local filesystem)
-   */
-  protected async checkConnectivity(): Promise<boolean> {
-    return true;
-  }
-
-  /**
-   * Get the last sync timestamp
-   */
-  protected async getLastSyncTime(): Promise<Date | null> {
-    if (!this.fileHandle) {
-      return null;
-    }
-
+  async selectFolder(): Promise<{ folderId: string, folderName: string, handleId?: string, handleName?: string }> {
     try {
-      const file = await this.fileHandle.getFile();
-      return new Date(file.lastModified);
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Check if there are local changes to sync
-   */
-  protected async hasLocalChanges(): Promise<boolean> {
-    // For local filesystem, assume there are always changes to check
-    return true;
-  }
-
-  /**
-   * Get selected folder name for display
-   */
-  async getSelectedFolderName(): Promise<string> {
-    if (!this.directoryHandle) {
-      return 'No folder selected';
-    }
-    return this.directoryHandle.name;
-  }
-
-  /**
-   * List snippet files in the directory
-   */
-  async listSnippetFiles(): Promise<string[]> {
-    if (!this.directoryHandle) {
-      return [];
-    }
-
-    const files: string[] = [];
-    
-    try {
-      for await (const [name, handle] of this.directoryHandle.entries()) {
-        if (handle.kind === 'file' && name.endsWith('.json')) {
-          files.push(name);
-        }
-      }
+      const directoryHandle = await (window as any).showDirectoryPicker({
+        mode: 'readwrite',
+        startIn: 'documents',
+      });
+      this._directoryHandle = directoryHandle;
+      return { folderId: directoryHandle.name, folderName: directoryHandle.name, handleId: (directoryHandle as any).id, handleName: directoryHandle.name };
     } catch (error) {
-      console.error('Failed to list files:', error);
+      console.error('Failed to select local folder:', error);
+      throw error;
     }
+  }
 
+  async listFiles(): Promise<any[]> {
+    if (!this.directoryHandle) {
+      throw new Error('Local directory not selected.');
+    }
+    const files: any[] = [];
+    for await (const entry of this.directoryHandle.values()) {
+      files.push(entry);
+    }
     return files;
   }
 
-  /**
-   * Load snippets from a specific file
-   */
-  async loadSnippetsFromFile(filename: string): Promise<TextSnippet[]> {
+  async listChanges(lastSyncToken: string | null): Promise<{ changes: any[]; newSyncToken: string }> {
     if (!this.directoryHandle) {
-      throw new Error('No directory selected');
+      throw new Error('Local directory not selected.');
     }
-
+    // For local filesystem, we'll use file modification time as a simple change indicator
+    // A more robust solution would involve hashing file content or maintaining a local change log.
     try {
-      const fileHandle = await this.directoryHandle.getFileHandle(filename);
+      const fileName = 'snippets.json';
+      const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: false });
       const file = await fileHandle.getFile();
-      const content = await file.text();
+      const lastModified = file.lastModified;
 
-      if (!content.trim()) {
-        return [];
+      // If lastSyncToken is provided and matches, assume no changes
+      if (lastSyncToken && parseInt(lastSyncToken) === lastModified) {
+        return { changes: [], newSyncToken: lastModified.toString() };
       }
 
-      const snippets = JSON.parse(content) as TextSnippet[];
-      return snippets.map(snippet => ({
-        ...snippet,
-        createdAt: new Date(snippet.createdAt),
-        updatedAt: new Date(snippet.updatedAt)
-      }));
-    } catch (error) {
-      throw new Error(`Failed to load snippets from ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Otherwise, consider the file changed
+      return { changes: [{ type: 'file', name: fileName, lastModified }], newSyncToken: lastModified.toString() };
+    } catch (error: any) {
+      if (error.name === 'NotFoundError') {
+        // If file doesn't exist, it's like a deletion or initial state
+        return { changes: [{ type: 'file', name: 'snippets.json', deleted: true }], newSyncToken: Date.now().toString() };
+      }
+      console.error('Failed to list changes for local filesystem:', error);
+      throw error;
     }
   }
 
-  /**
-   * Create a new snippet file
-   */
-  async createSnippetFile(filename: string, snippets: TextSnippet[] = []): Promise<void> {
+  async downloadFile(fileId: string): Promise<string> {
     if (!this.directoryHandle) {
-      throw new Error('No directory selected');
+      throw new Error('Local directory not selected.');
     }
-
     try {
-      const fileHandle = await this.directoryHandle.getFileHandle(filename, {
-        create: true
-      });
-
-      const data = JSON.stringify(snippets, null, 2);
-      const writable = await fileHandle.createWritable();
-      await writable.write(data);
-      await writable.close();
+      const fileHandle = await this.directoryHandle.getFileHandle(fileId, { create: false });
+      const file = await fileHandle.getFile();
+      return await file.text();
     } catch (error) {
-      throw new Error(`Failed to create snippet file ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to download file from local filesystem:', error);
+      throw error;
     }
   }
 }

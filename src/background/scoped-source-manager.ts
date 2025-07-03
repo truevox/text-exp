@@ -8,7 +8,8 @@ import type {
   SnippetScope, 
   CloudProvider, 
   TextSnippet,
-  CloudAdapter 
+  CloudAdapter,
+  ConfiguredScopedSource // Import new type
 } from '../shared/types.js';
 import { ExtensionStorage } from '../shared/storage.js';
 import { getCloudAdapterFactory } from './cloud-adapters/index.js';
@@ -100,7 +101,8 @@ export class ScopedSourceManager {
       scope,
       provider: 'local-filesystem',
       name: `${scope}-snippets`,
-      directoryHandle,
+      handleName: directoryHandle.name,
+      handleId: (directoryHandle as any).id || undefined, // ID might not be available in all browsers
       displayName: `${scope.charAt(0).toUpperCase() + scope.slice(1)} Snippets (${directoryHandle.name})`,
       lastSync: new Date()
     };
@@ -240,20 +242,28 @@ export class ScopedSourceManager {
       const adapter = factory.createAdapter(source.provider);
       
       // Initialize adapter with stored credentials or source info
-      if (source.provider === 'local-filesystem' && source.directoryHandle) {
-        // For local filesystem, we need to restore the directory handle
-        // Note: This might not work across browser sessions due to security restrictions
-        const credentials = {
-          provider: source.provider,
-          accessToken: 'local-filesystem',
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-        };
-        
-        await adapter.initialize(credentials);
-        
-        // Set the directory handle if it's a local filesystem adapter
-        if ('directoryHandle' in adapter) {
-          (adapter as any).directoryHandle = source.directoryHandle;
+      if (source.provider === 'local-filesystem' && source.handleName) {
+        // For local filesystem, we need to re-obtain the directory handle
+        try {
+          const root = await navigator.storage.getDirectory();
+          const directoryHandle = await root.getDirectoryHandle(source.handleName, { create: false });
+          
+          // Verify permission
+          const permissionStatus = await directoryHandle.queryPermission({ mode: 'readwrite' });
+          if (permissionStatus !== 'granted') {
+            // If permission is not granted, we might need to prompt the user again
+            // For now, we'll just log a warning and not set the handle
+            console.warn(`Permission not granted for local filesystem source: ${source.displayName}. Please re-select the folder in options.`);
+            return adapter; // Return adapter without handle
+          }
+
+          // Set the directory handle on the adapter
+          if ('setDirectoryHandle' in adapter) {
+            (adapter as any).setDirectoryHandle(directoryHandle);
+          }
+        } catch (error) {
+          console.error(`Failed to re-obtain directory handle for ${source.displayName}:`, error);
+          return adapter; // Return adapter without handle
         }
       }
       
