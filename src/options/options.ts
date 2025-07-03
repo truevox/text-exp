@@ -179,20 +179,20 @@ class OptionsApp {
    */
   private async updateUI(): Promise<void> {
     // General settings
-    this.elements.enabledCheckbox.checked = this.settings.enabled;
-    this.elements.caseSensitiveCheckbox.checked = this.settings.caseSensitive;
-    this.elements.notificationsCheckbox.checked = this.settings.showNotifications;
-    this.elements.triggerDelaySlider.value = this.settings.triggerDelay.toString();
+    if (this.elements.enabledCheckbox) this.elements.enabledCheckbox.checked = this.settings.enabled;
+    if (this.elements.caseSensitiveCheckbox) this.elements.caseSensitiveCheckbox.checked = this.settings.caseSensitive;
+    if (this.elements.notificationsCheckbox) this.elements.notificationsCheckbox.checked = this.settings.showNotifications;
+    if (this.elements.triggerDelaySlider) this.elements.triggerDelaySlider.value = this.settings.triggerDelay.toString();
     this.updateTriggerDelayValue();
 
     // Cloud settings
-    this.elements.cloudProviderSelect.value = this.settings.cloudProvider;
-    this.elements.autoSyncCheckbox.checked = this.settings.autoSync;
-    this.elements.syncIntervalSlider.value = this.settings.syncInterval.toString();
+    if (this.elements.cloudProviderSelect) this.elements.cloudProviderSelect.value = this.settings.cloudProvider;
+    if (this.elements.autoSyncCheckbox) this.elements.autoSyncCheckbox.checked = this.settings.autoSync;
+    if (this.elements.syncIntervalSlider) this.elements.syncIntervalSlider.value = this.settings.syncInterval.toString();
     this.updateSyncIntervalValue();
 
     // Collaboration
-    this.elements.sharedSnippetsCheckbox.checked = this.settings.enableSharedSnippets;
+    if (this.elements.sharedSnippetsCheckbox) this.elements.sharedSnippetsCheckbox.checked = this.settings.enableSharedSnippets;
 
     // Update cloud status
     await this.updateCloudStatus();
@@ -383,9 +383,9 @@ class OptionsApp {
       const storageUsage = await ExtensionStorage.getStorageUsage();
       const lastSync = await ExtensionStorage.getLastSync();
 
-      this.elements.totalSnippets.textContent = snippets.length.toString();
-      this.elements.storageUsed.textContent = this.formatBytes(storageUsage.local + storageUsage.sync);
-      this.elements.lastSync.textContent = lastSync ? 
+      if (this.elements.totalSnippets) this.elements.totalSnippets.textContent = snippets.length.toString();
+      if (this.elements.storageUsed) this.elements.storageUsed.textContent = this.formatBytes(storageUsage.local + storageUsage.sync);
+      if (this.elements.lastSync) this.elements.lastSync.textContent = lastSync ? 
         this.formatRelativeTime(lastSync) : 'Never';
     } catch (error) {
       console.error('Failed to update data stats:', error);

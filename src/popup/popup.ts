@@ -117,6 +117,7 @@ class PopupApp {
       this.hideLoading();
     } catch (error) {
       console.error('Failed to load snippets:', error);
+      this.snippets = []; // Ensure snippets is an empty array on failure
       this.hideLoading();
       this.showError('Failed to load snippets');
     }
@@ -385,7 +386,9 @@ class PopupApp {
       this.showSyncStatus('Sync completed successfully', 'success');
     } catch (error) {
       console.error('Sync failed:', error);
-      this.showSyncStatus('Sync failed: ' + error.message, 'error');
+      // Safely access error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during sync';
+      this.showSyncStatus('Sync failed: ' + errorMessage, 'error');
     } finally {
       this.elements.syncButton.disabled = false;
     }

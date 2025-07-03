@@ -360,12 +360,16 @@ export class SyncManager {
     const settings = await ExtensionStorage.getSettings();
     
     if (settings.showNotifications) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: 'Text Expander',
-        message
-      });
+      if (chrome.notifications) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon-48.png',
+          title: 'Text Expander',
+          message
+        });
+      } else {
+        console.warn('chrome.notifications API not available.');
+      }
     }
   }
 

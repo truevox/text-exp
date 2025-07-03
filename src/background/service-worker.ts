@@ -114,6 +114,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await scopedSourceManager.addSnippetToScope(message.snippet, message.scope);
           sendResponse({ success: true });
           break;
+
+        case 'ADD_SNIPPET':
+          const newSnippet = {
+            ...message.snippet,
+            id: crypto.randomUUID(), // Generate a unique ID
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          await ExtensionStorage.addSnippet(newSnippet);
+          sendResponse({ success: true, data: newSnippet });
+          break;
+
+        case 'UPDATE_SNIPPET':
+          await ExtensionStorage.updateSnippet(message.id, message.updates);
+          sendResponse({ success: true });
+          break;
+
+        case 'GET_SNIPPETS':
+          const snippets = await ExtensionStorage.getSnippets();
+          sendResponse({ success: true, data: snippets });
+          break;
           
         default:
           sendResponse({ success: false, error: 'Unknown message type' });
