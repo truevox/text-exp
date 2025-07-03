@@ -51,7 +51,8 @@ export class SyncManager {
     const settings = await ExtensionStorage.getSettings();
     await this.setCloudProvider(settings.cloudProvider);
     
-    if (settings.autoSync) {
+    // Start auto-sync for cloud providers
+    if (settings.autoSync && settings.cloudProvider !== 'local') {
       this.startAutoSync(settings.syncInterval);
     }
   }

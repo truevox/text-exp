@@ -9,7 +9,9 @@ import type {
   TextSnippet, 
   ExtensionSettings,
   ExpandTextMessage,
-  VariablePromptMessage 
+  VariablePromptMessage,
+  CloudProvider,
+  SnippetScope 
 } from './types.js';
 
 /**
@@ -264,6 +266,13 @@ export class SyncMessages {
    */
   static async disconnectCloud(): Promise<void> {
     return MessageSender.sendToBackground('DISCONNECT_CLOUD');
+  }
+
+  /**
+   * Get sync status information
+   */
+  static async getSyncStatus(): Promise<any> {
+    return MessageSender.sendToBackground('GET_SYNC_STATUS');
   }
 }
 

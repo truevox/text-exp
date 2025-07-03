@@ -430,7 +430,7 @@ class PopupApp {
       const isCloudProviderSelected = this.settings?.cloudProvider && this.settings.cloudProvider !== 'local';
 
       // Check if any local filesystem sources are configured
-      const hasLocalSources = (this.settings?.configuredSources || []).some(source => source.provider === 'local-filesystem');
+      const hasLocalSources = false; // Local filesystem support removed
       
       return isCloudProviderSelected || hasLocalSources;
     } catch (error) {

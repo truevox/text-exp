@@ -69,11 +69,11 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Download snippets from Google Drive
    */
-  async downloadSnippets(): Promise<TextSnippet[]> {
+  async downloadSnippets(folderId?: string): Promise<TextSnippet[]> {
     return this.retryOperation(async () => {
-      // Find the snippets file
+      // Find the snippets file (optionally in a specific folder)
       if (!this.fileId) {
-        this.fileId = await this.findSnippetsFile();
+        this.fileId = await this.findSnippetsFile(folderId);
       }
       
       if (!this.fileId) {
@@ -108,6 +108,41 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     );
     
     await this.uploadSnippets(filteredSnippets);
+  }
+
+  /**
+   * Select a folder for storing snippets
+   */
+  async selectFolder(): Promise<{ folderId: string; folderName: string }> {
+    try {
+      // Get list of folders from Google Drive
+      const response = await fetch(
+        `${GoogleDriveAdapter.DRIVE_API}/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name)&orderBy=name`,
+        { headers: this.getAuthHeaders() }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch folders: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const folders = data.files || [];
+      
+      if (folders.length === 0) {
+        // Create a default folder
+        const defaultFolder = await this.createFolder('PuffPuffPaste Snippets');
+        return { folderId: defaultFolder.id, folderName: defaultFolder.name };
+      }
+      
+      // For now, return the first folder found
+      // TODO: Implement proper folder selection UI
+      const selectedFolder = folders[0];
+      return { folderId: selectedFolder.id, folderName: selectedFolder.name };
+      
+    } catch (error) {
+      console.error('Failed to select Google Drive folder:', error);
+      throw error;
+    }
   }
 
   /**
@@ -162,8 +197,12 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    * Build Google OAuth URL
    */
   private buildAuthUrl(): string {
+    // Get client ID from manifest.json oauth2 configuration
+    const manifest = chrome.runtime.getManifest();
+    const clientId = manifest.oauth2?.client_id || '';
+    
     const params = new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID || '',
+      client_id: clientId,
       response_type: 'token',
       scope: CLOUD_PROVIDERS['google-drive'].scopes.join(' '),
       redirect_uri: chrome.identity.getRedirectURL()
@@ -207,9 +246,14 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Find the snippets file in Google Drive
    */
-  private async findSnippetsFile(): Promise<string | null> {
+  private async findSnippetsFile(folderId?: string): Promise<string | null> {
+    let query = `name='${SYNC_CONFIG.FILE_NAME}'`;
+    if (folderId) {
+      query += ` and '${folderId}' in parents`;
+    }
+    
     const response = await fetch(
-      `${GoogleDriveAdapter.DRIVE_API}/files?q=name='${SYNC_CONFIG.FILE_NAME}'&fields=files(id,name)`,
+      `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
       { headers: this.getAuthHeaders() }
     );
     
@@ -290,5 +334,30 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     }
     
     return response.text();
+  }
+
+  /**
+   * Create a new folder in Google Drive
+   */
+  private async createFolder(name: string): Promise<{ id: string; name: string }> {
+    const metadata = {
+      name,
+      mimeType: 'application/vnd.google-apps.folder'
+    };
+    
+    const response = await fetch(
+      `${GoogleDriveAdapter.DRIVE_API}/files?fields=id,name`,
+      {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(metadata)
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Failed to create folder: ${response.statusText}`);
+    }
+    
+    return response.json();
   }
 }

@@ -114,25 +114,7 @@
               </div>
             </div>
 
-            <div class="setting-item">
-              <button id="setupLocalSourcesButton" class="primary-button">
-                📁 Setup Local Folder Sources
-              </button>
-              <p class="setting-description">Select folders for Personal, Team, and Organization snippet libraries</p>
-            </div>
 
-            <div class="setting-item">
-              <div id="scopedSourcesList" class="scoped-sources-list">
-                <!-- Dynamically populated with configured sources -->
-              </div>
-            </div>
-
-            <div class="setting-item">
-              <div class="sync-actions">
-                <button id="syncAllSourcesButton" class="secondary-button">🔄 Sync All Sources</button>
-                <button id="refreshSourcesButton" class="secondary-button">↻ Refresh Status</button>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -230,16 +212,7 @@
                 <input type="checkbox" id="sharedSnippetsCheckbox" class="setting-checkbox">
                 <span class="setting-title">Enable Shared Snippets</span>
               </label>
-              <p class="setting-description">Allow sharing snippets with team members</p>
-            </div>
-
-            <div class="setting-item">
-              <label class="setting-label" for="teamCodeInput">
-                <span class="setting-title">Team Code</span>
-              </label>
-              <input type="text" id="teamCodeInput" class="setting-input" 
-                     placeholder="Enter team sharing code">
-              <p class="setting-description">Code for sharing snippets with your team</p>
+              <p class="setting-description">Allow sharing snippets with team members via shared folders</p>
             </div>
           </div>
         </section>
@@ -267,6 +240,7 @@
 
             <div class="setting-item">
               <div class="data-actions">
+                <button id="cleanupStorageButton" class="secondary-button">Clean Up Invalid Sources</button>
                 <button id="clearLocalButton" class="danger-button">Clear Local Data</button>
                 <button id="resetAllButton" class="danger-button">Reset All Settings</button>
               </div>

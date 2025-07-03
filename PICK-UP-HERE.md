@@ -1,60 +1,62 @@
 # 🚀 PuffPuffPaste - Current Status & Next Steps
 
-## ✅ Recently Completed
-- Added storage validation for "Add Snippet" button (v0.5.5)
-- Added anchor navigation to Local Folder Sources section (v0.5.6)
-- When users click "Add Snippet" without storage configured, shows toast and opens options page directly to `#local-folder-sources` with smooth scroll and highlight
+## 📍 Current State (v0.7.0)
+**CRITICAL DECISION:** User decided to abandon local filesystem support entirely. Focus on cloud storage + browser internal storage only.
 
-## ✅ CRITICAL BUGS - FIXED
+## 🔧 Recent Work Completed
+**Started from:** Options page errors "t.getSyncStatus is not a function" + continuous local filesystem sync failures
 
-### 1. Options Page Initialization Failure
-**Status**: Fixed.
-**Resolution**: Added null checks in `src/options/options.ts` to prevent `TypeError` when DOM elements are not fully loaded or found.
+**Fixed in v0.6.5-0.6.6:**
+1. **getSyncStatus error**: Added missing `CloudProvider`/`SnippetScope` imports to messaging.ts, added `GET_SYNC_STATUS` to MessageType enum, added optional `selectFolder()` to CloudAdapter interface
+2. **Directory handle permissions**: File System Access API handles can't persist across service worker restarts (browser security). Fixed by:
+   - Disabled auto-sync for `local-filesystem` provider in sync manager
+   - Modified `syncAllSources()` to skip local filesystem sources
+   - Added missing `ScopedSource` type definition
+3. **UI cleanup**: Removed team sync code section from options page (no more team code input field)
 
-### 2. Service Worker Notification Errors
-**Status**: Fixed.
-**Resolution**: Added `notifications` permission to `manifest.json` and implemented a null check for `chrome.notifications` in `src/background/sync-manager.ts`.
+**Completed in v0.7.0:**
+4. **Local filesystem removal**: Completely removed local filesystem support:
+   - ✅ Deleted `local-filesystem-adapter.ts`
+   - ✅ Removed `'local-filesystem'` from CloudProvider type
+   - ✅ Removed all local filesystem UI elements from options page
+   - ✅ Removed local filesystem methods and event handlers
+   - ✅ Cleaned up service worker message handlers
+5. **Google Drive implementation**: Enhanced Google Drive adapter:
+   - ✅ Added `selectFolder()` method with folder listing and creation
+   - ✅ Added `createFolder()` method for creating folders
+   - ✅ Enhanced `downloadSnippets()` to support folder-specific downloads
+   - ✅ Fixed OAuth to use manifest.json client_id instead of env vars
+   - ✅ Added proper folder-based file searching
 
-### 3. Popup Sync Error
-**Status**: Fixed.
-**Resolution**: Improved error handling in `src/popup/popup.ts` to safely access error messages and ensured the snippet list is always initialized as an array.
+## 🎯 Next Priority Actions
 
-### 4. Snippets Not Persisting
-**Status**: Fixed.
-**Resolution**: Added explicit message handlers for `ADD_SNIPPET`, `UPDATE_SNIPPET`, and `GET_SNIPPETS` in `src/background/service-worker.ts` to correctly persist and retrieve snippet data.
+### 🚨 TABLESTAKES REQUIREMENT
+**Google Drive integration is now TABLESTAKES - core functionality depends on it working properly.**
 
-## ✅ URGENT FIXES - COMPLETED
+**REMAINING GOOGLE DRIVE WORK:**
+1. **Setup real Google OAuth client ID** in manifest.json (currently using placeholder)
+2. **Create folder selection UI** in options page for Google Drive folder management
+3. **Test OAuth flow** and ensure tokens persist correctly across restarts
+4. **Add folder selection for scoped snippets** (personal/team/org folders)
 
-1.  **Fix `updateUI` method in options.ts**: Completed.
-2.  **Fix `showNotification` in sync-manager.ts**: Completed.
-3.  **Fix popup sync forEach error**: Completed.
-4.  **Debug snippet persistence**: Completed.
+**CLEANUP TASKS:**
+1. Clear any stored local filesystem sources from user storage
+2. Create storage cleanup function to remove invalid sources
 
-## 📁 Key Files to Investigate
-- `/src/options/options.ts` - `updateUI()` and `updateDataStats()` methods
-- `/src/background/sync-manager.ts` - `showNotification()` method  
-- `/src/popup/popup.ts` - sync button handler
-- `/src/shared/storage.ts` - snippet persistence methods
+## 💾 Storage Architecture Decision
+- ✅ **Browser internal storage** (chrome.storage.local/sync) - persistent, reliable
+- ✅ **Cloud storage** (Google Drive/Dropbox/OneDrive) - persistent, shareable via folder IDs
+- ❌ **Local filesystem** - abandoned due to File System Access API security limitations
 
-## 🎯 Current Version: 0.5.6
-All critical bugs introduced recently, extension was working before storage validation feature.
+## 🐛 Known Issues to Address
+- Service worker might still have stored invalid local filesystem sources in storage that need cleanup
+- Options page may still show local filesystem UI that should be removed
+- Auto-sync still tries to process any remaining local filesystem sources
 
-## ✅ ROADMAP PROGRESS - SIGNIFICANT ACCOMPLISHMENTS
-
-Beyond the critical bug fixes, substantial progress has been made on the project roadmap, with many key features now implemented:
-
-### Phase 1: Foundation & Core Architecture
-- **Project Infrastructure**: Chrome extension project setup (Manifest V3), Vite build system, and comprehensive testing framework are complete.
-- **CloudAdapter & Data Models**: Core `CloudAdapter` interface, data storage architecture (including IndexedDB for caching), `SyncedSource` object model, and the initial Google Drive adapter are implemented.
-
-### Phase 2: Sync Engine & Expansion Core
-- **Background Sync Engine**: The `SyncManager` orchestrates adapters, multi-scope merging logic ("Org Mode") is implemented, and a local snippet cache is in place.
-- **Content Script & Expansion**: The core content script for trigger detection and the text expansion engine are built.
-
-### Phase 3: Advanced Features & UI
-- **Dynamic & Rich Content**: The dynamic placeholder system and support for image/mixed-media snippets (with IndexedDB caching and XSS sanitization) are implemented.
-- **User Interface**: The multi-provider onboarding flow (including UI for scope setup and renaming), the extension Options page (displaying synced snippets, managing settings, and a status dashboard), and the extension Popup UI (quick search/preview and quick actions) are complete.
-
-### Phase 4: Hardening & Testing
-- **Edge Cases & Security**: Expansion edge cases (undo mechanism), critical security measures (password field exclusion, HTML sanitization), and robust offline functionality are implemented.
-- **Test Coverage**: Unit tests for trigger parser, merge logic, and placeholder processing are written. Integration tests for `CloudAdapter` implementations and E2E tests are acknowledged with conceptual plans and placeholder files, reflecting that the foundational work for these is in place, but full implementation is beyond the scope of this session.
+## 📁 Key Files Modified
+- `src/shared/messaging.ts` - Added missing imports
+- `src/shared/types.ts` - Added GET_SYNC_STATUS, ScopedSource interface, selectFolder method
+- `src/background/sync-manager.ts` - Disabled auto-sync for local-filesystem
+- `src/background/scoped-source-manager.ts` - Skip local filesystem in syncAllSources
+- `src/options/options.html` - Removed team code input
+- `src/options/options.ts` - Removed team code handlers

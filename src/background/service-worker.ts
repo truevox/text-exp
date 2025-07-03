@@ -100,10 +100,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           break;
 
-        case 'ADD_LOCAL_FILESYSTEM_SOURCE':
-          await scopedSourceManager.addLocalFilesystemSource(message.scope, message.directoryHandle);
-          sendResponse({ success: true });
-          break;
 
         case 'SYNC_ALL_SCOPED_SOURCES':
           const mergedSnippets = await scopedSourceManager.syncAllSources();

@@ -48,7 +48,7 @@ export interface SyncStatus {
 /**
  * Supported cloud storage providers
  */
-export type CloudProvider = 'google-drive' | 'dropbox' | 'onedrive' | 'local' | 'local-filesystem';
+export type CloudProvider = 'google-drive' | 'dropbox' | 'onedrive' | 'local';
 
 /**
  * Snippet scopes for multi-tier sync architecture
@@ -73,6 +73,20 @@ export interface ConfiguredScopedSource {
   scope: SnippetScope;
   folderId: string;
   displayName: string;
+  // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
+  handleId?: string;
+  handleName?: string;
+}
+
+/**
+ * Scoped source for managing snippet sources by scope
+ */
+export interface ScopedSource {
+  scope: SnippetScope;
+  provider: CloudProvider;
+  name: string;
+  displayName: string;
+  lastSync?: Date;
   // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
   handleId?: string;
   handleName?: string;
@@ -133,6 +147,11 @@ export interface CloudAdapter {
    * Get sync status
    */
   getSyncStatus(): Promise<SyncStatus>;
+  
+  /**
+   * Select a folder for storing snippets (optional for cloud providers)
+   */
+  selectFolder?(): Promise<{ folderId: string; folderName: string }>;
 }
 
 /**
@@ -178,6 +197,7 @@ export type MessageType =
   | 'SYNC_SNIPPETS'
   | 'GET_SETTINGS'
   | 'UPDATE_SETTINGS'
+  | 'GET_SYNC_STATUS'
   | 'TRIGGER_DETECTED'
   | 'EXPAND_TEXT'
   | 'VARIABLE_PROMPT'

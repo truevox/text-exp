@@ -145,3 +145,6 @@ extension-build/
 
 # WebStorm
 .webstorm/
+
+# Project-specific temporary files
+PROMPT.md
