@@ -163,17 +163,25 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Get list of available folders without selecting one
    */
-  async getFolders(): Promise<Array<{ id: string; name: string }>> {
+  async getFolders(parentId?: string): Promise<Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>> {
     try {
-      console.log('📁 Fetching Google Drive folders for picker...');
+      console.log('📁 Fetching Google Drive folders for picker...', parentId ? `in parent: ${parentId}` : 'root');
       
       // Check if we have valid credentials
       const authHeaders = this.getAuthHeaders();
       console.log('🔑 Auth headers:', authHeaders);
       
+      // Build query for folders in specific parent or root
+      let query = "mimeType='application/vnd.google-apps.folder'";
+      if (parentId) {
+        query += ` and '${parentId}' in parents`;
+      } else {
+        query += " and 'root' in parents";
+      }
+      
       // Get list of folders from Google Drive
       const response = await fetch(
-        `${GoogleDriveAdapter.DRIVE_API}/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name)&orderBy=name`,
+        `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,parents)&orderBy=name`,
         { headers: authHeaders }
       );
       
@@ -192,7 +200,9 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       
       return folders.map((folder: any) => ({
         id: folder.id,
-        name: folder.name
+        name: folder.name,
+        parentId: folder.parents?.[0] || 'root',
+        isFolder: true
       }));
       
     } catch (error) {

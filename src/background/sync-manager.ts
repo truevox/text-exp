@@ -505,7 +505,7 @@ export class SyncManager {
   /**
    * Get available Google Drive folders for folder picker
    */
-  async getGoogleDriveFolders(): Promise<Array<{ id: string; name: string }>> {
+  async getGoogleDriveFolders(parentId?: string): Promise<Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>> {
     // Ensure Google Drive adapter is available
     if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
       console.log('🔧 Setting up Google Drive adapter...');
@@ -524,7 +524,7 @@ export class SyncManager {
     }
 
     // Get folders from Google Drive adapter without auto-selecting
-    return await this.currentAdapter.getFolders();
+    return await this.currentAdapter.getFolders(parentId);
   }
 
   /**
