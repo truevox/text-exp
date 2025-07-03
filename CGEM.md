@@ -89,6 +89,23 @@ Use `gemini -p` when:
 - Verifying if specific features, patterns, or security measures are implemented
 - Checking for the presence of certain coding patterns across the entire codebase
 
+## Commit Message Conventions
+
+Our commit messages follow a specific format: `TypeEmojiMeaning`. Here's a list of accepted types and their corresponding emojis:
+
+| Type    | Emoji          | Meaning                               |
+| :------ | :------------- | :------------------------------------ |
+| feat    | ✨ `:sparkles:` | A new feature                         |
+| fix     | 🐛 `:bug:`      | A bug fix                             |
+| chore   | 🧹 `:broom:`    | Maintenance stuff                     |
+| docs    | 📝 `:memo:`     | Documentation only                    |
+| style   | 💄 `:lipstick:` | Formatting, no logic change           |
+| refactor| ♻️ `:recycle:`  | Code change without fixing or adding  |
+| test    | ✅ `:white_check_mark:` | Adding or fixing tests                |
+| perf    | ⚡ `:zap:`      | Performance improvement               |
+| build   | 🏗️ `:building_construction:` | Build system changes                  |
+| ci      | 🤖 `:robot:`    | CI/CD config or script changes        |
+
 ## Important Notes
 
 - Paths in `@` syntax are relative to your current working directory when invoking gemini

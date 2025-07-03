@@ -131,8 +131,25 @@ After core logic works, ask Claude to provide screenshots or mock‑ups for:
 
 ### 4. Commit & GitHub Integration
 
+#### Commit Message Conventions
+
+Our commit messages follow a specific format: `TypeEmojiMeaning`. Here's a list of accepted types and their corresponding emojis:
+
+| Type    | Emoji          | Meaning                               |
+| :------ | :------------- | :------------------------------------ |
+| feat    | ✨ `:sparkles:` | A new feature                         |
+| fix     | 🐛 `:bug:`      | A bug fix                             |
+| chore   | 🧹 `:broom:`    | Maintenance stuff                     |
+| docs    | 📝 `:memo:`     | Documentation only                    |
+| style   | 💄 `:lipstick:` | Formatting, no logic change           |
+| refactor| ♻️ `:recycle:`  | Code change without fixing or adding  |
+| test    | ✅ `:white_check_mark:` | Adding or fixing tests                |
+| perf    | ⚡ `:zap:`      | Performance improvement               |
+| build   | 🏗️ `:building_construction:` | Build system changes                  |
+| ci      | 🤖 `:robot:`    | CI/CD config or script changes        |
+
 * Use `gh` CLI for branches/PRs.
-* Keep commits small.
+* Keep commits small and focused; seperation of affairs.
 * Before making a commit, think about if anything new (or old) needs to be added to .gitignore. If so, add it.
 * **Vite** remains our bundler for the extension (Manifest V3 build target).
 
