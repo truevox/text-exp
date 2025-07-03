@@ -19,7 +19,9 @@ class OptionsApp {
   // Folder picker state
   private currentFolderScope: 'personal' | 'department' | 'org' | null = null;
   private selectedFolder: { id: string; name: string } | null = null;
-  private availableFolders: Array<{ id: string; name: string }> = [];
+  private availableFolders: Array<{ id: string; name: string; parentId?: string; isFolder: boolean }> = [];
+  private currentParentId: string = 'root';
+  private breadcrumbPath: Array<{ id: string; name: string }> = [];
 
   // DOM elements
   private elements = {
@@ -103,6 +105,7 @@ class OptionsApp {
     folderPickerLoading: document.getElementById('folderPickerLoading') as HTMLElement,
     folderPickerList: document.getElementById('folderPickerList') as HTMLElement,
     folderPickerError: document.getElementById('folderPickerError') as HTMLElement,
+    folderBreadcrumb: document.getElementById('folderBreadcrumb') as HTMLElement,
     createFolderButton: document.getElementById('createFolderButton') as HTMLButtonElement,
     cancelFolderPickerButton: document.getElementById('cancelFolderPickerButton') as HTMLButtonElement,
     confirmFolderPickerButton: document.getElementById('confirmFolderPickerButton') as HTMLButtonElement,
@@ -935,10 +938,15 @@ class OptionsApp {
     // Reset state
     this.selectedFolder = null;
     this.availableFolders = [];
+    this.currentParentId = 'root';
+    this.breadcrumbPath = [{ id: 'root', name: 'My Drive' }];
     
     // Show loading state
     this.showFolderPickerLoading();
     this.elements.folderPickerModal.style.display = 'flex';
+    
+    // Update breadcrumb
+    this.updateBreadcrumb();
     
     try {
       // Load folders from Google Drive
@@ -952,11 +960,12 @@ class OptionsApp {
   /**
    * Load available folders from Google Drive
    */
-  private async loadAvailableFolders(): Promise<void> {
+  private async loadAvailableFolders(parentId?: string): Promise<void> {
     try {
       // Call the background script to get folders without auto-selecting
       const response = await chrome.runtime.sendMessage({
-        type: 'GET_GOOGLE_DRIVE_FOLDERS'
+        type: 'GET_GOOGLE_DRIVE_FOLDERS',
+        parentId: parentId || this.currentParentId
       });
 
       if (response.success) {
@@ -980,20 +989,51 @@ class OptionsApp {
       this.elements.folderPickerList.innerHTML = '<p class="no-folders">No folders found. You can create a new folder.</p>';
     } else {
       const folderItems = this.availableFolders.map(folder => `
-        <div class="folder-item" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+        <div class="folder-item navigable" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
           <span class="folder-icon">📁</span>
           <div class="folder-details">
             <div class="folder-name">${folder.name}</div>
             <div class="folder-path">ID: ${folder.id}</div>
+          </div>
+          <div class="folder-actions">
+            <button class="folder-action-button navigate-button" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+              Open →
+            </button>
+            <button class="folder-action-button select-button" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+              Select
+            </button>
           </div>
         </div>
       `).join('');
       
       this.elements.folderPickerList.innerHTML = folderItems;
       
-      // Add click listeners to folder items
+      // Add click listeners to navigate buttons
+      this.elements.folderPickerList.querySelectorAll('.navigate-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const folderId = button.getAttribute('data-folder-id')!;
+          const folderName = button.getAttribute('data-folder-name')!;
+          this.navigateToFolder(folderId, folderName);
+        });
+      });
+      
+      // Add click listeners to select buttons
+      this.elements.folderPickerList.querySelectorAll('.select-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const folderElement = button.closest('.folder-item') as HTMLElement;
+          this.selectFolderItem(folderElement);
+        });
+      });
+      
+      // Add double-click listeners to folder items for navigation
       this.elements.folderPickerList.querySelectorAll('.folder-item').forEach(item => {
-        item.addEventListener('click', () => this.selectFolderItem(item as HTMLElement));
+        item.addEventListener('dblclick', () => {
+          const folderId = item.getAttribute('data-folder-id')!;
+          const folderName = item.getAttribute('data-folder-name')!;
+          this.navigateToFolder(folderId, folderName);
+        });
       });
     }
     
@@ -1165,6 +1205,80 @@ class OptionsApp {
    */
   private hideFolderPickerError(): void {
     this.elements.folderPickerError.style.display = 'none';
+  }
+
+  /**
+   * Navigate to a folder
+   */
+  private async navigateToFolder(folderId: string, folderName: string): Promise<void> {
+    try {
+      // Update current state
+      this.currentParentId = folderId;
+      this.breadcrumbPath.push({ id: folderId, name: folderName });
+      
+      // Show loading
+      this.showFolderPickerLoading();
+      
+      // Update breadcrumb
+      this.updateBreadcrumb();
+      
+      // Load folders in the new directory
+      await this.loadAvailableFolders();
+      
+    } catch (error) {
+      console.error('Failed to navigate to folder:', error);
+      this.showFolderPickerError(`Failed to open folder: ${error.message}`);
+    }
+  }
+
+  /**
+   * Navigate to a breadcrumb folder
+   */
+  private async navigateToBreadcrumbFolder(folderId: string): Promise<void> {
+    try {
+      // Find the index of this folder in breadcrumb
+      const index = this.breadcrumbPath.findIndex(item => item.id === folderId);
+      if (index === -1) return;
+      
+      // Update state
+      this.currentParentId = folderId;
+      this.breadcrumbPath = this.breadcrumbPath.slice(0, index + 1);
+      
+      // Show loading
+      this.showFolderPickerLoading();
+      
+      // Update breadcrumb
+      this.updateBreadcrumb();
+      
+      // Load folders in the selected directory
+      await this.loadAvailableFolders();
+      
+    } catch (error) {
+      console.error('Failed to navigate to breadcrumb folder:', error);
+      this.showFolderPickerError(`Failed to navigate: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update breadcrumb navigation
+   */
+  private updateBreadcrumb(): void {
+    const breadcrumbItems = this.breadcrumbPath.map((item, index) => {
+      const isLast = index === this.breadcrumbPath.length - 1;
+      return `<span class="breadcrumb-item ${isLast ? 'current' : ''}" data-folder-id="${item.id}">
+        ${index === 0 ? '📁' : ''} ${item.name}
+      </span>`;
+    }).join('');
+    
+    this.elements.folderBreadcrumb.innerHTML = breadcrumbItems;
+    
+    // Add click listeners to breadcrumb items
+    this.elements.folderBreadcrumb.querySelectorAll('.breadcrumb-item:not(.current)').forEach(item => {
+      item.addEventListener('click', () => {
+        const folderId = item.getAttribute('data-folder-id')!;
+        this.navigateToBreadcrumbFolder(folderId);
+      });
+    });
   }
 }
 

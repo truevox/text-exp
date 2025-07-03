@@ -174,7 +174,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'GET_GOOGLE_DRIVE_FOLDERS':
-          const folders = await syncManager.getGoogleDriveFolders();
+          const folders = await syncManager.getGoogleDriveFolders(message.parentId);
           sendResponse({ success: true, data: folders });
           break;
 
