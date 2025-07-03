@@ -120,21 +120,29 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    * Download snippets from Google Drive
    */
   async downloadSnippets(folderId?: string): Promise<TextSnippet[]> {
+    console.log(`📥 GoogleDriveAdapter.downloadSnippets called with folderId: ${folderId}`);
     return this.retryOperation(async () => {
       // Find the snippets file (optionally in a specific folder)
       if (!this.fileId) {
+        console.log(`🔍 Looking for snippets file in folder: ${folderId || 'root'}`);
         this.fileId = await this.findSnippetsFile(folderId);
+        console.log(`🔍 Found fileId: ${this.fileId}`);
       }
       
       if (!this.fileId) {
+        console.log('⚠️ No snippets file found, returning empty array');
         return []; // No file exists yet
       }
       
       // Download file content
+      console.log(`📋 Downloading file content for fileId: ${this.fileId}`);
       const content = await this.downloadFile(this.fileId);
+      console.log(`📋 Downloaded content length: ${content.length}`);
       
       try {
         const snippets = JSON.parse(content) as TextSnippet[];
+        console.log(`✅ Successfully parsed ${snippets.length} snippets from Google Drive`);
+        console.log(`📋 Parsed snippets:`, snippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
         return snippets.map(snippet => ({
           ...snippet,
           createdAt: new Date(snippet.createdAt),
@@ -142,6 +150,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         }));
       } catch (error) {
         console.error('Failed to parse snippets file:', error);
+        console.error('File content:', content);
         return [];
       }
     });
@@ -502,11 +511,16 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Create a new folder in Google Drive
    */
-  async createFolder(name: string): Promise<{ id: string; name: string }> {
-    const metadata = {
+  async createFolder(name: string, parentId?: string): Promise<{ id: string; name: string }> {
+    const metadata: any = {
       name,
       mimeType: 'application/vnd.google-apps.folder'
     };
+    
+    // Add parent folder if specified
+    if (parentId && parentId !== 'root') {
+      metadata.parents = [parentId];
+    }
     
     const response = await fetch(
       `${GoogleDriveAdapter.DRIVE_API}/files?fields=id,name`,

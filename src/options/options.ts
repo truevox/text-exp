@@ -1141,7 +1141,8 @@ class OptionsApp {
       // Call background script to create folder
       const response = await chrome.runtime.sendMessage({
         type: 'CREATE_GOOGLE_DRIVE_FOLDER',
-        folderName: folderName
+        folderName: folderName,
+        parentId: this.currentParentId
       });
 
       if (response.success) {

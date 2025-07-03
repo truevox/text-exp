@@ -1,87 +1,121 @@
-# 🚀 PuffPuffPaste - Current Status & Next Steps
+# PICK-UP-HERE.md
 
-## 📍 Current State (v0.8.3)
-**MAJOR BREAKTHROUGH:** Google Drive authentication is fully working! User has configured real OAuth client ID and enabled Google Drive API.
+## Current Status: Google Drive Sync Working but Text Expansion Failing
 
-## 🔧 Recent Work Completed
-**Started from:** Critical Google Drive file search failing with placeholder folder ID instead of real Google Drive folder ID
+**Version:** 0.10.2 (just updated with comprehensive sync debugging)
+**Extension ID:** hlhpgfjffmigppdbhopljldjplpffhmb
 
-**Completed in v0.8.0-0.8.3:**
-1. **Google Drive OAuth Fixed**: 
-   - ✅ User provided real Google OAuth client ID: `1037463573947-mjb7i96il5j0b2ul3ou7c1vld0b0q96a.apps.googleusercontent.com`
-   - ✅ User added Chrome Extension ID `hlhpgfjffmigppdbhopljldjplpffhmb` to OAuth client configuration
-   - ✅ User enabled Google Drive API in Google Cloud Console project 1037463573947
-   - ✅ Fixed `isAuthenticated()` method name mismatch in sync manager
-   - ✅ Chrome identity API authentication now works perfectly
+## Problem Summary
 
-2. **Google Drive API Integration**:
-   - ✅ OAuth authentication fully functional using Chrome's `identity.getAuthToken()`
-   - ✅ Folder listing and selection working
-   - ✅ Manual OAuth fallback implemented for edge cases
-   - ✅ Added comprehensive debug logging for folder selection and file search
+The Google Drive sync is now **WORKING CORRECTLY** - the logs show:
+-  Successfully authenticated with Google Drive
+-  Found the `text-expander-snippets.json` file (fileId: 1HUiDK1jTOWpPSVWRmaVHH6W_FbJZzHsN)
+-  Downloaded 1 snippet from Google Drive (`{trigger: ";eata", content: "Bag of Dicks!!"}`)
+-  Merged 1 snippet successfully
+-  Updated local storage
 
-3. **UI Improvements**:
-   - ✅ Removed duplicate "Add Snippet" button from popup empty state
-   - ✅ Updated constants.ts with correct Google OAuth v2 endpoint
+**BUT** text expansion is still failing:
+- User types `;eata` followed by Tab/Space 
+- Content script shows "no_match" state
+- The snippet is NOT being found during trigger detection
 
-## 🚨 CRITICAL ISSUE IDENTIFIED
-**Root Cause Found:** The sync manager is using hardcoded placeholder `'personal-folder-id'` instead of the actual Google Drive folder ID returned from folder selection.
+## Root Cause Analysis
 
-**Problem Location:** `/src/background/sync-manager.ts` line 184 in `syncNow()` method:
+The issue is a **DISCONNECT between sync and content script**:
+
+1. **Sync Process**  Downloads snippets to extension storage correctly
+2. **Content Script** L Not reading the updated snippets from storage
+
+### Evidence from Logs:
+- Content script logs: `=� Loaded snippets: 5 total` (should be 6 with the synced snippet)
+- Sync logs: `= Sync completed, merged 1 snippets` 
+- **The content script is not picking up the newly synced snippet**
+
+## Technical Details
+
+### Files Modified for Debugging (v0.10.2):
+- `src/background/multi-scope-sync-manager.ts` - Added detailed sync logging
+- `src/background/cloud-adapters/google-drive-adapter.ts` - Added download logging
+- `src/background/sync-manager.ts` - Added merge logging
+
+### Current Sync Flow (Working):
+1. User clicks sync in popup
+2. `syncNow()` called in sync-manager.ts
+3. Downloads from Google Drive folder (folderId: undefined = root)
+4. Finds and parses `text-expander-snippets.json`
+5. Merges with local snippets
+6. Updates extension storage via `ExtensionStorage.setSnippets()`
+
+### Content Script Issue (Broken):
+- Content script loads snippets on initialization
+- **Missing**: Content script doesn't refresh snippets after sync completes
+- **Need**: Message/event system to notify content script of snippet updates
+
+## Next Steps to Fix
+
+### 1. **Content Script Refresh** (PRIORITY 1)
+The content script needs to refresh its snippet cache when sync completes:
+
 ```typescript
-// WRONG - hardcoded placeholder
-folderId: 'personal-folder-id', // Placeholder
+// In background/service-worker.ts - after successful sync
+chrome.tabs.query({}, (tabs) => {
+  tabs.forEach(tab => {
+    chrome.tabs.sendMessage(tab.id, { type: 'SNIPPETS_UPDATED' });
+  });
+});
 
-// NEEDS TO BE - actual folder ID from storage
-folderId: personalSource.folderId, // Real Google Drive folder ID
+// In content script - add message listener
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'SNIPPETS_UPDATED') {
+    this.loadSnippets(); // Refresh from storage
+  }
+});
 ```
 
-## 🎯 IMMEDIATE NEXT STEPS (30 seconds of work)
+### 2. **Verify Storage Update**
+Add logging to confirm `ExtensionStorage.setSnippets()` is actually updating the storage:
 
-### 🚨 PRIMARY ISSUE TO FIX
-**Fix folder ID flow in sync manager:**
-1. ✅ **PARTIALLY FIXED**: Modified `syncNow()` to load scoped sources from `ExtensionStorage.getScopedSources()`
-2. ❌ **NEEDS COMPLETION**: The `selectFolder()` method needs to save the selected folder to storage via `ExtensionStorage.setScopedSources()`
-
-**Missing Link:** When user selects a Google Drive folder, it returns the correct folder ID but doesn't persist it for sync operations.
-
-### 🔧 EXACT FIX NEEDED
-1. **Update `selectFolder()` method** in sync manager to save selected folder to storage:
 ```typescript
-// After successful folder selection:
-await ExtensionStorage.setScopedSources([{
-  name: 'personal',
-  adapter: this.currentAdapter,
-  folderId: folderHandle.folderId,
-  displayName: folderHandle.folderName,
-}]);
+// In storage.js
+console.log('=� Updating storage with snippets:', snippets.length);
 ```
 
-2. **Test the complete flow:**
-   - Select Google Drive folder in options page
-   - Verify folder ID is saved to storage
-   - Run sync operation
-   - Confirm file search uses real folder ID instead of 'personal-folder-id'
+### 3. **Test Content Script Load**
+Verify content script `loadSnippets()` method is reading from the correct storage location.
 
-## 🧪 CONSOLE LOG EVIDENCE
-User's latest logs show the issue clearly:
+## User's Selected Folder
+
+- **Folder:** "Personal" inside "PuffPuffPaste Snippets" 
+- **Folder ID:** 1ai6NEcpDaun9oWNpGEIAhO3_Qt1P-qyf
+- **Issue:** Sync is searching in root instead of selected folder
+- **Fix Needed:** Update sync to use the user's selected folder ID
+
+## Files to Check/Modify
+
+1. **content/content-script.js** - Add message listener for snippet updates
+2. **background/service-worker.ts** - Broadcast snippet update messages
+3. **shared/storage.js** - Add logging to storage operations
+4. **sync-manager.ts** - Use correct folder ID from user selection
+
+## Debugging Commands
+
+```bash
+# Version management
+npm run version:fix  # Bump to 0.10.3
+
+# Check storage contents in DevTools
+chrome.storage.local.get(['snippets'], console.log)
+
+# Monitor content script logs
+# Look for "=� Loaded snippets: X total" after sync
 ```
-🔍 Search URL: ...and%20'personal-folder-id'%20in%20parents
-🔍 Search response status: 404
-"message": "File not found: ."
-```
 
-The debug logging added shows folder selection returns real Google Drive folder IDs, but sync operations still use the placeholder.
+## Expected Behavior After Fix
 
-## 💾 Architecture Status
-- ✅ **Google Drive OAuth**: WORKING PERFECTLY
-- ✅ **Folder selection**: Returns correct folder IDs  
-- ❌ **Folder persistence**: Not saving selected folders to storage
-- ❌ **Sync operations**: Using placeholder instead of real folder IDs
+1. User syncs in popup � "Sync completed successfully"
+2. Content script logs: `=� Loaded snippets: 6 total` (or appropriate count)
+3. User types `;eata` � Gets "Bag of Dicks!!" expansion
 
-## 📁 Key Files to Modify Next
-- `src/background/sync-manager.ts` - Save selected folder to storage in `selectFolder()` method
-- Test complete folder selection → sync flow
+## Context for Next Developer
 
-## 🎉 MAJOR WIN
-Authentication infrastructure is solid. Only missing the folder ID persistence piece!
+The sync architecture is sound and working. The final piece is ensuring the content script refreshes its snippet cache when new snippets are synced from cloud storage. This is a common pattern in Chrome extensions - background scripts update storage, then notify content scripts to refresh their cached data.

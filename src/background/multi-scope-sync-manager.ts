@@ -39,7 +39,10 @@ export class MultiScopeSyncManager {
 
   private async fetchFromSource(source: SyncedSource): Promise<{ source: SyncedSource, snippets: Snippet[] }> {
     try {
+      console.log(`🔍 Fetching snippets from ${source.displayName} (scope: ${source.name}, folderId: ${source.folderId})`);
       const snippets = await source.adapter.downloadSnippets(source.folderId);
+      console.log(`📥 Downloaded ${snippets.length} snippets from ${source.displayName}`);
+      console.log(`📋 Snippets:`, snippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
       return { source, snippets };
     } catch (error) {
       console.error(`Failed to fetch snippets for source: ${source.displayName}`, error);

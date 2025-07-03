@@ -210,7 +210,9 @@ export class SyncManager {
 
       // TODO: Add department and org sources based on user settings
 
+      console.log(`🔄 Starting syncAndMerge with ${sources.length} sources:`, sources.map(s => ({ name: s.displayName, folderId: s.folderId })));
       const mergedSnippets = await this.multiScopeSyncManager.syncAndMerge(sources);
+      console.log(`🔄 Sync completed, merged ${mergedSnippets.length} snippets:`, mergedSnippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
       
       // Update local storage with merged results
       await ExtensionStorage.setSnippets(mergedSnippets);
@@ -530,7 +532,7 @@ export class SyncManager {
   /**
    * Create a new folder in Google Drive
    */
-  async createGoogleDriveFolder(folderName: string): Promise<{ id: string; name: string }> {
+  async createGoogleDriveFolder(folderName: string, parentId?: string): Promise<{ id: string; name: string }> {
     // Ensure Google Drive adapter is available
     if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
       console.log('🔧 Setting up Google Drive adapter...');
@@ -549,7 +551,7 @@ export class SyncManager {
     }
 
     // Create folder using Google Drive adapter
-    return await this.currentAdapter.createFolder(folderName);
+    return await this.currentAdapter.createFolder(folderName, parentId);
   }
 
 }

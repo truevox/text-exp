@@ -179,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'CREATE_GOOGLE_DRIVE_FOLDER':
-          const newFolder = await syncManager.createGoogleDriveFolder(message.folderName);
+          const newFolder = await syncManager.createGoogleDriveFolder(message.folderName, message.parentId);
           sendResponse({ success: true, data: newFolder });
           break;
           
