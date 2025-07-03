@@ -6,9 +6,11 @@
 import { EnhancedTriggerDetector } from './enhanced-trigger-detector';
 import { TextReplacer } from './text-replacer';
 import { PlaceholderHandler } from './placeholder-handler';
+import { ImageProcessor } from '../background/image-processor';
 import { createMessageHandler, createSuccessResponse, createErrorResponse } from '../shared/messaging';
 import type { ExpandTextMessage, VariablePromptMessage, TextSnippet, ReplacementContext } from '../shared/types';
 import { ExtensionStorage } from '../shared/storage';
+import { TriggerCyclingUI, type CyclingOption } from './trigger-cycling-ui';
 
 /**
  * Main content script class
@@ -20,6 +22,11 @@ export class ContentScript {
   private messageHandler = createMessageHandler();
   private isEnabled = true;
   private activeElement: HTMLElement | null = null;
+  private imageProcessor: ImageProcessor;
+  private cyclingUI: TriggerCyclingUI;
+  private isCycling = false;
+  private currentCyclingTrigger = '';
+  private currentCyclingOptions: CyclingOption[] = [];
 
   constructor(
     triggerDetector?: EnhancedTriggerDetector,
@@ -27,9 +34,11 @@ export class ContentScript {
     placeholderHandler?: PlaceholderHandler
   ) {
     // Initialize with empty snippets and default prefix
+    this.imageProcessor = new ImageProcessor();
     this.triggerDetector = triggerDetector || new EnhancedTriggerDetector([], ';');
-    this.textReplacer = textReplacer || new TextReplacer();
+    this.textReplacer = textReplacer || new TextReplacer(this.imageProcessor);
     this.placeholderHandler = placeholderHandler || new PlaceholderHandler();
+    this.cyclingUI = new TriggerCyclingUI();
     
     this.initialize();
   }
@@ -160,6 +169,32 @@ export class ContentScript {
     if (!this.isEnabled) return;
     
     const target = event.target as HTMLElement;
+
+    // Handle Escape key - undo or hide cycling UI
+    if (event.key === 'Escape') {
+      if (this.isCycling) {
+        this.endCycling();
+        event.preventDefault();
+        return;
+      }
+      this.textReplacer.undoLastReplacement(target);
+      return;
+    }
+
+    // Handle cycling state
+    if (this.isCycling && this.isTextInput(target)) {
+      if (event.key === 'Tab') {
+        // Cycle to next option
+        event.preventDefault();
+        this.cycleToNextOption();
+        return;
+      } else {
+        // Any other key - cement the current selection and process
+        event.preventDefault();
+        await this.cementCurrentCyclingOption(target);
+        return;
+      }
+    }
     
     // Check for expansion trigger (Tab or Space)
     if ((event.key === 'Tab' || event.key === ' ') && this.isTextInput(target)) {
@@ -202,6 +237,10 @@ export class ContentScript {
     this.activeElement = null;
     // Reset the detector state
     this.triggerDetector.reset();
+    // End any active cycling
+    if (this.isCycling) {
+      this.endCycling();
+    }
   }
 
   /**
@@ -229,6 +268,13 @@ export class ContentScript {
     console.log('🎯 Processing trigger:', { trigger, element, result });
     
     try {
+      // Check if we have multiple possible completions (ambiguous state)
+      if (result.state === 'ambiguous' && result.possibleCompletions && result.possibleCompletions.length > 1) {
+        console.log('🔄 Ambiguous trigger detected, starting cycling mode');
+        await this.startCycling(result.potentialTrigger, result.possibleCompletions, element);
+        return;
+      }
+
       let snippet = await ExtensionStorage.findSnippetByTrigger(trigger);
       
       // If not found in storage, check if it's the built-in test snippet
@@ -259,27 +305,7 @@ export class ContentScript {
         return; // No matching snippet found
       }
       
-      // Handle built-in test snippet customization
-      if (snippet.isBuiltIn && snippet.id === 'builtin-test') {
-        console.log('🧪 Built-in test snippet detected');
-        const settings = await ExtensionStorage.getSettings();
-        console.log('⚙️ Settings:', settings);
-        if (!settings.hasSeenTestSnippet) {
-          console.log('👋 First time seeing test snippet - showing customization');
-          await this.showTestSnippetCustomization();
-          return; // Don't expand on first use, just show customization
-        }
-      }
-      
-      // Check if snippet has variables
-      if (snippet.variables && snippet.variables.length > 0) {
-        console.log('📝 Snippet has variables, prompting...');
-        const variables = await this.placeholderHandler.promptForVariables(snippet);
-        await this.expandWithVariables(snippet, variables, element, result);
-      } else {
-        console.log('✨ Expanding simple snippet');
-        await this.expandText(snippet, element, result);
-      }
+      await this.expandSnippet(snippet, element, result);
     } catch (error) {
       console.error('❌ Error processing trigger:', error);
     }
@@ -295,8 +321,11 @@ export class ContentScript {
     console.log('📍 Replacement context:', context);
     
     if (context) {
-      console.log('✅ Context valid, calling textReplacer');
-      this.textReplacer.replaceText(context, snippet.content);
+      if (snippet.contentType === 'html' && this.isContentEditable(element)) {
+        this.textReplacer.insertHtmlAtCursor(element, snippet.content);
+      } else {
+        this.textReplacer.replaceText(context, snippet.content);
+      }
       
       // Log expansion for analytics
       console.log(`✨ Expanded "${snippet.trigger}" → "${snippet.content.substring(0, 50)}..."`);
@@ -317,7 +346,11 @@ export class ContentScript {
     const context = this.createReplacementContext(element, snippet.trigger, snippet);
     if (context) {
       const expandedContent = this.placeholderHandler.replaceVariables(snippet.content, variables);
-      this.textReplacer.replaceText(context, expandedContent);
+      if (snippet.contentType === 'html' && this.isContentEditable(element)) {
+        this.textReplacer.insertHtmlAtCursor(element, expandedContent);
+      } else {
+        this.textReplacer.replaceText(context, expandedContent);
+      }
       
       // Log expansion for analytics
       console.log(`Expanded "${snippet.trigger}" with variables → "${expandedContent.substring(0, 50)}..."`);
@@ -366,12 +399,33 @@ export class ContentScript {
   private isTextInput(element: HTMLElement): boolean {
     if (!element) return false;
     
+    // Additional security checks for sensitive contexts
+    const autocomplete = (element as HTMLInputElement).autocomplete?.toLowerCase();
+    if (autocomplete && ['current-password', 'new-password', 'cc-number', 'cc-csc'].includes(autocomplete)) {
+      return false;
+    }
+    
+    // Check for data-* attributes that might indicate sensitive fields
+    const dataset = (element as HTMLElement).dataset;
+    if (dataset && (dataset.sensitive === 'true' || dataset.password === 'true')) {
+      return false;
+    }
+    
     const tagName = element.tagName.toLowerCase();
     
     // Check for input elements
     if (tagName === 'input') {
       const inputType = (element as HTMLInputElement).type.toLowerCase();
-      return ['text', 'email', 'password', 'search', 'url', 'tel'].includes(inputType);
+      
+      // Explicitly exclude sensitive input types for security
+      const excludedTypes = ['password', 'hidden', 'file', 'submit', 'button', 'reset', 'image', 'checkbox', 'radio'];
+      if (excludedTypes.includes(inputType)) {
+        return false;
+      }
+      
+      // Only allow safe text input types
+      const allowedTypes = ['text', 'email', 'search', 'url', 'tel', 'textarea'];
+      return allowedTypes.includes(inputType);
     }
     
     // Check for textarea
@@ -548,6 +602,125 @@ export class ContentScript {
     });
 
     return overlay;
+  }
+
+  /**
+   * Start cycling mode with multiple trigger options
+   */
+  private async startCycling(
+    potentialTrigger: string,
+    possibleCompletions: string[],
+    element: HTMLElement
+  ): Promise<void> {
+    // Get snippets for all possible completions
+    const cyclingOptions: CyclingOption[] = [];
+    
+    for (const trigger of possibleCompletions) {
+      const snippet = await ExtensionStorage.findSnippetByTrigger(trigger);
+      if (snippet) {
+        cyclingOptions.push({
+          trigger: snippet.trigger,
+          content: snippet.content,
+          description: snippet.description
+        });
+      }
+    }
+
+    if (cyclingOptions.length === 0) {
+      return; // No valid options found
+    }
+
+    this.isCycling = true;
+    this.currentCyclingTrigger = potentialTrigger;
+    this.currentCyclingOptions = cyclingOptions;
+
+    // Get cursor position for UI positioning
+    const cursorPos = TriggerCyclingUI.getCursorPosition(element);
+    if (cursorPos) {
+      this.cyclingUI.show(cyclingOptions, element, cursorPos);
+    }
+
+    console.log('🔄 Started cycling mode with options:', cyclingOptions.map(o => o.trigger));
+  }
+
+  /**
+   * Cycle to the next option
+   */
+  private cycleToNextOption(): void {
+    if (!this.isCycling) return;
+    
+    const nextOption = this.cyclingUI.cycleNext();
+    console.log('🔄 Cycled to option:', nextOption.trigger);
+  }
+
+  /**
+   * End cycling mode and clean up
+   */
+  private endCycling(): void {
+    this.isCycling = false;
+    this.currentCyclingTrigger = '';
+    this.currentCyclingOptions = [];
+    this.cyclingUI.hide();
+    console.log('🔄 Ended cycling mode');
+  }
+
+  /**
+   * Cement the current cycling option and expand it
+   */
+  private async cementCurrentCyclingOption(element: HTMLElement): Promise<void> {
+    if (!this.isCycling) return;
+
+    const currentOption = this.cyclingUI.getCurrentOption();
+    if (!currentOption) {
+      this.endCycling();
+      return;
+    }
+
+    console.log('✅ Cementing cycling option:', currentOption.trigger);
+
+    // End cycling first
+    this.endCycling();
+
+    // Find and process the selected snippet
+    const snippet = await ExtensionStorage.findSnippetByTrigger(currentOption.trigger);
+    if (snippet) {
+      // Create a mock result for expansion
+      const mockResult = {
+        isMatch: true,
+        trigger: snippet.trigger,
+        content: snippet.content,
+        state: 'complete' as const
+      };
+      
+      await this.expandSnippet(snippet, element, mockResult);
+    }
+  }
+
+  /**
+   * Expand a snippet (extracted from processTrigger for reuse)
+   */
+  private async expandSnippet(snippet: TextSnippet, element: HTMLElement, result: any): Promise<void> {
+    // Handle built-in test snippet customization
+    if (snippet.isBuiltIn && snippet.id === 'builtin-test') {
+      console.log('🧪 Built-in test snippet detected');
+      const settings = await ExtensionStorage.getSettings();
+      console.log('⚙️ Settings:', settings);
+      if (!settings.hasSeenTestSnippet) {
+        console.log('👋 First time seeing test snippet - showing customization');
+        await this.showTestSnippetCustomization();
+        return; // Don't expand on first use, just show customization
+      }
+    }
+    
+    // Check if snippet has variables
+    if (snippet.variables && snippet.variables.length > 0) {
+      console.log('📝 Snippet has variables, prompting...');
+      const variables = await this.placeholderHandler.promptForVariables(snippet);
+      await this.expandWithVariables(snippet, variables, element, result);
+    } else {
+      console.log('✨ Expanding simple snippet');
+      await this.expandText(snippet, element, result);
+    }
   }
 
   /**

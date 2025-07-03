@@ -205,7 +205,7 @@ describe('ContentScript', () => {
       expect(contentScript['isTextInput'](emailInput)).toBe(true);
       expect(contentScript['isTextInput'](searchInput)).toBe(true);
       expect(contentScript['isTextInput'](urlInput)).toBe(true);
-      expect(contentScript['isTextInput'](passwordInput)).toBe(true);
+      expect(contentScript['isTextInput'](passwordInput)).toBe(false); // Security fix: password inputs should be excluded
     });
   });
 
