@@ -9,7 +9,7 @@
 **Completed in v0.8.0-0.8.3:**
 1. **Google Drive OAuth Fixed**: 
    - ✅ User provided real Google OAuth client ID: `1037463573947-mjb7i96il5j0b2ul3ou7c1vld0b0q96a.apps.googleusercontent.com`
-   - ✅ User added Chrome Extension ID `lpidapafpffopknnkifglcdfppfcpdnf` to OAuth client configuration
+   - ✅ User added Chrome Extension ID `hlhpgfjffmigppdbhopljldjplpffhmb` to OAuth client configuration
    - ✅ User enabled Google Drive API in Google Cloud Console project 1037463573947
    - ✅ Fixed `isAuthenticated()` method name mismatch in sync manager
    - ✅ Chrome identity API authentication now works perfectly
