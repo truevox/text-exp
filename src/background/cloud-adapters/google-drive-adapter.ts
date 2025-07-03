@@ -20,40 +20,81 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   private fileId: string | null = null;
 
   /**
-   * Authenticate with Google Drive
+   * Authenticate with Google Drive using Chrome Identity API
    */
   async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
-      const authUrl = this.buildAuthUrl();
-      console.log('🔐 Google Drive auth URL:', authUrl);
+      // Try Chrome's built-in OAuth first
+      const manifest = chrome.runtime.getManifest();
+      const scopes = CLOUD_PROVIDERS['google-drive'].scopes;
       
-      chrome.identity.launchWebAuthFlow({
-        url: authUrl,
-        interactive: true
-      }, (redirectUrl) => {
+      console.log('🔐 Attempting Chrome identity.getAuthToken...');
+      
+      chrome.identity.getAuthToken({
+        interactive: true,
+        scopes: scopes
+      }, (token) => {
         if (chrome.runtime.lastError) {
-          console.error('🚫 OAuth error:', chrome.runtime.lastError.message);
-          reject(new Error(chrome.runtime.lastError.message));
+          console.log('🔐 Chrome identity failed, falling back to manual OAuth:', chrome.runtime.lastError.message);
+          // Fallback to manual OAuth flow
+          this.authenticateManually(resolve, reject);
           return;
         }
         
-        if (!redirectUrl) {
-          console.error('🚫 No redirect URL received');
-          reject(new Error('Authentication cancelled'));
+        if (!token) {
+          console.error('🚫 No token received from Chrome identity');
+          reject(new Error('Authentication failed - no token'));
           return;
         }
         
-        console.log('✅ OAuth redirect URL received:', redirectUrl);
+        console.log('✅ Chrome identity token received');
         
-        try {
-          const credentials = this.parseAuthResponse(redirectUrl);
-          console.log('✅ OAuth credentials parsed successfully');
-          resolve(credentials);
-        } catch (error) {
-          console.error('🚫 Failed to parse OAuth response:', error);
-          reject(error);
-        }
+        // Create credentials object
+        const credentials: CloudCredentials = {
+          provider: this.provider,
+          accessToken: token,
+          // Chrome handles token expiration automatically
+          expiresAt: undefined
+        };
+        
+        resolve(credentials);
       });
+    });
+  }
+
+  /**
+   * Fallback manual OAuth authentication
+   */
+  private authenticateManually(resolve: Function, reject: Function): void {
+    const authUrl = this.buildAuthUrl();
+    console.log('🔐 Google Drive manual auth URL:', authUrl);
+    
+    chrome.identity.launchWebAuthFlow({
+      url: authUrl,
+      interactive: true
+    }, (redirectUrl) => {
+      if (chrome.runtime.lastError) {
+        console.error('🚫 Manual OAuth error:', chrome.runtime.lastError.message);
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      
+      if (!redirectUrl) {
+        console.error('🚫 No redirect URL received');
+        reject(new Error('Authentication cancelled'));
+        return;
+      }
+      
+      console.log('✅ OAuth redirect URL received:', redirectUrl);
+      
+      try {
+        const credentials = this.parseAuthResponse(redirectUrl);
+        console.log('✅ OAuth credentials parsed successfully');
+        resolve(credentials);
+      } catch (error) {
+        console.error('🚫 Failed to parse OAuth response:', error);
+        reject(error);
+      }
     });
   }
 
@@ -157,6 +198,8 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       // For now, return the first folder found
       // TODO: Implement proper folder selection UI
       const selectedFolder = folders[0];
+      console.log('📁 Selected folder:', selectedFolder);
+      console.log('📁 Returning folder ID:', selectedFolder.id, 'name:', selectedFolder.name);
       return { folderId: selectedFolder.id, folderName: selectedFolder.name };
       
     } catch (error) {
@@ -229,11 +272,18 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       scopes: CLOUD_PROVIDERS['google-drive'].scopes
     });
     
+    // Try using the manifest's redirect URI first, then fallback to chrome.identity
+    const finalRedirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
+    
+    console.log('🔧 Using redirect URI:', finalRedirectUri);
+    
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'token',
       scope: CLOUD_PROVIDERS['google-drive'].scopes.join(' '),
-      redirect_uri: redirectUri
+      redirect_uri: finalRedirectUri,
+      access_type: 'online',
+      prompt: 'consent'
     });
     
     return `${CLOUD_PROVIDERS['google-drive'].authUrl}?${params.toString()}`;
@@ -306,17 +356,25 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       query += ` and '${folderId}' in parents`;
     }
     
-    const response = await fetch(
-      `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
-      { headers: this.getAuthHeaders() }
-    );
+    console.log('🔍 Searching for snippets file:', { query, folderId });
+    
+    const url = `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name)`;
+    console.log('🔍 Search URL:', url);
+    
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    
+    console.log('🔍 Search response status:', response.status, response.statusText);
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔍 Search error response:', errorText);
       throw new Error(`Failed to search files: ${response.statusText}`);
     }
     
     const data = await response.json();
     const files = data.files || [];
+    
+    console.log('🔍 Found files:', files);
     
     return files.length > 0 ? files[0].id : null;
   }

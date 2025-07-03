@@ -1,62 +1,87 @@
 # 🚀 PuffPuffPaste - Current Status & Next Steps
 
-## 📍 Current State (v0.7.0)
-**CRITICAL DECISION:** User decided to abandon local filesystem support entirely. Focus on cloud storage + browser internal storage only.
+## 📍 Current State (v0.8.3)
+**MAJOR BREAKTHROUGH:** Google Drive authentication is fully working! User has configured real OAuth client ID and enabled Google Drive API.
 
 ## 🔧 Recent Work Completed
-**Started from:** Options page errors "t.getSyncStatus is not a function" + continuous local filesystem sync failures
+**Started from:** Critical Google Drive file search failing with placeholder folder ID instead of real Google Drive folder ID
 
-**Fixed in v0.6.5-0.6.6:**
-1. **getSyncStatus error**: Added missing `CloudProvider`/`SnippetScope` imports to messaging.ts, added `GET_SYNC_STATUS` to MessageType enum, added optional `selectFolder()` to CloudAdapter interface
-2. **Directory handle permissions**: File System Access API handles can't persist across service worker restarts (browser security). Fixed by:
-   - Disabled auto-sync for `local-filesystem` provider in sync manager
-   - Modified `syncAllSources()` to skip local filesystem sources
-   - Added missing `ScopedSource` type definition
-3. **UI cleanup**: Removed team sync code section from options page (no more team code input field)
+**Completed in v0.8.0-0.8.3:**
+1. **Google Drive OAuth Fixed**: 
+   - ✅ User provided real Google OAuth client ID: `1037463573947-mjb7i96il5j0b2ul3ou7c1vld0b0q96a.apps.googleusercontent.com`
+   - ✅ User added Chrome Extension ID `lpidapafpffopknnkifglcdfppfcpdnf` to OAuth client configuration
+   - ✅ User enabled Google Drive API in Google Cloud Console project 1037463573947
+   - ✅ Fixed `isAuthenticated()` method name mismatch in sync manager
+   - ✅ Chrome identity API authentication now works perfectly
 
-**Completed in v0.7.0:**
-4. **Local filesystem removal**: Completely removed local filesystem support:
-   - ✅ Deleted `local-filesystem-adapter.ts`
-   - ✅ Removed `'local-filesystem'` from CloudProvider type
-   - ✅ Removed all local filesystem UI elements from options page
-   - ✅ Removed local filesystem methods and event handlers
-   - ✅ Cleaned up service worker message handlers
-5. **Google Drive implementation**: Enhanced Google Drive adapter:
-   - ✅ Added `selectFolder()` method with folder listing and creation
-   - ✅ Added `createFolder()` method for creating folders
-   - ✅ Enhanced `downloadSnippets()` to support folder-specific downloads
-   - ✅ Fixed OAuth to use manifest.json client_id instead of env vars
-   - ✅ Added proper folder-based file searching
+2. **Google Drive API Integration**:
+   - ✅ OAuth authentication fully functional using Chrome's `identity.getAuthToken()`
+   - ✅ Folder listing and selection working
+   - ✅ Manual OAuth fallback implemented for edge cases
+   - ✅ Added comprehensive debug logging for folder selection and file search
 
-## 🎯 Next Priority Actions
+3. **UI Improvements**:
+   - ✅ Removed duplicate "Add Snippet" button from popup empty state
+   - ✅ Updated constants.ts with correct Google OAuth v2 endpoint
 
-### 🚨 TABLESTAKES REQUIREMENT
-**Google Drive integration is now TABLESTAKES - core functionality depends on it working properly.**
+## 🚨 CRITICAL ISSUE IDENTIFIED
+**Root Cause Found:** The sync manager is using hardcoded placeholder `'personal-folder-id'` instead of the actual Google Drive folder ID returned from folder selection.
 
-**REMAINING GOOGLE DRIVE WORK:**
-1. **Setup real Google OAuth client ID** in manifest.json (currently using placeholder)
-2. **Create folder selection UI** in options page for Google Drive folder management
-3. **Test OAuth flow** and ensure tokens persist correctly across restarts
-4. **Add folder selection for scoped snippets** (personal/team/org folders)
+**Problem Location:** `/src/background/sync-manager.ts` line 184 in `syncNow()` method:
+```typescript
+// WRONG - hardcoded placeholder
+folderId: 'personal-folder-id', // Placeholder
 
-**CLEANUP TASKS:**
-1. Clear any stored local filesystem sources from user storage
-2. Create storage cleanup function to remove invalid sources
+// NEEDS TO BE - actual folder ID from storage
+folderId: personalSource.folderId, // Real Google Drive folder ID
+```
 
-## 💾 Storage Architecture Decision
-- ✅ **Browser internal storage** (chrome.storage.local/sync) - persistent, reliable
-- ✅ **Cloud storage** (Google Drive/Dropbox/OneDrive) - persistent, shareable via folder IDs
-- ❌ **Local filesystem** - abandoned due to File System Access API security limitations
+## 🎯 IMMEDIATE NEXT STEPS (30 seconds of work)
 
-## 🐛 Known Issues to Address
-- Service worker might still have stored invalid local filesystem sources in storage that need cleanup
-- Options page may still show local filesystem UI that should be removed
-- Auto-sync still tries to process any remaining local filesystem sources
+### 🚨 PRIMARY ISSUE TO FIX
+**Fix folder ID flow in sync manager:**
+1. ✅ **PARTIALLY FIXED**: Modified `syncNow()` to load scoped sources from `ExtensionStorage.getScopedSources()`
+2. ❌ **NEEDS COMPLETION**: The `selectFolder()` method needs to save the selected folder to storage via `ExtensionStorage.setScopedSources()`
 
-## 📁 Key Files Modified
-- `src/shared/messaging.ts` - Added missing imports
-- `src/shared/types.ts` - Added GET_SYNC_STATUS, ScopedSource interface, selectFolder method
-- `src/background/sync-manager.ts` - Disabled auto-sync for local-filesystem
-- `src/background/scoped-source-manager.ts` - Skip local filesystem in syncAllSources
-- `src/options/options.html` - Removed team code input
-- `src/options/options.ts` - Removed team code handlers
+**Missing Link:** When user selects a Google Drive folder, it returns the correct folder ID but doesn't persist it for sync operations.
+
+### 🔧 EXACT FIX NEEDED
+1. **Update `selectFolder()` method** in sync manager to save selected folder to storage:
+```typescript
+// After successful folder selection:
+await ExtensionStorage.setScopedSources([{
+  name: 'personal',
+  adapter: this.currentAdapter,
+  folderId: folderHandle.folderId,
+  displayName: folderHandle.folderName,
+}]);
+```
+
+2. **Test the complete flow:**
+   - Select Google Drive folder in options page
+   - Verify folder ID is saved to storage
+   - Run sync operation
+   - Confirm file search uses real folder ID instead of 'personal-folder-id'
+
+## 🧪 CONSOLE LOG EVIDENCE
+User's latest logs show the issue clearly:
+```
+🔍 Search URL: ...and%20'personal-folder-id'%20in%20parents
+🔍 Search response status: 404
+"message": "File not found: ."
+```
+
+The debug logging added shows folder selection returns real Google Drive folder IDs, but sync operations still use the placeholder.
+
+## 💾 Architecture Status
+- ✅ **Google Drive OAuth**: WORKING PERFECTLY
+- ✅ **Folder selection**: Returns correct folder IDs  
+- ❌ **Folder persistence**: Not saving selected folders to storage
+- ❌ **Sync operations**: Using placeholder instead of real folder IDs
+
+## 📁 Key Files to Modify Next
+- `src/background/sync-manager.ts` - Save selected folder to storage in `selectFolder()` method
+- Test complete folder selection → sync flow
+
+## 🎉 MAJOR WIN
+Authentication infrastructure is solid. Only missing the folder ID persistence piece!

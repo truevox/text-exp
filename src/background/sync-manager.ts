@@ -174,16 +174,32 @@ export class SyncManager {
     let finalSyncStatus: SyncStatus; // Declare here to be accessible in finally
 
     try {
-      // For now, hardcode sources. In the future, these will come from settings.
+      // Get scoped sources from storage
+      const scopedSources = await ExtensionStorage.getScopedSources();
+      console.log('📁 Loaded scoped sources:', scopedSources);
+      
       const sources: SyncedSource[] = [];
       if (this.currentAdapter) {
-        // Assuming currentAdapter is always the personal one for now
-        sources.push({
-          name: 'personal',
-          adapter: this.currentAdapter,
-          folderId: 'personal-folder-id', // Placeholder
-          displayName: 'My Personal Snippets',
-        });
+        // If we have stored scoped sources, use them
+        const personalSource = scopedSources.find(source => source.name === 'personal');
+        if (personalSource) {
+          console.log('📁 Using stored personal folder:', personalSource.folderId, personalSource.displayName);
+          sources.push({
+            name: 'personal',
+            adapter: this.currentAdapter,
+            folderId: personalSource.folderId,
+            displayName: personalSource.displayName,
+          });
+        } else {
+          console.log('⚠️ No stored personal folder found, using default');
+          // Fall back to default if no scoped sources configured
+          sources.push({
+            name: 'personal',
+            adapter: this.currentAdapter,
+            folderId: undefined, // Let the adapter handle this
+            displayName: 'My Personal Snippets',
+          });
+        }
       }
 
       // TODO: Add department and org sources based on user settings
