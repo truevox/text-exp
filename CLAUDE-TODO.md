@@ -162,8 +162,8 @@ This document outlines the implementation plan for a powerful, collaborative tex
 ### 🚀 Feature Enhancements
 
 - [x] **Advanced trigger overlap resolution** with visual cycling (v0.6.0) ✨
-- [ ] **Two-way sync** to allow editing snippets from within the extension.
-- [ ] **Snippet versioning and history.**
+- [ ] **Two-way sync** is not needed - edits will happen outside of the app.
+- [ ] **Snippet versioning and history** is not needed - that is also handled outside of the app for now.
 - [ ] **Advanced placeholder logic** (e.g., dropdowns, conditional sections).
 - [ ] **Import/export functionality.**
 
@@ -184,5 +184,13 @@ This document outlines the implementation plan for a powerful, collaborative tex
 
 *Last updated: 2025-07-03*
 *Project: PuffPuffPaste - Collaborative Text Expander*  
-*Current Version: 0.6.3*
+*Current Version: 0.8.7*
+
+## 🚨 VERSION MANAGEMENT REMINDER
+**CRITICAL**: Bump version with EVERY fix and feature:
+- `npm run version:fix` for bug fixes (0.x.PATCH)
+- `npm run version:feature` for new features (0.MINOR.x)  
+- NEVER bump the first 0 - reserved for live/semver release
+- Every commit needs a version bump so user can verify updates
+
 *TDD Approach: Write failing tests first, implement just enough to pass, refactor.*

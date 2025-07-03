@@ -172,6 +172,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await syncManager.disconnect();
           sendResponse({ success: true });
           break;
+
+        case 'GET_GOOGLE_DRIVE_FOLDERS':
+          const folders = await syncManager.getGoogleDriveFolders();
+          sendResponse({ success: true, data: folders });
+          break;
+
+        case 'CREATE_GOOGLE_DRIVE_FOLDER':
+          const newFolder = await syncManager.createGoogleDriveFolder(message.folderName);
+          sendResponse({ success: true, data: newFolder });
+          break;
           
         default:
           sendResponse({ success: false, error: 'Unknown message type' });

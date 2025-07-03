@@ -298,6 +298,35 @@
   <!-- Hidden file input for import -->
   <input type="file" id="importFileInput" accept=".json" style="display: none;">
 
+  <!-- Folder Picker Modal -->
+  <div id="folderPickerModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Select Google Drive Folder</h3>
+        <button id="closeFolderPickerButton" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-description">Choose a folder to store your snippets:</p>
+        <div id="folderPickerLoading" class="loading-spinner">
+          <span>Loading folders...</span>
+        </div>
+        <div id="folderPickerList" class="folder-list" style="display: none;">
+          <!-- Folders will be dynamically loaded here -->
+        </div>
+        <div id="folderPickerError" class="error-message" style="display: none;">
+          <!-- Error messages will appear here -->
+        </div>
+        <div class="modal-actions">
+          <button id="createFolderButton" class="secondary-button">Create New Folder</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelFolderPickerButton" class="secondary-button">Cancel</button>
+        <button id="confirmFolderPickerButton" class="primary-button" disabled>Select Folder</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="options.js"></script>
 </body>
 </html>

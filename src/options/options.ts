@@ -15,6 +15,11 @@ import { StorageCleanup } from '../utils/storage-cleanup.js';
 class OptionsApp {
   private settings: ExtensionSettings = DEFAULT_SETTINGS;
   private syncManager: any = null; // Will be imported dynamically
+  
+  // Folder picker state
+  private currentFolderScope: 'personal' | 'department' | 'org' | null = null;
+  private selectedFolder: { id: string; name: string } | null = null;
+  private availableFolders: Array<{ id: string; name: string }> = [];
 
   // DOM elements
   private elements = {
@@ -91,6 +96,16 @@ class OptionsApp {
     helpLink: document.getElementById('helpLink') as HTMLElement,
     feedbackLink: document.getElementById('feedbackLink') as HTMLElement,
     privacyLink: document.getElementById('privacyLink') as HTMLElement,
+
+    // Folder Picker Modal
+    folderPickerModal: document.getElementById('folderPickerModal') as HTMLElement,
+    closeFolderPickerButton: document.getElementById('closeFolderPickerButton') as HTMLButtonElement,
+    folderPickerLoading: document.getElementById('folderPickerLoading') as HTMLElement,
+    folderPickerList: document.getElementById('folderPickerList') as HTMLElement,
+    folderPickerError: document.getElementById('folderPickerError') as HTMLElement,
+    createFolderButton: document.getElementById('createFolderButton') as HTMLButtonElement,
+    cancelFolderPickerButton: document.getElementById('cancelFolderPickerButton') as HTMLButtonElement,
+    confirmFolderPickerButton: document.getElementById('confirmFolderPickerButton') as HTMLButtonElement,
   };
 
   constructor() {
@@ -211,6 +226,19 @@ class OptionsApp {
     this.elements.helpLink.addEventListener('click', (e) => this.handleExternalLink(e, 'help'));
     this.elements.feedbackLink.addEventListener('click', (e) => this.handleExternalLink(e, 'feedback'));
     this.elements.privacyLink.addEventListener('click', (e) => this.handleExternalLink(e, 'privacy'));
+
+    // Folder Picker Modal
+    this.elements.closeFolderPickerButton.addEventListener('click', () => this.closeFolderPicker());
+    this.elements.cancelFolderPickerButton.addEventListener('click', () => this.closeFolderPicker());
+    this.elements.confirmFolderPickerButton.addEventListener('click', () => this.confirmFolderSelection());
+    this.elements.createFolderButton.addEventListener('click', () => this.handleCreateFolder());
+    
+    // Close modal on backdrop click
+    this.elements.folderPickerModal.addEventListener('click', (e) => {
+      if (e.target === this.elements.folderPickerModal) {
+        this.closeFolderPicker();
+      }
+    });
   }
 
   /**
@@ -333,7 +361,10 @@ class OptionsApp {
     } else {
       // For cloud providers, check connection status
       try {
-        const isConnected = syncStatus?.isOnline || false; // Use actual sync status
+        // Force a fresh sync status check
+        console.log('🔍 Checking cloud connection status for', provider);
+        const isConnected = syncStatus?.isOnline || false;
+        console.log('🔍 Connection status:', { isConnected, syncStatus });
         
         if (isConnected) {
           this.elements.statusIndicator.className = 'status-indicator online';
@@ -386,41 +417,20 @@ class OptionsApp {
         return;
       }
 
-      this.showStatus(`Selecting folder for ${scope} snippets...`, 'info');
-      const { folderId, folderName } = await SyncMessages.selectCloudFolder(provider, scope);
-
-      const customDisplayName = prompt(`Enter a display name for your ${scope} snippets (e.g., "My ${scope.charAt(0).toUpperCase() + scope.slice(1)} Snippets"):`, folderName);
-      const finalDisplayName = customDisplayName || folderName;
-
-      const newConfiguredSource: ConfiguredScopedSource = {
-        provider: provider,
-        scope: scope,
-        folderId: folderId,
-        displayName: finalDisplayName,
-      };
-
-      const updatedConfiguredSources = this.settings.configuredSources.filter(s => s.scope !== scope);
-      updatedConfiguredSources.push(newConfiguredSource);
-
-      await SettingsMessages.updateSettings({ configuredSources: updatedConfiguredSources });
-      this.settings.configuredSources = updatedConfiguredSources;
-
-      this.showStatus(`Folder selected for ${scope}: ${finalDisplayName}`, 'success');
-
-      switch (scope) {
-        case 'personal':
-          this.elements.personalFolderIdInput.value = finalDisplayName; // Display name
-          break;
-        case 'department':
-          this.elements.departmentFolderIdInput.value = finalDisplayName;
-          break;
-        case 'org':
-          this.elements.organizationFolderIdInput.value = finalDisplayName;
-          break;
+      if (provider !== 'google-drive') {
+        this.showStatus('Folder picker is currently only available for Google Drive.', 'warning');
+        return;
       }
+
+      // Store the current scope for use in confirmation
+      this.currentFolderScope = scope;
+      
+      // Open the folder picker modal
+      await this.openFolderPicker();
+      
     } catch (error) {
-      console.error(`Failed to select folder for ${scope}:`, error);
-      this.showStatus(`Failed to select folder: ${error.message}`, 'error');
+      console.error(`Failed to open folder picker for ${scope}:`, error);
+      this.showStatus(`Failed to open folder picker: ${error.message}`, 'error');
     }
   }
 
@@ -439,6 +449,7 @@ class OptionsApp {
         await this.handleAuthenticate();
       }
       
+      // Force a UI refresh after connect/disconnect
       await this.updateCloudStatus();
     } catch (error) {
       console.error('Connection failed:', error);
@@ -475,6 +486,10 @@ class OptionsApp {
       const provider = this.settings.cloudProvider;
       this.showStatus(`Disconnecting from ${CLOUD_PROVIDERS[provider].name}...`, 'info');
       await SyncMessages.disconnectCloud();
+      
+      // Force reload settings after disconnect
+      await this.loadSettings();
+      
       this.showStatus('Disconnected successfully!', 'success');
       await this.updateCloudStatus(); // Refresh status after disconnect
     } catch (error) {
@@ -907,6 +922,249 @@ class OptionsApp {
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
+  }
+
+  // ================================
+  // Folder Picker Modal Methods
+  // ================================
+
+  /**
+   * Open the folder picker modal and load available folders
+   */
+  private async openFolderPicker(): Promise<void> {
+    // Reset state
+    this.selectedFolder = null;
+    this.availableFolders = [];
+    
+    // Show loading state
+    this.showFolderPickerLoading();
+    this.elements.folderPickerModal.style.display = 'flex';
+    
+    try {
+      // Load folders from Google Drive
+      await this.loadAvailableFolders();
+    } catch (error) {
+      console.error('Failed to load folders:', error);
+      this.showFolderPickerError(`Failed to load folders: ${error.message}`);
+    }
+  }
+
+  /**
+   * Load available folders from Google Drive
+   */
+  private async loadAvailableFolders(): Promise<void> {
+    try {
+      // Call the background script to get folders without auto-selecting
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_GOOGLE_DRIVE_FOLDERS'
+      });
+
+      if (response.success) {
+        this.availableFolders = response.data;
+        this.renderFolderList();
+      } else {
+        throw new Error(response.error || 'Failed to fetch folders');
+      }
+    } catch (error) {
+      throw new Error(`Failed to load Google Drive folders: ${error.message}`);
+    }
+  }
+
+  /**
+   * Render the list of folders in the modal
+   */
+  private renderFolderList(): void {
+    this.hideFolderPickerLoading();
+    
+    if (this.availableFolders.length === 0) {
+      this.elements.folderPickerList.innerHTML = '<p class="no-folders">No folders found. You can create a new folder.</p>';
+    } else {
+      const folderItems = this.availableFolders.map(folder => `
+        <div class="folder-item" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+          <span class="folder-icon">📁</span>
+          <div class="folder-details">
+            <div class="folder-name">${folder.name}</div>
+            <div class="folder-path">ID: ${folder.id}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      this.elements.folderPickerList.innerHTML = folderItems;
+      
+      // Add click listeners to folder items
+      this.elements.folderPickerList.querySelectorAll('.folder-item').forEach(item => {
+        item.addEventListener('click', () => this.selectFolderItem(item as HTMLElement));
+      });
+    }
+    
+    this.elements.folderPickerList.style.display = 'block';
+  }
+
+  /**
+   * Handle folder item selection
+   */
+  private selectFolderItem(element: HTMLElement): void {
+    // Remove previous selection
+    this.elements.folderPickerList.querySelectorAll('.folder-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    
+    // Select current item
+    element.classList.add('selected');
+    
+    // Store selected folder
+    this.selectedFolder = {
+      id: element.getAttribute('data-folder-id')!,
+      name: element.getAttribute('data-folder-name')!
+    };
+    
+    // Enable confirm button
+    this.elements.confirmFolderPickerButton.disabled = false;
+  }
+
+  /**
+   * Confirm folder selection and save to settings
+   */
+  private async confirmFolderSelection(): Promise<void> {
+    if (!this.selectedFolder || !this.currentFolderScope) {
+      return;
+    }
+
+    try {
+      const scope = this.currentFolderScope;
+      const folder = this.selectedFolder;
+      
+      // Ask for custom display name
+      const customDisplayName = prompt(
+        `Enter a display name for your ${scope} snippets:`, 
+        folder.name
+      );
+      const finalDisplayName = customDisplayName || folder.name;
+
+      // Create configured source
+      const newConfiguredSource: ConfiguredScopedSource = {
+        provider: this.settings.cloudProvider,
+        scope: scope,
+        folderId: folder.id,
+        displayName: finalDisplayName,
+      };
+
+      // Update settings
+      const updatedConfiguredSources = this.settings.configuredSources.filter(s => s.scope !== scope);
+      updatedConfiguredSources.push(newConfiguredSource);
+
+      await SettingsMessages.updateSettings({ configuredSources: updatedConfiguredSources });
+      this.settings.configuredSources = updatedConfiguredSources;
+
+      // Update UI
+      this.updateFolderInputDisplay(scope, finalDisplayName);
+      
+      // Close modal and show success
+      this.closeFolderPicker();
+      this.showStatus(`Folder selected for ${scope}: ${finalDisplayName}`, 'success');
+      
+    } catch (error) {
+      console.error('Failed to save folder selection:', error);
+      this.showStatus(`Failed to save folder selection: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * Update the folder input display with selected folder
+   */
+  private updateFolderInputDisplay(scope: 'personal' | 'department' | 'org', displayName: string): void {
+    switch (scope) {
+      case 'personal':
+        this.elements.personalFolderIdInput.value = displayName;
+        break;
+      case 'department':
+        this.elements.departmentFolderIdInput.value = displayName;
+        break;
+      case 'org':
+        this.elements.organizationFolderIdInput.value = displayName;
+        break;
+    }
+  }
+
+  /**
+   * Handle creating a new folder
+   */
+  private async handleCreateFolder(): Promise<void> {
+    const folderName = prompt('Enter a name for the new folder:', 'PuffPuffPaste Snippets');
+    if (!folderName) {
+      return;
+    }
+
+    try {
+      this.showFolderPickerLoading();
+      
+      // Call background script to create folder
+      const response = await chrome.runtime.sendMessage({
+        type: 'CREATE_GOOGLE_DRIVE_FOLDER',
+        folderName: folderName
+      });
+
+      if (response.success) {
+        // Add new folder to available folders and refresh list
+        this.availableFolders.unshift(response.data);
+        this.renderFolderList();
+        this.showStatus(`Created folder: ${folderName}`, 'success');
+      } else {
+        throw new Error(response.error || 'Failed to create folder');
+      }
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      this.showFolderPickerError(`Failed to create folder: ${error.message}`);
+    }
+  }
+
+  /**
+   * Close the folder picker modal
+   */
+  private closeFolderPicker(): void {
+    this.elements.folderPickerModal.style.display = 'none';
+    this.selectedFolder = null;
+    this.currentFolderScope = null;
+    this.availableFolders = [];
+    this.elements.confirmFolderPickerButton.disabled = true;
+    
+    // Reset modal state
+    this.hideFolderPickerError();
+    this.hideFolderPickerLoading();
+    this.elements.folderPickerList.style.display = 'none';
+  }
+
+  /**
+   * Show loading state in folder picker
+   */
+  private showFolderPickerLoading(): void {
+    this.elements.folderPickerLoading.style.display = 'block';
+    this.elements.folderPickerList.style.display = 'none';
+    this.hideFolderPickerError();
+  }
+
+  /**
+   * Hide loading state in folder picker
+   */
+  private hideFolderPickerLoading(): void {
+    this.elements.folderPickerLoading.style.display = 'none';
+  }
+
+  /**
+   * Show error message in folder picker
+   */
+  private showFolderPickerError(message: string): void {
+    this.elements.folderPickerError.textContent = message;
+    this.elements.folderPickerError.style.display = 'block';
+    this.hideFolderPickerLoading();
+    this.elements.folderPickerList.style.display = 'none';
+  }
+
+  /**
+   * Hide error message in folder picker
+   */
+  private hideFolderPickerError(): void {
+    this.elements.folderPickerError.style.display = 'none';
   }
 }
 

@@ -161,6 +161,47 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
+   * Get list of available folders without selecting one
+   */
+  async getFolders(): Promise<Array<{ id: string; name: string }>> {
+    try {
+      console.log('📁 Fetching Google Drive folders for picker...');
+      
+      // Check if we have valid credentials
+      const authHeaders = this.getAuthHeaders();
+      console.log('🔑 Auth headers:', authHeaders);
+      
+      // Get list of folders from Google Drive
+      const response = await fetch(
+        `${GoogleDriveAdapter.DRIVE_API}/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name)&orderBy=name`,
+        { headers: authHeaders }
+      );
+      
+      console.log('📁 Folders API response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📁 Folders API error response:', errorText);
+        throw new Error(`Failed to fetch folders: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const folders = data.files || [];
+      
+      console.log('📁 Found folders for picker:', folders.length);
+      
+      return folders.map((folder: any) => ({
+        id: folder.id,
+        name: folder.name
+      }));
+      
+    } catch (error) {
+      console.error('Failed to get Google Drive folders:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Select a folder for storing snippets
    */
   async selectFolder(): Promise<{ folderId: string; folderName: string }> {
@@ -451,7 +492,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Create a new folder in Google Drive
    */
-  private async createFolder(name: string): Promise<{ id: string; name: string }> {
+  async createFolder(name: string): Promise<{ id: string; name: string }> {
     const metadata = {
       name,
       mimeType: 'application/vnd.google-apps.folder'

@@ -502,4 +502,54 @@ export class SyncManager {
     return this.currentAdapter?.provider || null;
   }
 
+  /**
+   * Get available Google Drive folders for folder picker
+   */
+  async getGoogleDriveFolders(): Promise<Array<{ id: string; name: string }>> {
+    // Ensure Google Drive adapter is available
+    if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
+      console.log('🔧 Setting up Google Drive adapter...');
+      await this.setCloudProvider('google-drive');
+    }
+
+    if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
+      throw new Error('Failed to initialize Google Drive adapter');
+    }
+
+    // Ensure authenticated
+    if (!await this.isAuthenticated()) {
+      console.log('🔐 Not authenticated with google-drive, authenticating first...');
+      const credentials = await this.authenticate();
+      await this.currentAdapter.initialize(credentials);
+    }
+
+    // Get folders from Google Drive adapter without auto-selecting
+    return await this.currentAdapter.getFolders();
+  }
+
+  /**
+   * Create a new folder in Google Drive
+   */
+  async createGoogleDriveFolder(folderName: string): Promise<{ id: string; name: string }> {
+    // Ensure Google Drive adapter is available
+    if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
+      console.log('🔧 Setting up Google Drive adapter...');
+      await this.setCloudProvider('google-drive');
+    }
+
+    if (!this.currentAdapter || this.currentAdapter.provider !== 'google-drive') {
+      throw new Error('Failed to initialize Google Drive adapter');
+    }
+
+    // Ensure authenticated
+    if (!await this.isAuthenticated()) {
+      console.log('🔐 Not authenticated with google-drive, authenticating first...');
+      const credentials = await this.authenticate();
+      await this.currentAdapter.initialize(credentials);
+    }
+
+    // Create folder using Google Drive adapter
+    return await this.currentAdapter.createFolder(folderName);
+  }
+
 }
