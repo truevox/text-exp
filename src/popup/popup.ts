@@ -113,7 +113,9 @@ class PopupApp {
   private async loadSnippets(): Promise<void> {
     try {
       this.showLoading();
-      this.snippets = await SnippetMessages.getSnippets();
+      const result = await SnippetMessages.getSnippets();
+      // Ensure result is always an array
+      this.snippets = Array.isArray(result) ? result : [];
       this.hideLoading();
     } catch (error) {
       console.error('Failed to load snippets:', error);
@@ -160,10 +162,15 @@ class PopupApp {
   private renderSnippets(snippets: TextSnippet[]): void {
     this.elements.snippetList.innerHTML = '';
     
-    snippets.forEach(snippet => {
-      const snippetElement = this.createSnippetElement(snippet);
-      this.elements.snippetList.appendChild(snippetElement);
-    });
+    // Ensure snippets is an array before calling forEach
+    if (Array.isArray(snippets)) {
+      snippets.forEach(snippet => {
+        const snippetElement = this.createSnippetElement(snippet);
+        this.elements.snippetList.appendChild(snippetElement);
+      });
+    } else {
+      console.error('renderSnippets called with non-array:', snippets);
+    }
   }
 
   /**
@@ -419,20 +426,13 @@ class PopupApp {
         await this.loadSettings();
       }
 
-      // Check if cloud provider is configured (not just 'local')
-      if (this.settings?.cloudProvider && this.settings.cloudProvider !== 'local') {
-        // Check if cloud provider has valid credentials
-        const credentials = await chrome.storage.local.get(['cloudCredentials']);
-        return credentials.cloudCredentials && 
-               credentials.cloudCredentials.provider === this.settings.cloudProvider;
-      }
+      // Check if any cloud provider is selected (not just 'local')
+      const isCloudProviderSelected = this.settings?.cloudProvider && this.settings.cloudProvider !== 'local';
 
-      // Check if local filesystem sources are configured
-      const scopedSources = await chrome.storage.local.get(['scopedSources']);
-      const sources = scopedSources.scopedSources || [];
+      // Check if any local filesystem sources are configured
+      const hasLocalSources = (this.settings?.configuredSources || []).some(source => source.provider === 'local-filesystem');
       
-      // Consider storage configured if there are any local filesystem sources
-      return sources.some((source: any) => source.provider === 'local-filesystem');
+      return isCloudProviderSelected || hasLocalSources;
     } catch (error) {
       console.error('Failed to check storage configuration:', error);
       return false;

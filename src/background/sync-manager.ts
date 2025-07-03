@@ -4,6 +4,7 @@
  */
 
 import { ExtensionStorage } from '../shared/storage.js';
+import { IndexedDB } from '../shared/indexed-db.js';
 import { getCloudAdapterFactory } from './cloud-adapters/index.js';
 import { MultiScopeSyncManager } from './multi-scope-sync-manager.js';
 import type { 
@@ -24,11 +25,13 @@ export class SyncManager {
   private static instance: SyncManager;
   private currentAdapter: CloudAdapter | null = null; // Primary adapter, e.g., for personal snippets
   private multiScopeSyncManager: MultiScopeSyncManager;
+  private indexedDB: IndexedDB;
   private syncInProgress = false;
   private syncInterval: number | null = null;
 
   private constructor() {
     this.multiScopeSyncManager = new MultiScopeSyncManager();
+    this.indexedDB = new IndexedDB();
   }
 
   /**
@@ -106,6 +109,49 @@ export class SyncManager {
   }
 
   /**
+   * Select a folder for a given scope
+   */
+  async selectFolder(provider: CloudProvider, scope: SnippetScope): Promise<{ folderId: string, folderName: string }> {
+    if (!this.currentAdapter || this.currentAdapter.provider !== provider) {
+      // Ensure the correct adapter is set before selecting a folder
+      await this.setCloudProvider(provider);
+    }
+
+    if (!this.currentAdapter) {
+      throw new Error('No cloud provider configured or initialized.');
+    }
+
+    if (!this.currentAdapter.selectFolder) {
+      throw new Error(`Folder selection not supported for ${provider} provider.`);
+    }
+
+    try {
+      const folderHandle = await this.currentAdapter.selectFolder();
+      // For local-filesystem, folderHandle is FileSystemDirectoryHandle
+      // For cloud providers, it would be an object with id and name
+      if (provider === 'local-filesystem') {
+        // Store the handle for future use
+        // The selectFolder method of LocalFilesystemAdapter now returns serializable data
+        await ExtensionStorage.setScopedSources([{
+          name: scope,
+          adapter: this.currentAdapter,
+          folderId: folderHandle.folderId, 
+          displayName: folderHandle.folderName,
+          handleId: folderHandle.handleId,
+          handleName: folderHandle.handleName,
+        }]);
+        return { folderId: folderHandle.folderId, folderName: folderHandle.folderName };
+      } else {
+        // Assuming cloud adapters return { id, name }
+        return folderHandle; // This needs to be adjusted based on actual adapter return type
+      }
+    } catch (error) {
+      console.error(`Failed to select folder for ${provider} (${scope}):`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Perform manual sync
    */
   async syncNow(): Promise<void> {
@@ -135,6 +181,7 @@ export class SyncManager {
       
       // Update local storage with merged results
       await ExtensionStorage.setSnippets(mergedSnippets);
+      await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
       
       // Notify success
       await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
@@ -357,19 +404,23 @@ export class SyncManager {
    * Show notification to user
    */
   private async showNotification(message: string): Promise<void> {
-    const settings = await ExtensionStorage.getSettings();
-    
-    if (settings.showNotifications) {
-      if (chrome.notifications) {
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icons/icon-48.png',
-          title: 'Text Expander',
-          message
-        });
-      } else {
-        console.warn('chrome.notifications API not available.');
+    try {
+      const settings = await ExtensionStorage.getSettings();
+      
+      if (settings.showNotifications) {
+        if (chrome.notifications && chrome.notifications.create) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon-48.png',
+            title: 'Text Expander',
+            message
+          });
+        } else {
+          console.warn('chrome.notifications API not available.');
+        }
       }
+    } catch (error) {
+      console.error('Failed to show notification:', error);
     }
   }
 
