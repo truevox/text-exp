@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS = {
   enableSharedSnippets: true,
   triggerPrefix: ';',
   excludePasswords: true,
+  configuredSources: [],
 };
 
 /**

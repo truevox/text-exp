@@ -10,7 +10,9 @@ export interface TextSnippet {
   id: string;
   trigger: string;
   content: string;
+  contentType?: 'text' | 'html'; // Added contentType
   description?: string;
+  scope?: SnippetScope; // Added scope
   variables?: SnippetVariable[];
   tags?: string[];
   createdAt: Date;
@@ -61,6 +63,19 @@ export interface SyncedSource {
   adapter: CloudAdapter;
   folderId: string;
   displayName: string;
+  // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
+  handleId?: string; 
+  handleName?: string;
+}
+
+export interface ConfiguredScopedSource {
+  provider: CloudProvider;
+  scope: SnippetScope;
+  folderId: string;
+  displayName: string;
+  // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
+  handleId?: string;
+  handleName?: string;
 }
 
 /**
@@ -145,6 +160,7 @@ export interface ExtensionSettings {
   enableSharedSnippets: boolean;
   triggerPrefix: string;
   excludePasswords: boolean;
+  configuredSources: ConfiguredScopedSource[]; // New field
   // Built-in test snippet settings
   testTrigger?: string;
   disableTestSnippet?: boolean;
@@ -164,7 +180,10 @@ export type MessageType =
   | 'UPDATE_SETTINGS'
   | 'TRIGGER_DETECTED'
   | 'EXPAND_TEXT'
-  | 'VARIABLE_PROMPT';
+  | 'VARIABLE_PROMPT'
+  | 'AUTHENTICATE_CLOUD'
+  | 'SELECT_CLOUD_FOLDER'
+  | 'DISCONNECT_CLOUD';
 
 /**
  * Base message structure for extension communication

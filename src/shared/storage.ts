@@ -4,6 +4,7 @@
  */
 
 import { STORAGE_KEYS, DEFAULT_SETTINGS } from './constants.js';
+import { IndexedDB } from './indexed-db.js';
 import type { 
   TextSnippet, 
   ExtensionSettings, 
@@ -19,8 +20,29 @@ export class ExtensionStorage {
    * Get all snippets from storage
    */
   static async getSnippets(): Promise<TextSnippet[]> {
+    const indexedDB = new IndexedDB();
+    try {
+      const snippets = await indexedDB.getSnippets();
+      if (snippets.length > 0) {
+        return snippets;
+      }
+    } catch (error) {
+      console.warn('Failed to load snippets from IndexedDB, falling back to chrome.storage.local:', error);
+    }
+
+    // Fallback to chrome.storage.local
     const result = await chrome.storage.local.get(STORAGE_KEYS.SNIPPETS);
-    return result?.[STORAGE_KEYS.SNIPPETS] || [];
+    const localSnippets = result?.[STORAGE_KEYS.SNIPPETS] || [];
+
+    // If snippets were found in local storage but not IndexedDB, save them to IndexedDB
+    if (localSnippets.length > 0) {
+      try {
+        await indexedDB.saveSnippets(localSnippets);
+      } catch (error) {
+        console.error('Failed to save snippets to IndexedDB from chrome.storage.local:', error);
+      }
+    }
+    return localSnippets;
   }
 
   /**
