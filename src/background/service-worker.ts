@@ -167,6 +167,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await ExtensionStorage.setSettings(message.settings);
           sendResponse({ success: true });
           break;
+
+        case 'DISCONNECT_CLOUD':
+          await syncManager.disconnect();
+          sendResponse({ success: true });
+          break;
           
         default:
           sendResponse({ success: false, error: 'Unknown message type' });

@@ -387,12 +387,43 @@ export class SyncManager {
    * Clear cloud credentials and reset sync
    */
   async disconnect(): Promise<void> {
-    this.stopAutoSync();
-    await ExtensionStorage.clearCloudCredentials();
-    this.currentAdapter = null;
-    
-    // Reset to local storage
-    await this.setCloudProvider('local');
+    if (!this.currentAdapter) {
+      return;
+    }
+
+    const provider = this.currentAdapter.provider;
+    console.log(`🔌 Disconnecting from ${provider}...`);
+
+    try {
+      // Stop auto-sync
+      this.stopAutoSync();
+
+      // Clear credentials from storage
+      await ExtensionStorage.clearCloudCredentials();
+
+      // Clear scoped sources
+      await ExtensionStorage.setScopedSources([]);
+
+      // Reset sync status
+      await ExtensionStorage.setSyncStatus({
+        provider: provider,
+        lastSync: null,
+        isOnline: false,
+        hasChanges: false,
+        error: undefined
+      });
+
+      // Clear current adapter
+      this.currentAdapter = null;
+
+      console.log(`✅ Successfully disconnected from ${provider}`);
+      
+      // Reset to local storage
+      await this.setCloudProvider('local');
+    } catch (error) {
+      console.error(`❌ Failed to disconnect from ${provider}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -470,4 +501,5 @@ export class SyncManager {
   getCurrentProvider(): CloudProvider | null {
     return this.currentAdapter?.provider || null;
   }
+
 }
