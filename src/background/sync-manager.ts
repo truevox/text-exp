@@ -153,8 +153,14 @@ export class SyncManager {
         }]);
         return { folderId: folderHandle.folderId, folderName: folderHandle.folderName };
       } else {
-        // Assuming cloud adapters return { id, name }
-        return folderHandle; // This needs to be adjusted based on actual adapter return type
+        // For cloud providers (Google Drive, Dropbox, etc.), save the selected folder
+        await ExtensionStorage.setScopedSources([{
+          name: scope,
+          adapter: this.currentAdapter,
+          folderId: folderHandle.folderId, 
+          displayName: folderHandle.folderName,
+        }]);
+        return folderHandle;
       }
     } catch (error) {
       console.error(`Failed to select folder for ${provider} (${scope}):`, error);
