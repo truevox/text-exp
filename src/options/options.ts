@@ -24,6 +24,10 @@ class OptionsApp {
     triggerDelaySlider: document.getElementById('triggerDelaySlider') as HTMLInputElement,
     triggerDelayValue: document.getElementById('triggerDelayValue') as HTMLElement,
 
+    // Initial Setup
+    initialSetupSection: document.getElementById('initial-setup-section') as HTMLElement,
+    getStartedButton: document.getElementById('getStartedButton') as HTMLButtonElement,
+
     // Local filesystem sources
     setupLocalSourcesButton: document.getElementById('setupLocalSourcesButton') as HTMLButtonElement,
     scopedSourcesList: document.getElementById('scopedSourcesList') as HTMLElement,
@@ -36,11 +40,21 @@ class OptionsApp {
     syncIntervalSlider: document.getElementById('syncIntervalSlider') as HTMLInputElement,
     syncIntervalValue: document.getElementById('syncIntervalValue') as HTMLElement,
     
+    // Scoped folder settings
+    personalFolderIdInput: document.getElementById('personalFolderIdInput') as HTMLInputElement,
+    selectPersonalFolderButton: document.getElementById('selectPersonalFolderButton') as HTMLButtonElement,
+    departmentFolderIdInput: document.getElementById('departmentFolderIdInput') as HTMLInputElement,
+    selectDepartmentFolderButton: document.getElementById('selectDepartmentFolderButton') as HTMLButtonElement,
+    organizationFolderIdInput: document.getElementById('organizationFolderIdInput') as HTMLInputElement,
+    selectOrganizationFolderButton: document.getElementById('selectOrganizationFolderButton') as HTMLButtonElement,
+
     // Cloud status
     cloudStatus: document.getElementById('cloudStatus') as HTMLElement,
     statusIndicator: document.getElementById('statusIndicator') as HTMLElement,
     statusTitle: document.getElementById('statusTitle') as HTMLElement,
     statusDetails: document.getElementById('statusDetails') as HTMLElement,
+    lastSyncInfo: document.getElementById('lastSyncInfo') as HTMLElement,
+    syncErrorInfo: document.getElementById('syncErrorInfo') as HTMLElement,
     connectButton: document.getElementById('connectButton') as HTMLButtonElement,
 
     // Sync actions
@@ -58,6 +72,9 @@ class OptionsApp {
     lastSync: document.getElementById('lastSync') as HTMLElement,
     clearLocalButton: document.getElementById('clearLocalButton') as HTMLButtonElement,
     resetAllButton: document.getElementById('resetAllButton') as HTMLButtonElement,
+
+    // Synced Snippets
+    syncedSnippetsList: document.getElementById('syncedSnippetsList') as HTMLElement,
 
     // Advanced
     debugCheckbox: document.getElementById('debugCheckbox') as HTMLInputElement,
@@ -94,8 +111,10 @@ class OptionsApp {
       await this.updateUI();
       await this.updateDataStats();
       await this.refreshScopedSources();
+      await this.loadAndRenderSyncedSnippets(); // New call
       this.updateVersion();
       this.handleAnchorNavigation();
+      await this.manageSetupVisibility(); // New method to manage visibility
     } catch (error) {
       console.error('Failed to initialize options page:', error);
       this.showStatus('Failed to load settings', 'error');
@@ -103,9 +122,45 @@ class OptionsApp {
   }
 
   /**
+   * Manage visibility of setup sections based on configuration
+   */
+  private async manageSetupVisibility(): Promise<void> {
+    const isConfigured = await this.isStorageConfigured();
+    
+    if (isConfigured) {
+      this.elements.initialSetupSection.classList.add('hidden');
+    } else {
+      this.elements.initialSetupSection.classList.remove('hidden');
+      // Hide other sections until setup is complete
+      document.querySelectorAll('.settings-section:not(#initial-setup-section)').forEach(section => {
+        section.classList.add('hidden');
+      });
+    }
+  }
+
+  /**
+   * Check if storage is properly configured (similar to popup logic)
+   */
+  private async isStorageConfigured(): Promise<boolean> {
+    // Check if cloud provider is configured (not just 'local')
+    if (this.settings?.cloudProvider && this.settings.cloudProvider !== 'local') {
+      // For now, assume configured if a cloud provider is selected
+      // In future, check for valid credentials
+      return true;
+    }
+
+    // Check if local filesystem sources are configured
+    const scopedSources = await ExtensionStorage.getScopedSources();
+    return scopedSources.length > 0;
+  }
+
+  /**
    * Set up event listeners
    */
   private setupEventListeners(): void {
+    // Initial Setup
+    this.elements.getStartedButton.addEventListener('click', () => this.handleGetStarted());
+
     // General settings
     this.elements.enabledCheckbox.addEventListener('change', () => this.saveSettings());
     this.elements.caseSensitiveCheckbox.addEventListener('change', () => this.saveSettings());
@@ -129,6 +184,11 @@ class OptionsApp {
       this.updateSyncIntervalValue();
       this.saveSettings();
     });
+
+    // Scoped folder selection
+    this.elements.selectPersonalFolderButton.addEventListener('click', () => this.handleSelectFolder('personal'));
+    this.elements.selectDepartmentFolderButton.addEventListener('click', () => this.handleSelectFolder('department'));
+    this.elements.selectOrganizationFolderButton.addEventListener('click', () => this.handleSelectFolder('org'));
 
     // Cloud actions
     this.elements.connectButton.addEventListener('click', () => this.handleConnect());
@@ -194,6 +254,24 @@ class OptionsApp {
     // Collaboration
     if (this.elements.sharedSnippetsCheckbox) this.elements.sharedSnippetsCheckbox.checked = this.settings.enableSharedSnippets;
 
+    // Scoped folder settings - populate from configured sources
+    if (this.settings.configuredSources) {
+      const personalSource = this.settings.configuredSources.find(s => s.scope === 'personal');
+      if (this.elements.personalFolderIdInput && personalSource) {
+        this.elements.personalFolderIdInput.value = personalSource.displayName;
+      }
+
+      const departmentSource = this.settings.configuredSources.find(s => s.scope === 'department');
+      if (this.elements.departmentFolderIdInput && departmentSource) {
+        this.elements.departmentFolderIdInput.value = departmentSource.displayName;
+      }
+
+      const organizationSource = this.settings.configuredSources.find(s => s.scope === 'org');
+      if (this.elements.organizationFolderIdInput && organizationSource) {
+        this.elements.organizationFolderIdInput.value = organizationSource.displayName;
+      }
+    }
+
     // Update cloud status
     await this.updateCloudStatus();
   }
@@ -225,6 +303,21 @@ class OptionsApp {
   }
 
   /**
+   * Handle Get Started button click
+   */
+  private handleGetStarted(): void {
+    this.elements.initialSetupSection.classList.add('hidden');
+    document.querySelectorAll('.settings-section:not(#initial-setup-section)').forEach(section => {
+      section.classList.remove('hidden');
+    });
+    // Scroll to Cloud Synchronization section
+    const cloudSyncSection = document.getElementById('cloud-sync-section'); // Assuming this ID exists
+    if (cloudSyncSection) {
+      cloudSyncSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  /**
    * Handle cloud provider change
    */
   private async handleProviderChange(): Promise<void> {
@@ -237,17 +330,19 @@ class OptionsApp {
    */
   private async updateCloudStatus(): Promise<void> {
     const provider = this.settings.cloudProvider;
+    const syncStatus = await SyncMessages.getSyncStatus();
     
     if (provider === 'local') {
       this.elements.statusIndicator.className = 'status-indicator online';
       this.elements.statusTitle.textContent = 'Local Storage';
       this.elements.statusDetails.textContent = 'Using local storage only';
       this.elements.connectButton.style.display = 'none';
+      this.elements.lastSyncInfo.textContent = '';
+      this.elements.syncErrorInfo.textContent = '';
     } else {
       // For cloud providers, check connection status
       try {
-        // This would check actual connection status
-        const isConnected = false; // Placeholder
+        const isConnected = syncStatus?.isOnline || false; // Use actual sync status
         
         if (isConnected) {
           this.elements.statusIndicator.className = 'status-indicator online';
@@ -261,13 +356,80 @@ class OptionsApp {
           this.elements.connectButton.textContent = 'Connect';
         }
         
+        // Display last sync time
+        if (syncStatus?.lastSync) {
+          this.elements.lastSyncInfo.textContent = `Last sync: ${this.formatRelativeTime(new Date(syncStatus.lastSync))}`;
+        } else {
+          this.elements.lastSyncInfo.textContent = 'Last sync: Never';
+        }
+
+        // Display sync error
+        if (syncStatus?.error) {
+          this.elements.syncErrorInfo.textContent = `Error: ${syncStatus.error}`;
+          this.elements.syncErrorInfo.style.display = 'block';
+        } else {
+          this.elements.syncErrorInfo.textContent = '';
+          this.elements.syncErrorInfo.style.display = 'none';
+        }
+        
         this.elements.connectButton.style.display = 'block';
       } catch (error) {
         this.elements.statusIndicator.className = 'status-indicator offline';
         this.elements.statusTitle.textContent = 'Connection Error';
         this.elements.statusDetails.textContent = 'Failed to check connection status';
         this.elements.connectButton.style.display = 'block';
+        this.elements.lastSyncInfo.textContent = '';
+        this.elements.syncErrorInfo.textContent = '';
       }
+    }
+  }
+
+  /**
+   * Handle folder selection for a given scope
+   */
+  private async handleSelectFolder(scope: 'personal' | 'department' | 'org'): Promise<void> {
+    try {
+      const provider = this.settings.cloudProvider;
+      if (provider === 'local') {
+        this.showStatus('Please select a cloud provider first.', 'warning');
+        return;
+      }
+
+      this.showStatus(`Selecting folder for ${scope} snippets...`, 'info');
+      const { folderId, folderName } = await SyncMessages.selectCloudFolder(provider, scope);
+
+      const customDisplayName = prompt(`Enter a display name for your ${scope} snippets (e.g., "My ${scope.charAt(0).toUpperCase() + scope.slice(1)} Snippets"):`, folderName);
+      const finalDisplayName = customDisplayName || folderName;
+
+      const newConfiguredSource: ConfiguredScopedSource = {
+        provider: provider,
+        scope: scope,
+        folderId: folderId,
+        displayName: finalDisplayName,
+      };
+
+      const updatedConfiguredSources = this.settings.configuredSources.filter(s => s.scope !== scope);
+      updatedConfiguredSources.push(newConfiguredSource);
+
+      await SettingsMessages.updateSettings({ configuredSources: updatedConfiguredSources });
+      this.settings.configuredSources = updatedConfiguredSources;
+
+      this.showStatus(`Folder selected for ${scope}: ${finalDisplayName}`, 'success');
+
+      switch (scope) {
+        case 'personal':
+          this.elements.personalFolderIdInput.value = finalDisplayName; // Display name
+          break;
+        case 'department':
+          this.elements.departmentFolderIdInput.value = finalDisplayName;
+          break;
+        case 'org':
+          this.elements.organizationFolderIdInput.value = finalDisplayName;
+          break;
+      }
+    } catch (error) {
+      console.error(`Failed to select folder for ${scope}:`, error);
+      this.showStatus(`Failed to select folder: ${error.message}`, 'error');
     }
   }
 
@@ -297,16 +459,37 @@ class OptionsApp {
    * Handle authentication
    */
   private async handleAuthenticate(): Promise<void> {
-    // This would trigger authentication flow
-    this.showStatus('Authentication not implemented yet', 'warning');
+    try {
+      const provider = this.settings.cloudProvider;
+      if (provider === 'local') {
+        this.showStatus('No authentication needed for local storage', 'info');
+        return;
+      }
+
+      this.showStatus(`Authenticating with ${CLOUD_PROVIDERS[provider].name}...`, 'info');
+      await SyncMessages.authenticateCloud();
+      this.showStatus('Authentication successful!', 'success');
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      this.showStatus(`Authentication failed: ${error.message}`, 'error');
+      throw error; // Re-throw to be caught by handleConnect
+    }
   }
 
   /**
    * Handle disconnect
    */
   private async handleDisconnect(): Promise<void> {
-    // This would clear credentials and disconnect
-    this.showStatus('Disconnect not implemented yet', 'warning');
+    try {
+      const provider = this.settings.cloudProvider;
+      this.showStatus(`Disconnecting from ${CLOUD_PROVIDERS[provider].name}...`, 'info');
+      await SyncMessages.disconnectCloud();
+      this.showStatus('Disconnected successfully!', 'success');
+      await this.updateCloudStatus(); // Refresh status after disconnect
+    } catch (error) {
+      console.error('Disconnect failed:', error);
+      this.showStatus(`Disconnect failed: ${error.message}`, 'error');
+    }
   }
 
   /**
@@ -319,6 +502,7 @@ class OptionsApp {
       
       await SyncMessages.syncSnippets();
       await this.updateDataStats();
+      await this.loadAndRenderSyncedSnippets(); // Refresh snippets after sync
       
       this.showStatus('Sync completed successfully', 'success');
     } catch (error) {
@@ -329,6 +513,10 @@ class OptionsApp {
       this.elements.syncNowButton.textContent = 'Sync Now';
     }
   }
+
+  /**
+   * Handle force upload
+   */
 
   /**
    * Handle force upload
@@ -686,6 +874,56 @@ class OptionsApp {
         
         container.appendChild(scopeSection);
       }
+    });
+  }
+
+  /**
+   * Load and render synced snippets
+   */
+  private async loadAndRenderSyncedSnippets(): Promise<void> {
+    try {
+      const snippets = await SnippetMessages.getSnippets();
+      this.renderSyncedSnippets(snippets);
+    } catch (error) {
+      console.error('Failed to load and render synced snippets:', error);
+      if (this.elements.syncedSnippetsList) {
+        this.elements.syncedSnippetsList.innerHTML = '<p class="setting-description error">Failed to load snippets.</p>';
+      }
+    }
+  }
+
+  /**
+   * Render synced snippets list
+   */
+  private renderSyncedSnippets(snippets: TextSnippet[]): void {
+    const container = this.elements.syncedSnippetsList;
+    if (!container) return;
+
+    container.innerHTML = ''; // Clear previous content
+
+    if (snippets.length === 0) {
+      container.innerHTML = '<p class="setting-description">No synced snippets found.</p>';
+      return;
+    }
+
+    // Sort snippets by trigger for consistent display
+    snippets.sort((a, b) => a.trigger.localeCompare(b.trigger));
+
+    snippets.forEach(snippet => {
+      const snippetItem = document.createElement('div');
+      snippetItem.className = 'synced-snippet-item';
+
+      const scopeIndicator = snippet.scope ? `<span class="snippet-scope-indicator scope-${snippet.scope}">${snippet.scope.charAt(0).toUpperCase()}</span>` : '';
+      const truncatedContent = snippet.content.length > 100 ? snippet.content.substring(0, 100) + '...' : snippet.content;
+
+      snippetItem.innerHTML = `
+        <div class="snippet-info">
+          <span class="snippet-trigger">${snippet.trigger}</span>
+          <span class="snippet-content">${truncatedContent}</span>
+        </div>
+        ${scopeIndicator}
+      `;
+      container.appendChild(snippetItem);
     });
   }
 
