@@ -96,6 +96,8 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
     const isOnline = await this.checkConnectivity();
     const isAuth = await this.isAuthenticated();
     
+    console.log(`🔍 ${this.provider} getSyncStatus: connectivity=${isOnline}, auth=${isAuth}`);
+    
     return {
       provider: this.provider,
       lastSync: await this.getLastSyncTime(),
