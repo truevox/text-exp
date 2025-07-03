@@ -7,6 +7,7 @@ import { ExtensionStorage } from '../shared/storage.js';
 import { IndexedDB } from '../shared/indexed-db.js';
 import { getCloudAdapterFactory } from './cloud-adapters/index.js';
 import { MultiScopeSyncManager } from './multi-scope-sync-manager.js';
+import { notifyContentScriptsOfSnippetUpdate } from './messaging-helpers.js';
 import type { 
   CloudAdapter, 
   CloudProvider, 
@@ -217,6 +218,9 @@ export class SyncManager {
       // Update local storage with merged results
       await ExtensionStorage.setSnippets(mergedSnippets);
       await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
+      
+      // Notify content scripts that snippets have been updated
+      await notifyContentScriptsOfSnippetUpdate();
       
       // Notify success
       await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);

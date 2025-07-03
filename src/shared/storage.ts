@@ -49,9 +49,14 @@ export class ExtensionStorage {
    * Save snippets to storage
    */
   static async setSnippets(snippets: TextSnippet[]): Promise<void> {
+    console.log('📦 Updating storage with snippets:', snippets.length, 'total');
+    console.log('📋 Snippet list:', snippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 30) + '...' })));
+    
     await chrome.storage.local.set({
       [STORAGE_KEYS.SNIPPETS]: snippets
     });
+    
+    console.log('✅ Storage update completed');
   }
 
   /**

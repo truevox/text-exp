@@ -129,6 +129,18 @@ export class ContentScript {
   private setupMessageHandlers(): void {
     this.messageHandler.on('EXPAND_TEXT', this.handleExpandText.bind(this));
     this.messageHandler.on('VARIABLE_PROMPT', this.handleVariablePrompt.bind(this));
+    
+    // Listen for snippet updates from background script
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'SNIPPETS_UPDATED') {
+        console.log('📢 Received SNIPPETS_UPDATED message, refreshing snippets...');
+        this.loadSnippets();
+        sendResponse({ success: true });
+        return true; // Indicate async response
+      }
+      return false; // Not handling this message
+    });
+    
     this.messageHandler.listen();
   }
 
