@@ -212,15 +212,27 @@ export class SyncManager {
       // TODO: Add department and org sources based on user settings
 
       console.log(`🔄 Starting syncAndMerge with ${sources.length} sources:`, sources.map(s => ({ name: s.displayName, folderId: s.folderId })));
-      const mergedSnippets = await this.multiScopeSyncManager.syncAndMerge(sources);
-      console.log(`🔄 Sync completed, merged ${mergedSnippets.length} snippets:`, mergedSnippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
+      const cloudSnippets = await this.multiScopeSyncManager.syncAndMerge(sources);
+      console.log(`🔄 Sync completed, downloaded ${cloudSnippets.length} cloud snippets:`, cloudSnippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
+      
+      // Get existing local snippets
+      const existingSnippets = await ExtensionStorage.getSnippets();
+      console.log(`📚 Found ${existingSnippets.length} existing local snippets`);
+      
+      // Merge cloud snippets with existing local snippets (cloud takes priority)
+      const mergedSnippets = this.mergeSnippets(existingSnippets, cloudSnippets);
+      console.log(`🔗 Merged result: ${mergedSnippets.length} total snippets`);
       
       // Update local storage with merged results
       await ExtensionStorage.setSnippets(mergedSnippets);
-      await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
       
-      // Notify content scripts that snippets have been updated
+      // Ensure IndexedDB is updated before notifying content scripts
+      await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
+      console.log('✅ IndexedDB updated with merged snippets');
+      
+      // Notify content scripts that snippets have been updated (after storage is fully updated)
       await notifyContentScriptsOfSnippetUpdate();
+      console.log('📢 Notified content scripts of snippet update');
       
       // Notify success
       await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
@@ -534,7 +546,7 @@ export class SyncManager {
   }
 
   /**
-   * Create a new folder in Google Drive
+   * Create folder using Google Drive adapter
    */
   async createGoogleDriveFolder(folderName: string, parentId?: string): Promise<{ id: string; name: string }> {
     // Ensure Google Drive adapter is available
@@ -556,6 +568,29 @@ export class SyncManager {
 
     // Create folder using Google Drive adapter
     return await this.currentAdapter.createFolder(folderName, parentId);
+  }
+
+  /**
+   * Merge existing local snippets with new cloud snippets
+   * Cloud snippets take priority over local ones with the same trigger
+   */
+  private mergeSnippets(localSnippets: TextSnippet[], cloudSnippets: TextSnippet[]): TextSnippet[] {
+    const snippetMap = new Map<string, TextSnippet>();
+    
+    // First, add all local snippets
+    for (const snippet of localSnippets) {
+      snippetMap.set(snippet.trigger, snippet);
+    }
+    
+    // Then, add cloud snippets (which will override local ones with same trigger)
+    for (const snippet of cloudSnippets) {
+      snippetMap.set(snippet.trigger, snippet);
+    }
+    
+    const result = Array.from(snippetMap.values());
+    console.log(`🔗 Merge details: ${localSnippets.length} local + ${cloudSnippets.length} cloud = ${result.length} total`);
+    
+    return result;
   }
 
 }
