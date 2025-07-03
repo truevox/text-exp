@@ -4,11 +4,19 @@
  */
 
 import type { ReplacementContext } from '../shared/types.js';
+import { ImageProcessor } from '../background/image-processor.js';
+import { sanitizeHtml } from '../shared/sanitizer.js';
 
 /**
  * Handles text replacement in various input types
  */
 export class TextReplacer {
+  private imageProcessor: ImageProcessor;
+  private _lastReplacement: { element: HTMLElement; originalText: string; originalSelectionStart: number; originalSelectionEnd: number } | null = null;
+
+  constructor(imageProcessor: ImageProcessor) {
+    this.imageProcessor = imageProcessor;
+  }
   
   /**
    * Replace text in the given context
@@ -17,6 +25,28 @@ export class TextReplacer {
     const { element, startOffset, endOffset } = context;
     
     try {
+      // Save current state for undo
+      if (this.isFormInput(element)) {
+        const inputElement = element as HTMLInputElement | HTMLTextAreaElement;
+        this._lastReplacement = {
+          element: inputElement,
+          originalText: inputElement.value,
+          originalSelectionStart: inputElement.selectionStart || 0,
+          originalSelectionEnd: inputElement.selectionEnd || 0,
+        };
+      } else if (this.isContentEditable(element)) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          this._lastReplacement = {
+            element: element,
+            originalText: element.textContent || '',
+            originalSelectionStart: range.startOffset,
+            originalSelectionEnd: range.endOffset,
+          };
+        }
+      }
+
       if (this.isFormInput(element)) {
         this.replaceInFormInput(element as HTMLInputElement | HTMLTextAreaElement, startOffset, endOffset, newText);
       } else if (this.isContentEditable(element)) {
@@ -185,6 +215,60 @@ export class TextReplacer {
   }
 
   /**
+   * Insert HTML at cursor position
+   */
+  insertHtmlAtCursor(element: HTMLElement, html: string): void {
+    if (this.isContentEditable(element)) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents(); // Remove any selected text
+
+        const sanitizedHtml = sanitizeHtml(html);
+        const div = document.createElement('div');
+        div.innerHTML = sanitizedHtml;
+
+        // Process images with indexeddb:// URLs
+        const images = div.querySelectorAll('img');
+        images.forEach(async (img) => {
+          const src = img.getAttribute('src');
+          if (src && src.startsWith('indexeddb://')) {
+            const imageId = src.substring('indexeddb://'.length);
+            try {
+              const objectURL = await this.imageProcessor.retrieveImage(imageId);
+              if (objectURL) {
+                img.setAttribute('src', objectURL);
+              } else {
+                img.remove(); // Remove if image not found in IndexedDB
+              }
+            } catch (error) {
+              console.error('Error retrieving image from IndexedDB:', imageId, error);
+              img.remove();
+            }
+          }
+        });
+
+        const fragment = document.createDocumentFragment();
+        let child;
+        while ((child = div.firstChild)) {
+          fragment.appendChild(child);
+        }
+
+        range.insertNode(fragment);
+
+        // Move cursor to the end of the inserted content
+        range.setStartAfter(fragment);
+        range.setEndAfter(fragment);
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+      }
+    } else {
+      console.warn('insertHtmlAtCursor only supported for contenteditable elements.');
+    }
+    this.triggerInputEvent(element);
+  }
+
+  /**
    * Replace selected text
    */
   replaceSelectedText(element: HTMLElement, newText: string): void {
@@ -281,18 +365,32 @@ export class TextReplacer {
    * Undo last replacement (if possible)
    */
   undoLastReplacement(element: HTMLElement): void {
-    // This would require keeping track of replacement history
-    // For now, just trigger undo via keyboard shortcut simulation
-    if (document.activeElement === element) {
-      // Simulate Ctrl+Z
-      const undoEvent = new KeyboardEvent('keydown', {
-        key: 'z',
-        ctrlKey: true,
-        bubbles: true,
-        cancelable: true
-      });
-      element.dispatchEvent(undoEvent);
+    if (!this._lastReplacement || this._lastReplacement.element !== element) {
+      console.warn('No last replacement to undo for this element.');
+      return;
     }
+
+    const { originalText, originalSelectionStart, originalSelectionEnd } = this._lastReplacement;
+
+    if (this.isFormInput(element)) {
+      const inputElement = element as HTMLInputElement | HTMLTextAreaElement;
+      inputElement.value = originalText;
+      inputElement.setSelectionRange(originalSelectionStart, originalSelectionEnd);
+    } else if (this.isContentEditable(element)) {
+      element.textContent = originalText;
+      // Restore selection (this might be tricky for complex contenteditable)
+      const range = document.createRange();
+      const selection = window.getSelection();
+      if (selection) {
+        range.setStart(element.firstChild || element, originalSelectionStart);
+        range.setEnd(element.firstChild || element, originalSelectionEnd);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+
+    this.triggerInputEvent(element);
+    this._lastReplacement = null; // Clear the undo state
   }
 
   /**
