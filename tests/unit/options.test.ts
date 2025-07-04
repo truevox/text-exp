@@ -229,6 +229,7 @@ describe('Options Page', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules(); // Clear module cache to force fresh imports
     
     // Setup default mock settings
     mockSettings = {
