@@ -49,6 +49,27 @@ global.document = {
   }
 } as any;
 
+// Mock IndexedDB
+global.indexedDB = {
+  open: jest.fn(() => ({
+    onsuccess: null,
+    onerror: null,
+    result: {
+      createObjectStore: jest.fn(),
+      transaction: jest.fn(() => ({
+        objectStore: jest.fn(() => ({
+          add: jest.fn(),
+          put: jest.fn(),
+          get: jest.fn(),
+          delete: jest.fn(),
+          clear: jest.fn()
+        }))
+      }))
+    }
+  })),
+  deleteDatabase: jest.fn()
+} as any;
+
 global.window = {
   getSelection: jest.fn(() => ({
     removeAllRanges: jest.fn(),
@@ -83,7 +104,7 @@ describe('Complete User Workflows E2E', () => {
       // Step 2: User creates first snippet
       const firstSnippet: TextSnippet = {
         id: 'first-snippet',
-        trigger: 'hello',
+        trigger: ';hello',
         content: 'Hello World!',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -255,13 +276,13 @@ describe('Complete User Workflows E2E', () => {
 
       // Test partial trigger matching
       const partialInput = 'em'; // Partial match for 'email'
-      const noDetection = triggerDetector.detectTrigger(partialInput, 2);
-      expect(noDetection).toBeNull();
+      const noDetection = triggerDetector.processInput(partialInput);
+      expect(noDetection.isMatch).toBe(false);
 
       // Test trigger in middle of word
       const middleWord = 'myemail@test.com';
-      const middleDetection = triggerDetector.detectTrigger(middleWord, 7);
-      expect(middleDetection).toBeNull(); // Should not trigger inside words
+      const middleDetection = triggerDetector.processInput(middleWord);
+      expect(middleDetection.isMatch).toBe(false); // Should not trigger inside words
 
       // Test multiple triggers in same text
       const multipleText = 'email and addr are needed';
@@ -300,7 +321,7 @@ describe('Complete User Workflows E2E', () => {
       await ExtensionStorage.setSnippets(updatedSnippets);
 
       // Sync should happen automatically
-      await syncManager.syncSnippets();
+      await syncManager.syncNow();
 
       // Verify sync occurred
       expect(global.fetch).toHaveBeenCalledTimes(3);
@@ -351,14 +372,16 @@ describe('Complete User Workflows E2E', () => {
       const triggerDetector = new TriggerDetector(allSnippets);
 
       // Test team snippet usage
-      const supportResponse = triggerDetector.detectTrigger('support', 7);
-      expect(supportResponse?.snippet.isShared).toBe(true);
-      expect(supportResponse?.snippet.scope).toBe('department');
+      const supportResponse = triggerDetector.processInput(';support ');
+      expect(supportResponse.isMatch).toBe(true);
+      expect(supportResponse.trigger).toBe(';support');
+      expect(supportResponse.content).toBe('Support template content');
 
       // Test personal snippet usage
-      const personalUsage = triggerDetector.detectTrigger('myname', 6);
-      expect(personalUsage?.snippet.isShared).toBe(false);
-      expect(personalUsage?.snippet.scope).toBe('personal');
+      const personalUsage = triggerDetector.processInput(';myname ');
+      expect(personalUsage.isMatch).toBe(true);
+      expect(personalUsage.trigger).toBe(';myname');
+      expect(personalUsage.content).toBe('John Doe');
     });
 
     it('should handle scope-based snippet access', async () => {
@@ -372,9 +395,17 @@ describe('Complete User Workflows E2E', () => {
       const triggerDetector = new TriggerDetector(scopedSnippets);
 
       // All scopes should be accessible in this test scenario
-      expect(triggerDetector.detectTrigger('personal', 8)?.snippet.scope).toBe('personal');
-      expect(triggerDetector.detectTrigger('dept', 4)?.snippet.scope).toBe('department');
-      expect(triggerDetector.detectTrigger('org', 3)?.snippet.scope).toBe('org');
+      const personalResult = triggerDetector.processInput(';personal ');
+      expect(personalResult.isMatch).toBe(true);
+      expect(personalResult.content).toBe('Personal content');
+      
+      const deptResult = triggerDetector.processInput(';dept ');
+      expect(deptResult.isMatch).toBe(true);
+      expect(deptResult.content).toBe('Department content');
+      
+      const orgResult = triggerDetector.processInput(';org ');
+      expect(orgResult.isMatch).toBe(true);
+      expect(orgResult.content).toBe('Organization content');
     });
   });
 
@@ -430,7 +461,7 @@ describe('Complete User Workflows E2E', () => {
       });
 
       // Sync should merge and prefer newer version
-      await syncManager.syncSnippets();
+      await syncManager.syncNow();
 
       // Should update local storage with newer version
       expect(chrome.storage.local.set).toHaveBeenCalledWith({
@@ -449,7 +480,7 @@ describe('Complete User Workflows E2E', () => {
       });
 
       // Sync should fail gracefully
-      await expect(syncManager.syncSnippets()).rejects.toThrow('Network error');
+      await expect(syncManager.syncNow()).rejects.toThrow('Network error');
 
       // Local data should remain unchanged
       const localSnippets = await ExtensionStorage.getSnippets();
@@ -477,11 +508,13 @@ describe('Complete User Workflows E2E', () => {
       const triggerDetector = new TriggerDetector(largeSnippetLibrary);
       
       // Test trigger detection performance
-      const detection = triggerDetector.detectTrigger('trigger500', 10);
+      const detection = triggerDetector.processInput(';trigger500 ');
       
       const duration = Date.now() - start;
 
-      expect(detection?.snippet.id).toBe('snippet-500');
+      expect(detection.isMatch).toBe(true);
+      expect(detection.trigger).toBe(';trigger500');
+      expect(detection.content).toBe('Content for snippet 500');
       expect(duration).toBeLessThan(100); // Should be fast even with 1000 snippets
     });
 
@@ -507,9 +540,16 @@ describe('Complete User Workflows E2E', () => {
       const triggers = ['a', 'b', 'c'];
       
       for (const trigger of triggers) {
-        const detection = triggerDetector.detectTrigger(trigger, trigger.length);
-        if (detection) {
-          textReplacer.replaceText(mockField as any, detection.snippet, 0, trigger.length);
+        const detection = triggerDetector.processInput(`;${trigger} `);
+        if (detection.isMatch) {
+          const snippet = {
+            id: trigger,
+            trigger: detection.trigger!,
+            content: detection.content!,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          textReplacer.replaceText(mockField as any, snippet, 0, trigger.length + 1);
           mockField.value += ' '; // Add space between expansions
           mockField.selectionStart = mockField.value.length;
           mockField.selectionEnd = mockField.value.length;
@@ -590,8 +630,17 @@ describe('Complete User Workflows E2E', () => {
         'aria-label': 'Phone number field'
       };
 
-      const detection = triggerDetector.detectTrigger(accessibleField.value, 15);
-      textReplacer.replaceText(accessibleField as any, detection.snippet, 10, 15);
+      const detection = triggerDetector.processInput(';phone ');
+      expect(detection.isMatch).toBe(true);
+      
+      const snippet = {
+        id: '1',
+        trigger: detection.trigger!,
+        content: detection.content!,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      textReplacer.replaceText(accessibleField as any, snippet, 10, 15);
 
       expect(accessibleField.value).toBe('Call me at (555) 123-4567');
       expect(accessibleField.focus).toHaveBeenCalled(); // Should refocus for screen readers
@@ -609,12 +658,13 @@ describe('Complete User Workflows E2E', () => {
       const triggerDetector = new TriggerDetector(snippets);
       
       // Test successful expansion
-      const detection = triggerDetector.detectTrigger('test', 4);
-      expect(detection).toBeTruthy();
+      const detection = triggerDetector.processInput(';test ');
+      expect(detection.isMatch).toBe(true);
+      expect(detection.content).toBe('Test Content');
 
       // Test failed expansion (no matching trigger)
-      const noDetection = triggerDetector.detectTrigger('nomatch', 7);
-      expect(noDetection).toBeNull();
+      const noDetection = triggerDetector.processInput(';nomatch ');
+      expect(noDetection.isMatch).toBe(false);
     });
   });
 });

@@ -16,32 +16,29 @@ The E2E tests were calling wrong API methods:
 ### API Corrections Made
 - ✅ Fixed line 111: `triggerDetector.processInput(';hello ')` 
 - ✅ Fixed line 212: `triggerDetector.processInput('email ')`
-- 🔄 **IN PROGRESS**: Need to fix remaining instances of `detectTrigger` calls
+- ✅ Fixed all 12 remaining `detectTrigger` → `processInput` calls
+- ✅ Fixed all 3 `syncSnippets` → `syncNow` calls  
+- ✅ Added IndexedDB mocking for E2E tests
+- 🔄 **IN PROGRESS**: Need to fix trigger prefix mismatches (`;hello` vs `hello`)
 
-### Remaining `detectTrigger` calls to fix:
-```bash
-grep -n "detectTrigger" /shared/code/text-exp/tests/e2e/complete-user-workflows.test.ts
-245:      const noDetection = triggerDetector.detectTrigger(partialInput, 2);
-250:      const middleDetection = triggerDetector.detectTrigger(middleWord, 7);
-341:      const supportResponse = triggerDetector.detectTrigger('support', 7);
-346:      const personalUsage = triggerDetector.detectTrigger('myname', 6);
-362:      expect(triggerDetector.detectTrigger('personal', 8)?.snippet.scope).toBe('personal');
-363:      expect(triggerDetector.detectTrigger('dept', 4)?.snippet.scope).toBe('department');
-364:      expect(triggerDetector.detectTrigger('org', 3)?.snippet.scope).toBe('org');
-467:      const detection = triggerDetector.detectTrigger('trigger500', 10);
-497:        const detection = triggerDetector.detectTrigger(trigger, trigger.length);
-580:      const detection = triggerDetector.detectTrigger(accessibleField.value, 15);
-599:      const detection = triggerDetector.detectTrigger('test', 4);
-603:      const noDetection = triggerDetector.detectTrigger('nomatch', 7);
+### MAJOR ISSUE IDENTIFIED: Trigger Prefix Mismatch
+**Problem**: Tests use triggers like `email` but TriggerDetector expects `;email`
+**Status**: 🔄 Need to fix all trigger definitions to include `;` prefix
+
+### Pattern to fix:
+```typescript
+// WRONG (causes isMatch=false):
+trigger: 'email' → processInput('email ')
+
+// CORRECT:  
+trigger: ';email' → processInput(';email ')
 ```
 
-### SyncManager API calls to fix:
-```bash
-grep -n "syncSnippets" /shared/code/text-exp/tests/e2e/complete-user-workflows.test.ts
-290:      await syncManager.syncSnippets();
-420:      await syncManager.syncSnippets();
-439:      await expect(syncManager.syncSnippets()).rejects.toThrow('Network error');
-```
+### Remaining triggers to fix with `;` prefix:
+- Line 193: `trigger: 'email'` → `trigger: ';email'`
+- Line 200: `trigger: 'addr'` → `trigger: ';addr'` 
+- Line 207: `trigger: 'sig'` → `trigger: ';sig'`
+- Plus ~15 more instances throughout the file
 
 ## 🔄 Next Steps (Priority Order)
 
