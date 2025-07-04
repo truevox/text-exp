@@ -167,24 +167,279 @@ This document outlines the implementation plan for a powerful, collaborative tex
 - [ ] **Advanced placeholder logic** (e.g., dropdowns, conditional sections).
 - [ ] **Import/export functionality.**
 
-## 📋 CURRENT STATUS (v0.6.3)
+## 📋 CURRENT STATUS (v0.11.0)
 
-**🎉 PROJECT STATE**: Feature-complete and stable
+**🎉 PROJECT STATE**: Enhanced UX and comprehensive testing completed
 
+### ✅ Recently Completed (v0.10.4 - v0.11.0)
+- ✅ **CRITICAL: Storage timing race condition fixed** (v0.10.4)
+  - IndexedDB updates now complete BEFORE content script notifications
+  - Prevents stale data reads during sync operations
+  - Manual testing confirmed `;eata` → "Bag of Dicks!!" expansion works correctly
+- ✅ **Comprehensive automated testing suite** (v0.11.0)
+  - Storage timing validation tests (8 critical tests passing)
+  - E2E user workflow validation tests (7 comprehensive scenarios)
+  - Integration tests for sync manager and messaging systems
+- ✅ **Enhanced Options Page UX** (v0.11.0)
+  - Modern card-based layout with visual hierarchy
+  - Enhanced folder picker with breadcrumb navigation and visual states
+  - Improved settings organization with logical grouping
+  - Professional design with animations and better feedback
+  - Quick setup wizard for new users
+
+### 🎯 Core Architecture Status
 - ✅ All critical issues resolved
 - ✅ Revolutionary trigger cycling feature implemented  
 - ✅ Comprehensive security hardening completed
-- ✅ Excellent test coverage (169/193 passing)
+- ✅ Enhanced test coverage with storage timing validation
 - ✅ Production-ready build system
 - ✅ Complete cloud adapter ecosystem
+- ✅ Modern, intuitive user interface
 
-**🚀 READY FOR**: User testing, feature refinement, and deployment preparation
+**🚀 READY FOR**: Production deployment and user onboarding
 
 ---
 
-*Last updated: 2025-07-03*
+## 🚀 Stretch Goals & Future Enhancements (When Bored / Pie in the Sky)
+
+### 🔐 ENCRYPTED SNIPPETS SUPPORT - **SUPER LOW PRIORITY**
+**Priority**: Stretch goal (implement when bored, after everything else is 100% complete)
+
+**Rationale**: Add privacy and security for sensitive snippets (passwords, API keys, personal info):
+- Encrypt snippet content before storing in cloud
+- Support multiple encryption methods for flexibility
+- Maintain backwards compatibility with unencrypted snippets
+
+**Encryption Methods to Support**:
+- **Local Key Pairs** (SSH-style): Generate public/private key pairs locally
+- **Password-based**: User-provided password with PBKDF2/Argon2 key derivation
+- **Passkey/WebAuthn**: Modern biometric/hardware key authentication
+- **Hybrid**: Combine methods for different security levels
+
+**Implementation Approach**:
+- **Payload Encryption**: Encrypt only snippet content, leave metadata visible
+- **Full Encryption**: Encrypt entire snippet objects (including triggers, metadata)
+- **Selective Encryption**: User chooses per-snippet or per-folder encryption level
+- **Key Management**: Secure local storage of encryption keys with browser APIs
+
+**Technical Components**:
+- Web Crypto API for encryption operations
+- Key derivation functions (PBKDF2, Argon2)
+- WebAuthn integration for passkey support
+- Encrypted storage format with version compatibility
+- Key rotation and recovery mechanisms
+
+**UI Enhancements**:
+- Encryption settings in options page
+- Per-snippet encryption toggle
+- Key management interface
+- Recovery/backup key generation
+- Visual indicators for encrypted vs unencrypted content
+
+**Security Considerations**:
+- Zero-knowledge architecture (keys never leave device)
+- Secure key storage using browser keychain APIs
+- Protection against key extraction attacks
+- Optional key escrow for enterprise users
+
+---
+
+## 📝 Editorial Decision: Keep Snippet Editing
+
+### ✅ SNIPPET EDITING FUNCTIONALITY - **KEEP AS-IS**
+**Rationale**: The editing functionality works and provides value:
+- Useful for quick edits and snippet management
+- No significant maintenance burden
+- Gives users choice between in-app editing and external tools
+- Complements the download-and-expand core functionality
+
+**Keep Current Features**:
+- Snippet editing UI in popup/options pages
+- Inline editing functionality  
+- "Create new snippet" interfaces
+- Snippet management forms
+- Import/export capabilities
+
+### 📝 FUTURE: Multi-Format Editing Support - **LOW PRIORITY**
+**Priority**: Low (after core features and encryption are complete)
+
+**Rationale**: Support rich snippet formats for advanced use cases:
+- Enable structured snippet content with metadata
+- Support different content types and rendering
+- Maintain backwards compatibility with simple text snippets
+
+**Four Primary Formats to Support**:
+
+1. **Plain Text** (current default)
+   - Simple text expansion
+   - No formatting or metadata
+   - Backwards compatible with existing snippets
+
+2. **JSON Format**
+   ```json
+   {
+     "content": "Hello {name}!",
+     "variables": ["name"],
+     "description": "Greeting with personalization"
+   }
+   ```
+
+3. **Markdown Format** (with YAML frontmatter)
+   ```yaml
+   ---
+   description: "Code snippet with syntax highlighting"
+   language: "javascript"
+   variables: ["functionName"]
+   ---
+   ```javascript
+   function {functionName}() {
+     console.log("Hello world!");
+   }
+   ```
+   
+4. **HTML Format** (with YAML frontmatter)
+   ```yaml
+   ---
+   description: "Rich formatted content"
+   contentType: "html"
+   variables: ["title", "content"]
+   ---
+   <div class="card">
+     <h3>{title}</h3>
+     <p>{content}</p>
+   </div>
+   ```
+
+**Implementation Features**:
+- **Format Detection**: Auto-detect format based on content structure
+- **Format Conversion**: Convert between formats when possible
+- **Syntax Highlighting**: Code editor with format-specific highlighting
+- **YAML Frontmatter Parser**: Extract metadata from YAML headers
+- **Variable Extraction**: Automatically detect placeholders in content
+- **Preview Mode**: Live preview of formatted content
+- **Validation**: Format-specific validation and error reporting
+
+**UI Enhancements**:
+- Format selector dropdown in snippet editor
+- Split-pane editor (raw content / preview)
+- Syntax highlighting with Monaco Editor or CodeMirror
+- YAML frontmatter folding/collapsing
+- Template wizards for common formats
+- Import/export with format preservation
+
+**Technical Considerations**:
+- Backwards compatibility with existing plain text snippets
+- Efficient parsing and rendering of different formats
+- Secure HTML sanitization for HTML format
+- Markdown rendering with security considerations
+- JSON schema validation for structured content
+
+---
+
+## 🚀 Implementation Plan: Multi‑Format Snippet Storage for **PuffPuffPaste**
+
+### 🎯 Current Implementation Objectives
+
+1. **Read & expand** snippets stored as:
+   * `json` → canonical array of objects (existing)
+   * `txt`  → YAML front‑matter + plain‑text body
+   * `md`   → YAML front‑matter + Markdown body
+   * `html` → YAML front‑matter + HTML body
+   * `tex`  → YAML front‑matter + LaTeX body
+
+2. **Auto‑detect** format on download; preserve original type on upload unless changed by user.
+
+3. **Local editor**: round‑trip any format; fallback to JSON when creating new snippets programmatically.
+
+4. **Doc updates**: README + FORMAT\_GUIDE.md; insert implementation notes into CLAUDE-TODO.md.
+
+### 📋 Implementation Checklist
+
+- [x] ♻️ **feat:** multi‑format snippet I/O (JSON/txt/md/html/tex) **COMPLETED v0.12.0**
+  - [x] utils/detectFormat.ts - Format detection utility
+  - [x] parsers/ directory - Format parsers and serializers
+    - [x] json.ts - JSON format handler (existing + enhanced)
+    - [x] txt.ts - Plain text with YAML frontmatter
+    - [x] md.ts - Markdown with YAML frontmatter  
+    - [x] html.ts - HTML with YAML frontmatter
+    - [x] tex.ts - LaTeX with YAML frontmatter
+    - [x] index.ts - Unified parser interface
+  - [ ] driveSync integration - Update sync pipeline
+  - [ ] new‑snippet wizard UI - Format selection dropdown
+  - [x] unit tests per format (fixtures in `tests/fixtures/`)
+    - [x] tests/fixtures/sample.json
+    - [x] tests/fixtures/sample.txt
+    - [x] tests/fixtures/sample.md
+    - [x] tests/fixtures/sample.html
+    - [x] tests/fixtures/sample.tex
+  - [x] Round-trip serialization tests
+  - [x] Format detection tests
+
+- [ ] 📝 **docs:** update README & add FORMAT\_GUIDE.md with examples
+  - [ ] README.md - Add supported formats section
+  - [ ] FORMAT_GUIDE.md - Comprehensive format documentation
+  - [ ] CLI examples for Google Doc → .ppp.html conversion
+
+- [ ] 🔧 **technical:** offline image cache for md/html formats
+  - [ ] Blob storage for linked Drive images
+  - [ ] base64 size validation (< 256 kB)
+  - [ ] lazy-load fallback for large images
+
+- [ ] ✅ **testing:** comprehensive test coverage
+  - [ ] Jest + @testing-library/dom for HTML insertion
+  - [ ] Golden-file diff for serialization round-trip
+  - [ ] `npm run validate:snippets` command
+
+### 🛠️ Technical Architecture
+
+**Format Detection Algorithm:**
+```
+Input: string fileName, string fileContent
+Output: "json" | "txt" | "md" | "html" | "tex"
+Algorithm:
+  if fileName.endsWith('.json') OR startsWith('{') → json
+  else if fileName.endsWith('.tex') OR /\\begin{document}/ → tex
+  else if fileName.endsWith('.html') OR /<html|<p|<div/i → html
+  else if fileName.endsWith('.md') OR /^---\n[\s\S]*?\n---\n[\s\S]*?[\[#*_`]/ → md
+  else → txt (YAML + plain‑text)
+```
+
+**Canonical Data Structure:**
+```ts
+interface SnippetDoc {
+  meta: { 
+    id: string; 
+    trigger: string; 
+    contentType: string;
+    description?: string;
+    tags?: string[];
+    variables?: string[];
+    images?: string[];
+    snipDependencies?: string[];
+    createdAt: Date;
+    createdBy: string;
+    updatedAt: Date;
+    updatedBy: string;
+  };
+  body: string;  // raw body text
+  format: 'json'|'txt'|'md'|'html'|'tex';
+}
+```
+
+### 📅 Implementation Milestones
+
+1. **Detection, parsers, serializers** (2 days)
+2. **Drive sync wiring** (1 day)
+3. **Editor UI dropdown & fallback** (1 day)
+4. **Docs + tests** (1 day)
+
+**Total: ~5 dev‑days**
+
+---
+
+*Last updated: 2025-07-04*
 *Project: PuffPuffPaste - Collaborative Text Expander*  
-*Current Version: 0.8.7*
+*Current Version: 0.11.0*
 
 ## 🚨 VERSION MANAGEMENT REMINDER
 **CRITICAL**: Bump version with EVERY fix and feature:

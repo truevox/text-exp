@@ -1,0 +1,41 @@
+[
+  {
+    "meta": {
+      "id": "test-json-1",
+      "trigger": "hello",
+      "contentType": "text/plain",
+      "description": "Simple greeting",
+      "tags": ["greeting", "basic"],
+      "variables": ["name"],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "test-user",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "updatedBy": "test-user",
+      "language": "text",
+      "scope": "personal",
+      "isActive": true,
+      "priority": 0
+    },
+    "body": "Hello {name}! How are you today?",
+    "format": "json"
+  },
+  {
+    "meta": {
+      "id": "test-json-2",
+      "trigger": "signature",
+      "contentType": "text/html",
+      "description": "Email signature",
+      "tags": ["email", "signature"],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "test-user",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "updatedBy": "test-user",
+      "language": "html",
+      "scope": "personal",
+      "isActive": true,
+      "priority": 0
+    },
+    "body": "<p>Best regards,<br><strong>John Doe</strong><br>Software Engineer</p>",
+    "format": "json"
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.10.4",
+  "version": "0.13.0",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
@@ -59,7 +59,12 @@
     "webext-bridge": "^6.0.1"
   },
   "dependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.18.1",
+    "dompurify": "^3.2.6",
+    "js-yaml": "^4.1.0",
+    "tslib": "^2.8.1",
     "ws": "^8.18.3"
   },
   "engines": {

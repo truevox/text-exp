@@ -1,0 +1,18 @@
+---
+trigger: "contact"
+contentType: "text/plain"
+description: "Contact information template"
+tags: ["contact", "info"]
+variables: ["name", "email", "phone"]
+language: "text"
+scope: "personal"
+isActive: true
+priority: 0
+---
+Contact Information:
+
+Name: {name}
+Email: {email}
+Phone: {phone}
+
+Please feel free to reach out anytime!

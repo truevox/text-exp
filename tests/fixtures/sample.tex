@@ -1,0 +1,28 @@
+---
+trigger: "theorem"
+contentType: "application/x-latex"
+description: "Mathematical theorem template"
+tags: ["math", "theorem", "latex"]
+variables: ["theoremName", "statement", "proof"]
+language: "latex"
+scope: "personal"
+isActive: true
+priority: 0
+---
+\begin{theorem}[{theoremName}]
+\label{thm:{theoremName}}
+{statement}
+\end{theorem}
+
+\begin{proof}
+{proof}
+\end{proof}
+
+\begin{remark}
+This theorem can be extended to more general cases by considering additional constraints.
+\end{remark}
+
+\begin{equation}
+\label{eq:{theoremName}}
+\sum_{i=1}^{n} x_i = \int_0^1 f(x) \, dx
+\end{equation}
