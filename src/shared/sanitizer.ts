@@ -4,6 +4,11 @@
  */
 
 export function sanitizeHtml(html: string): string {
+  // Handle null/undefined input gracefully
+  if (html == null) {
+    return '';
+  }
+  
   const doc = new DOMParser().parseFromString(html, 'text/html');
 
   // Remove script tags

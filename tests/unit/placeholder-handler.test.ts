@@ -48,35 +48,39 @@ describe('PlaceholderHandler', () => {
     });
 
     test('should replace built-in URL/title placeholders', () => {
-      // Mock window.location and document.title
-      Object.defineProperty(window, 'location', {
-        value: { href: 'http://example.com/path', hostname: 'example.com' },
-        writable: true,
-      });
+      // Mock document.title
+      const originalTitle = document.title;
       Object.defineProperty(document, 'title', {
         value: 'Test Page Title',
         writable: true,
+        configurable: true
       });
 
       const content = 'URL: [[url]], Domain: [[domain]], Title: [[title]]';
       const result = handler.replaceVariables(content, {});
 
-      expect(result).toContain('URL: http://example.com/path');
-      expect(result).toContain('Domain: example.com');
+      // JSDOM provides default values for location
+      expect(result).toContain('URL: http://localhost/'); // JSDOM default
+      expect(result).toContain('Domain: localhost'); // JSDOM default  
       expect(result).toContain('Title: Test Page Title');
+      
+      // Cleanup
+      Object.defineProperty(document, 'title', {
+        value: originalTitle,
+        writable: true,
+        configurable: true
+      });
     });
 
     test('should handle mixed custom and built-in variables', () => {
       const content = 'Hello {{user}}! Today is [[date]] on [[domain]].';
       const variables = { user: 'Alice' };
-      Object.defineProperty(window, 'location', {
-        value: { hostname: 'test.com' },
-        writable: true,
-      });
+      
       const result = handler.replaceVariables(content, variables);
       expect(result).toContain('Hello Alice!');
-      expect(result).toContain('on test.com.');
       expect(result).toContain(new Date().toLocaleDateString());
+      // JSDOM uses localhost by default, so we test for that
+      expect(result).toContain('on localhost.');
     });
   });
 

@@ -490,18 +490,39 @@ describe('TextReplacer', () => {
     });
 
     test('should trigger undo for last replacement', () => {
-      Object.defineProperty(document, 'activeElement', {
-        writable: true,
-        value: mockInput
-      });
+      // Mock Event constructor
+      global.Event = jest.fn().mockImplementation((type, options) => ({
+        type,
+        bubbles: options?.bubbles || false,
+        cancelable: options?.cancelable || false
+      }));
 
+      // Set up initial text
+      mockInput.value = 'test text';
+      
+      // First perform a replacement to set up undo state
+      const context: ReplacementContext = {
+        element: mockInput,
+        startOffset: 0,
+        endOffset: 4,
+        trigger: 'test',
+        snippet: null as any
+      };
+      
+      replacer.replaceText(context, 'Hello World');
+      
+      // Verify replacement happened
+      expect(mockInput.value).toBe('Hello World text');
+      
+      // Now test undo
+      mockDispatchEvent.mockClear();
       replacer.undoLastReplacement(mockInput);
 
+      // Should restore original text and trigger input event
+      expect(mockInput.value).toBe('test text');
       expect(mockDispatchEvent).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'keydown',
-          key: 'z',
-          ctrlKey: true
+          type: 'input'
         })
       );
     });
