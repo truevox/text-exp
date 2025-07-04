@@ -323,6 +323,109 @@ Some content`;
       expect(parser.isFormatSupported('json')).toBe(true);
       expect(parser.isFormatSupported('invalid')).toBe(false);
     });
+
+    test('handles malformed YAML frontmatter', () => {
+      const malformedYAML = `---
+trigger: "test"
+invalid: [unclosed array
+---
+Content`;
+
+      expect(() => parser.parseAs(malformedYAML, 'md')).toThrow();
+    });
+
+    test('handles empty content', () => {
+      const validation = parser.validate('', 'txt');
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain('Content cannot be empty');
+    });
+
+    test('handles unsupported parser format', () => {
+      expect(() => parser.parseAs('content', 'unsupported' as any)).toThrow('No parser available');
+    });
+
+    test('handles serialization with missing format', () => {
+      const docWithoutFormat = { meta: { trigger: 'test' }, body: 'test' } as any;
+      const result = parser.serialize(docWithoutFormat); // Should default to json
+      expect(result).toContain('"trigger":"test"');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('handles LaTeX with complex nested environments', () => {
+      const complexLaTeX = `---
+trigger: "complex"
+description: "Complex nested LaTeX"
+---
+\\begin{theorem}
+  \\begin{proof}
+    \\begin{equation}
+      x = \\frac{a}{b}
+    \\end{equation}
+  \\end{proof}
+\\end{theorem}`;
+
+      const result = parser.parseAs(complexLaTeX, 'tex') as SnippetDoc;
+      expect(result.meta.trigger).toBe('complex');
+      expect(result.body).toContain('\\begin{theorem}');
+    });
+
+    test('handles HTML with unusual tag structures', () => {
+      const unusualHTML = `<!-- YAML
+trigger: "unusual"
+description: "Unusual HTML structure"
+-->
+<div>
+  <custom-element data-test="value">
+    <nested>Content with {variable}</nested>
+  </custom-element>
+</div>`;
+
+      const result = parser.parseAs(unusualHTML, 'html') as SnippetDoc;
+      expect(result.meta.trigger).toBe('unusual');
+      expect(result.meta.variables.some(v => v.name === 'variable')).toBe(true);
+    });
+
+    test('handles Markdown with complex syntax', () => {
+      const complexMD = `---
+trigger: "complex-md"
+description: "Complex Markdown with various elements"
+---
+# {title}
+
+## Features
+
+- [ ] Task with {taskName}
+- [x] Completed task
+
+> Blockquote with {quote}
+
+| Column | Value |
+|--------|-------|
+| {key}  | {val} |`;
+
+      const result = parser.parseAs(complexMD, 'md') as SnippetDoc;
+      expect(result.meta.trigger).toBe('complex-md');
+      expect(result.meta.variables.map(v => v.name)).toEqual(
+        expect.arrayContaining(['title', 'taskName', 'quote', 'key', 'val'])
+      );
+    });
+
+    test('handles files without frontmatter', () => {
+      const plainHTML = '<div>Hello {name}!</div>';
+      const result = parser.parseAs(plainHTML, 'html', 'test.html') as SnippetDoc;
+      
+      expect(result.meta.trigger).toBe('test');
+      expect(result.meta.variables.some(v => v.name === 'name')).toBe(true);
+    });
+
+    test('handles very large content', () => {
+      const largeContent = '---\ntrigger: "large"\n---\n' + 'x'.repeat(10000);
+      const result = parser.parseAs(largeContent, 'txt') as SnippetDoc;
+      
+      expect(result.meta.trigger).toBe('large');
+      expect(result.body.length).toBe(10000);
+    });
   });
 
   describe('Serialization Options', () => {
@@ -347,6 +450,15 @@ Some content`;
       
       expect(pretty.length).toBeGreaterThan(compact.length);
       expect(pretty).toContain('\n  '); // Indentation
+    });
+
+    test('handles serialization with format conversion', () => {
+      const content = readFixture('sample.txt');
+      const parsed = parser.parseAs(content, 'txt') as SnippetDoc;
+      
+      const htmlSerialized = parser.serialize(parsed, 'html');
+      expect(htmlSerialized).toContain('<!-- YAML');
+      expect(htmlSerialized).toContain('contentType: html');
     });
   });
 });
