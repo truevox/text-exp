@@ -1,0 +1,35 @@
+name: Version Bump Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get base branch
+        id: base
+        run: echo "::set-output name=branch::$(git rev-parse --abbrev-ref origin/main)"
+
+      - name: Get version from base branch
+        id: base-version
+        run: |
+          git checkout ${{ steps.base.outputs.branch }}
+          echo "::set-output name=version::$(node -p "require('./package.json').version")"
+
+      - name: Get version from head branch
+        id: head-version
+        run: |
+          git checkout -
+          echo "::set-output name=version::$(node -p "require('./package.json').version")"
+
+      - name: Compare versions
+        if: steps.base-version.outputs.version == steps.head-version.outputs.version
+        run: |
+          echo "Version has not been bumped. Please run 'npm run version:fix' or 'npm run version:feature'."
+          exit 1

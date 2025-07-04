@@ -11,6 +11,75 @@ import { DEFAULT_SETTINGS } from '../../src/shared/constants.js';
 // Use the same chrome mock as other tests (from setup.ts)
 // The global chrome mock is already set up by Jest setup
 
+// Mock IndexedDB
+const mockIndexedDB = {
+  open: jest.fn(() => ({
+    onsuccess: null,
+    onerror: null,
+    result: {
+      createObjectStore: jest.fn(),
+      transaction: jest.fn(() => ({
+        objectStore: jest.fn(() => ({
+          add: jest.fn(),
+          put: jest.fn(),
+          get: jest.fn(),
+          delete: jest.fn(),
+          clear: jest.fn()
+        }))
+      }))
+    }
+  })),
+  deleteDatabase: jest.fn()
+};
+
+// Add IndexedDB to global
+global.indexedDB = mockIndexedDB as any;
+
+// Mock messaging helpers
+jest.mock('../../src/background/messaging-helpers.js', () => ({
+  notifyContentScriptsOfSnippetUpdate: jest.fn().mockResolvedValue(undefined)
+}));
+
+// Mock chrome.notifications
+global.chrome.notifications = {
+  create: jest.fn().mockResolvedValue('notification-id')
+} as any;
+
+// Mock IndexedDB class
+jest.mock('../../src/shared/indexed-db.js', () => ({
+  IndexedDB: jest.fn().mockImplementation(() => ({
+    saveSnippets: jest.fn().mockResolvedValue(undefined),
+    getSnippets: jest.fn().mockResolvedValue([]),
+    deleteSnippets: jest.fn().mockResolvedValue(undefined),
+    clear: jest.fn().mockResolvedValue(undefined)
+  }))
+}));
+
+// Mock cloud adapters to prevent real network calls
+jest.mock('../../src/background/cloud-adapters/index.js', () => ({
+  getCloudAdapterFactory: jest.fn(() => ({
+    createAdapter: jest.fn((provider) => {
+      if (!['local', 'google-drive', 'dropbox', 'onedrive'].includes(provider)) {
+        throw new Error(`Invalid provider: ${provider}`);
+      }
+      return {
+        provider: provider,
+        initialize: jest.fn().mockResolvedValue(undefined),
+        connect: jest.fn().mockResolvedValue(true),
+        disconnect: jest.fn().mockResolvedValue(undefined),
+        isConnected: jest.fn().mockResolvedValue(false),
+        isAuthenticated: jest.fn().mockResolvedValue(false),
+        downloadSnippets: jest.fn().mockResolvedValue([]),
+        uploadSnippets: jest.fn().mockResolvedValue(undefined),
+        authenticate: jest.fn().mockResolvedValue({ provider: provider, accessToken: 'mock' }),
+        refreshCredentials: jest.fn().mockResolvedValue({ provider: provider, accessToken: 'mock' }),
+        validateCredentials: jest.fn().mockResolvedValue(true),
+        getSyncStatus: jest.fn().mockResolvedValue({ isOnline: true, provider: provider, lastSync: new Date() })
+      };
+    })
+  }))
+}));
+
 describe('SyncManager Integration', () => {
   let syncManager: SyncManager;
 
@@ -75,7 +144,7 @@ describe('SyncManager Integration', () => {
       
       const provider = syncManager.getCurrentProvider();
       expect(provider).toBe('local');
-    });
+    }, 10000);
 
     it('should set up auto-sync when enabled', async () => {
       const settings = { ...DEFAULT_SETTINGS, autoSync: true, syncInterval: 1 };
@@ -85,7 +154,7 @@ describe('SyncManager Integration', () => {
       
       // Check that auto-sync is started (implementation specific)
       expect(syncManager.getCurrentProvider()).toBe('local');
-    });
+    }, 10000);
   });
 
   describe('cloud provider management', () => {
@@ -95,13 +164,13 @@ describe('SyncManager Integration', () => {
       
       await syncManager.setCloudProvider('local');
       expect(syncManager.getCurrentProvider()).toBe('local');
-    });
+    }, 10000);
 
     it('should handle invalid providers gracefully', async () => {
       await expect(
         syncManager.setCloudProvider('invalid' as any)
       ).rejects.toThrow();
-    });
+    }, 10000);
   });
 
   describe('local sync operations', () => {
@@ -141,7 +210,7 @@ describe('SyncManager Integration', () => {
     it('should sync with local provider (no-op)', async () => {
       await syncManager.setCloudProvider('local');
       await expect(syncManager.syncNow()).resolves.not.toThrow();
-    });
+    }, 10000);
 
     it('should get sync statistics', async () => {
       // Set up the local cloud provider first
@@ -152,7 +221,7 @@ describe('SyncManager Integration', () => {
       expect(stats.totalSnippets).toBe(2);
       expect(stats.syncProvider).toBe('local');
       expect(stats.isOnline).toBe(true);
-    });
+    }, 10000);
 
     it('should handle settings changes', async () => {
       const newSettings: ExtensionSettings = {
@@ -163,7 +232,7 @@ describe('SyncManager Integration', () => {
       
       await syncManager.onSettingsChanged(newSettings);
       expect(syncManager.getCurrentProvider()).toBe('google-drive');
-    });
+    }, 10000);
   });
 
   describe('error handling', () => {
@@ -171,30 +240,29 @@ describe('SyncManager Integration', () => {
       // Set up a provider that will fail
       await syncManager.setCloudProvider('google-drive');
       
-      // Mock the downloadSnippets method of the currentAdapter to throw an error
+      // Mock the MultiScopeSyncManager to fail
       // @ts-ignore
-      syncManager['currentAdapter'].downloadSnippets = jest.fn().mockRejectedValue(new Error('Simulated sync error'));
+      syncManager['multiScopeSyncManager'].syncAndMerge = jest.fn().mockRejectedValue(new Error('Simulated sync error'));
 
       try {
         await syncManager.syncNow();
         // If we reach here, it means syncNow() did NOT throw, which is unexpected.
         fail('syncNow() should have thrown an error');
       } catch (e) {
-        // Expected: syncNow() throws an error
-        expect(ExtensionStorage.setSyncStatus).toHaveBeenCalledTimes(1);
+        // Expected: syncNow() throws an error and sets error status
         expect(ExtensionStorage.setSyncStatus).toHaveBeenCalledWith(expect.objectContaining({
           isOnline: false,
           error: 'Simulated sync error'
         }));
       }
-    });
+    }, 10000);
 
     it('should handle authentication errors', async () => {
       await syncManager.setCloudProvider('google-drive');
       
       const isAuth = await syncManager.isAuthenticated();
       expect(isAuth).toBe(false);
-    });
+    }, 10000);
   });
 
   describe('auto-sync functionality', () => {

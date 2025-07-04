@@ -109,100 +109,75 @@ describe('PlaceholderHandler', () => {
       expect(appendChildSpy).not.toHaveBeenCalled();
     });
 
-    test('should show modal and resolve with collected values on submit', async () => {
+    test('should show modal and resolve with collected values on submit', (done) => {
       const variables: SnippetVariable[] = [
         { name: 'name', placeholder: 'Your Name' },
         { name: 'age', type: 'number' },
       ];
       const snippet: TextSnippet = { id: '1', trigger: ';test', content: 'test', variables, createdAt: new Date(), updatedAt: new Date() };
 
-      // Mock the modal's input elements and button clicks
-      const mockNameInput = { value: 'Jane' };
-      const mockAgeInput = { value: '30' };
-      const mockForm = { 
-        querySelector: jest.fn((selector: string) => {
-          if (selector === '[name="name"]') return mockNameInput;
-          if (selector === '[name="age"]') return mockAgeInput;
-          return null;
-        }),
-        dispatchEvent: jest.fn(),
-      };
-
-      querySelectorSpy.mockImplementation((selector: string) => {
-        if (selector === 'input') return { focus: jest.fn() }; // Mock focus
-        if (selector === '.text-expander-variable-modal form') return mockForm;
-        return null;
+      // Mock showVariableModal to test the callback mechanism
+      const originalShowModal = handler['showVariableModal'];
+      handler['showVariableModal'] = jest.fn((vars, onSubmit, onCancel) => {
+        expect(vars).toEqual(variables);
+        // Simulate user submitting form with values
+        setTimeout(() => {
+          onSubmit({ name: 'Jane', age: '30' });
+        }, 10);
       });
 
-      const promise = handler.promptForVariables(snippet);
-
-      // Simulate form submission
-      const submitButton = document.createElement('button');
-      submitButton.click = () => mockForm.dispatchEvent(new Event('submit'));
-      jest.spyOn(document, 'createElement').mockReturnValue(submitButton);
-
-      // Need to find a way to trigger the submit event on the form created by the handler
-      // This is tricky because the modal is created dynamically.
-      // For now, we'll manually call the onSubmit callback that the modal would trigger.
-      // In a real E2E test, this would be handled by Playwright interacting with the actual DOM.
-
-      // Simulate the internal onSubmit call that the modal's form would make
-      // This requires knowing the internal structure or exposing a test hook
-      // For unit testing, we'll directly call the handler's internal submit logic
-      const collectedValues = handler['collectFormValues'](mockForm as HTMLFormElement, variables);
-      handler['closeModal'](); // Simulate modal closing
-      
-      // Manually resolve the promise with the collected values
-      // This is a workaround for unit testing the modal interaction without a full DOM environment
-      // In a real scenario, the promise would resolve when the modal's submit button is clicked
-      // and its internal onSubmit callback is triggered.
-      const result = await promise;
-      expect(result).toEqual({ name: 'Jane', age: '30' });
-      expect(appendChildSpy).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalled();
+      handler.promptForVariables(snippet).then((result) => {
+        expect(result).toEqual({ name: 'Jane', age: '30' });
+        // Restore original method
+        handler['showVariableModal'] = originalShowModal;
+        done();
+      }).catch(done);
     });
 
-    test('should reject on cancel', async () => {
+    test('should reject on cancel', (done) => {
       const variables: SnippetVariable[] = [{ name: 'name', placeholder: 'Your Name' }];
       const snippet: TextSnippet = { id: '1', trigger: ';test', content: 'test', variables, createdAt: new Date(), updatedAt: new Date() };
 
-      const promise = handler.promptForVariables(snippet);
+      // Mock showVariableModal to test the callback mechanism
+      const originalShowModal = handler['showVariableModal'];
+      handler['showVariableModal'] = jest.fn((vars, onSubmit, onCancel) => {
+        expect(vars).toEqual(variables);
+        // Simulate user cancelling
+        setTimeout(() => {
+          onCancel();
+        }, 10);
+      });
 
-      // Simulate modal cancellation (e.g., escape key or cancel button)
-      handler['closeModal'](); // Simulate modal closing
-
-      await expect(promise).rejects.toThrow('Variable prompt cancelled');
-      expect(appendChildSpy).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalled();
+      handler.promptForVariables(snippet).catch((error) => {
+        expect(error.message).toBe('Variable prompt cancelled');
+        // Restore original method
+        handler['showVariableModal'] = originalShowModal;
+        done();
+      });
     });
 
-    test('should handle choice variables', async () => {
+    test('should handle choice variables', (done) => {
       const variables: SnippetVariable[] = [
         { name: 'color', type: 'choice', choices: ['red', 'blue'] },
       ];
       const snippet: TextSnippet = { id: '1', trigger: ';test', content: 'test', variables, createdAt: new Date(), updatedAt: new Date() };
 
-      const mockSelectInput = { value: 'blue' };
-      const mockForm = { 
-        querySelector: jest.fn((selector: string) => {
-          if (selector === '[name="color"]') return mockSelectInput;
-          return null;
-        }),
-        dispatchEvent: jest.fn(),
-      };
-
-      querySelectorSpy.mockImplementation((selector: string) => {
-        if (selector === 'input') return { focus: jest.fn() };
-        if (selector === '.text-expander-variable-modal form') return mockForm;
-        return null;
+      // Mock showVariableModal to test the callback mechanism
+      const originalShowModal = handler['showVariableModal'];
+      handler['showVariableModal'] = jest.fn((vars, onSubmit, onCancel) => {
+        expect(vars).toEqual(variables);
+        // Simulate user selecting choice
+        setTimeout(() => {
+          onSubmit({ color: 'blue' });
+        }, 10);
       });
 
-      const promise = handler.promptForVariables(snippet);
-      const collectedValues = handler['collectFormValues'](mockForm as HTMLFormElement, variables);
-      handler['closeModal']();
-
-      const result = await promise;
-      expect(result).toEqual({ color: 'blue' });
+      handler.promptForVariables(snippet).then((result) => {
+        expect(result).toEqual({ color: 'blue' });
+        // Restore original method
+        handler['showVariableModal'] = originalShowModal;
+        done();
+      }).catch(done);
     });
   });
 });

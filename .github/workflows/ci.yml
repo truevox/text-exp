@@ -21,5 +21,8 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Run tests
-      run: npm test
+    - name: Validate Code Quality and Run Tests
+      run: npm run validate
+
+    - name: Build Extension
+      run: npm run build

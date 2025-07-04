@@ -1,6 +1,6 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.13.5",
+  "version": "0.13.11",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
@@ -23,7 +23,9 @@
     "version:fix": "node scripts/bump-version.js fix && npm run build",
     "clean": "rm -rf build dist",
     "clean:all": "rm -rf build dist node_modules && npm install",
-    "validate": "npm run type-check && npm run lint && npm run format:check && npm run test"
+    "validate": "npm run type-check && npm run lint && npm run format:check && npm run test",
+    "prepare": "husky",
+    "commit": "gitmoji -c"
   },
   "keywords": [
     "chrome-extension",
@@ -45,6 +47,8 @@
     "crx": "^5.0.1",
     "eslint": "^8.49.0",
     "fast-glob": "^3.3.1",
+    "gitmoji-cli": "^9.7.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.0.2",
     "jsdom": "^26.1.0",

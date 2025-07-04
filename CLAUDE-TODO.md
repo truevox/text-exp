@@ -5,6 +5,9 @@
 ### 🎯 Project Overview
 This document outlines the implementation plan for a powerful, collaborative text expansion Chrome extension. The project's foundation is the **`CloudAdapter` architecture**, a unified interface for syncing snippets from multiple cloud providers (Google Drive, Dropbox, etc.). It supports **multi-scope synchronization** ("Org Mode") for personal, department, and organization-level snippet libraries, with a focus on offline-first performance, security, and extensibility.
 
+## CLAUDE-TODONE
+**Any task in CLAUDE-TODO.md that is finished should be moved into CLAUDE-TODONE.md (create the file if need be) to prevent todo bloat!**
+
 ## ✅ CRITICAL ISSUES RESOLVED IN v0.6.x
 
 **Status**: All critical blocking issues have been resolved as of version 0.6.3:
@@ -212,6 +215,37 @@ This document outlines the implementation plan for a powerful, collaborative tex
 - ✅ Modern, intuitive user interface
 
 **🚀 READY FOR**: Production deployment and user onboarding
+
+---
+
+---
+
+## 🤖 High-Priority CI/CD Enhancements
+
+**Priority**: High - Implement immediately to improve development velocity and enforce project conventions.
+
+### 1. Automated Code Quality & Consistency
+- [ ] **Linting and Formatting Checks**: Add a step in `ci.yml` to run a linter (e.g., `eslint`) and a formatter check (`prettier --check .`). This ensures all committed code adheres to the project's style guide.
+- [ ] **Pre-commit Hooks**: Use a tool like `husky` to run these checks *locally* before a commit can be made. This provides an immediate feedback loop.
+
+### 2. Automated Building & Versioning
+- [ ] **Build Verification**: Add a step to the CI pipeline that runs `npm run build`. This guarantees that the extension is always buildable.
+- [ ] **Automated Version Bump Check**: Create a GitHub Action that fails if a pull request doesn't include a version bump in `manifest.json` and `package.json`, enforcing the versioning workflow.
+
+---
+
+## 😴 Low-Priority CI/CD Enhancements (Super Low Priority)
+
+**Priority**: Stretch goal (implement when bored, after everything else is 100% complete).
+
+### 3. Automated Releases & Deployment
+- [ ] **Create a Draft Release Action**: Set up a manually triggered GitHub action that runs tests, builds the project, packages the `build/` directory into a versioned `.zip` file, and creates a draft release on GitHub with the zip as an asset.
+- [ ] **(Advanced) Automated Publishing**: Extend the release action to automatically upload the release `.zip` to the Chrome Web Store.
+
+### 4. Enhanced Project Management & LLM Feedback Loop
+- [ ] **Commit Message Enforcement**: Add a CI step to validate that commit messages on a pull request adhere to the `TypeEmojiMeaning` format defined in `CLAUDE.md`.
+- [ ] **Automated `CLAUDE-TODO.md` Management**: Create a script to check for inconsistencies between completed tasks in the TODO file and the git history.
+- [ ] **Automated Test Coverage Reports**: Configure CI to upload test coverage reports as artifacts and/or post the coverage percentage as a comment on pull requests.
 
 ---
 

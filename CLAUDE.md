@@ -133,20 +133,25 @@ After core logic works, ask Claude to provide screenshots or mock‑ups for:
 
 #### Commit Message Conventions
 
-Our commit messages follow a specific format: `TypeEmojiMeaning`. Here's a list of accepted types and their corresponding emojis:
+Our commit messages follow a strict format to ensure clarity and consistency:
+**`:emoji: Category, TC: 00.0%`**
 
-| Type    | Emoji          | Meaning                               |
-| :------ | :------------- | :------------------------------------ |
-| feat    | ✨ `:sparkles:` | A new feature                         |
-| fix     | 🐛 `:bug:`      | A bug fix                             |
-| chore   | 🧹 `:broom:`    | Maintenance stuff                     |
-| docs    | 📝 `:memo:`     | Documentation only                    |
-| style   | 💄 `:lipstick:` | Formatting, no logic change           |
-| refactor| ♻️ `:recycle:`  | Code change without fixing or adding  |
-| test    | ✅ `:white_check_mark:` | Adding or fixing tests                |
-| perf    | ⚡ `:zap:`      | Performance improvement               |
-| build   | 🏗️ `:building_construction:` | Build system changes                  |
-| ci      | 🤖 `:robot:`    | CI/CD config or script changes        |
+**Format Breakdown:**
+*   **`:emoji:`**: An emoji that visually represents the change.
+*   **`Category`**: A single, capitalized word describing the change type (e.g., `Fix`, `Feat`, `Docs`, `Chore`).
+*   **`TC: 00.0%`**: The current test coverage percentage, which must be included.
+
+**Examples:**
+*   `🐛 Fix, TC: 93.4%`
+*   `✨ Feat, TC: 87.2%`
+*   `📝 Docs, TC: 99.1%`
+
+To streamline this process, we use `gitmoji-cli`. A `commit-msg` hook is in place to enforce this format automatically. Commits with non-compliant messages will be rejected.
+
+**Recommended Workflow:**
+1.  Stage your changes (`git add .`).
+2.  Run `gitmoji -c` to open the interactive commit prompt.
+3.  Follow the prompts, ensuring your final message includes the category and test coverage (e.g., `Feat, TC: 88.0%`).
 
 * Use `gh` CLI for branches/PRs.
 * Keep commits small and focused; seperation of affairs.
