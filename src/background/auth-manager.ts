@@ -27,7 +27,9 @@ export interface TokenResponse {
 export class AuthManager {
   private static readonly GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
   private static readonly GOOGLE_CLIENT_SECRET = 'YOUR_CLIENT_SECRET'; // Store securely
-  private static readonly REDIRECT_URI = `https://${chrome.runtime.id}.chromiumapp.org/`;
+  private static get REDIRECT_URI(): string {
+    return `https://${chrome.runtime.id}.chromiumapp.org/`;
+  }
   
   /**
    * Authenticate with Google Drive
@@ -54,13 +56,13 @@ export class AuthManager {
       }
       
       // Start new OAuth flow
-      const authCode = await this.launchOAuthFlow();
-      if (!authCode) {
-        return { success: false, error: 'OAuth flow cancelled or failed' };
+      const authResult = await this.launchOAuthFlow();
+      if (!authResult.success) {
+        return { success: false, error: authResult.error };
       }
       
       // Exchange code for tokens
-      const tokens = await this.exchangeCodeForTokens(authCode);
+      const tokens = await this.exchangeCodeForTokens(authResult.authCode);
       if (!tokens) {
         return { success: false, error: 'Failed to exchange code for tokens' };
       }
@@ -90,7 +92,7 @@ export class AuthManager {
   /**
    * Launch OAuth2 web flow
    */
-  private static async launchOAuthFlow(): Promise<string | null> {
+  private static async launchOAuthFlow(): Promise<{ success: true; authCode: string } | { success: false; error: string }> {
     const provider = CLOUD_PROVIDERS['google-drive'];
     
     const authUrl = `${provider.authUrl}?` +
@@ -108,7 +110,7 @@ export class AuthManager {
       });
       
       if (!responseUrl) {
-        return null;
+        return { success: false, error: 'OAuth flow cancelled or failed' };
       }
       
       // Extract authorization code from response URL
@@ -117,14 +119,21 @@ export class AuthManager {
       const error = url.searchParams.get('error');
       
       if (error) {
-        throw new Error(`OAuth error: ${error}`);
+        return { success: false, error: `OAuth error: ${error}` };
       }
       
-      return code;
+      if (!code) {
+        return { success: false, error: 'No authorization code received' };
+      }
+      
+      return { success: true, authCode: code };
       
     } catch (error) {
       console.error('OAuth flow error:', error);
-      return null;
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'OAuth flow failed'
+      };
     }
   }
   

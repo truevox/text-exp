@@ -3,17 +3,28 @@
  * Tests image processing, storage, and security
  */
 
-import { ImageProcessor } from '../../src/background/image-processor';
-import { IndexedDB } from '../../src/shared/indexed-db';
-
 // Mock IndexedDB
 jest.mock('../../src/shared/indexed-db');
 
-// Mock global fetch and crypto
+// Mock global fetch and crypto BEFORE importing modules
 global.fetch = jest.fn();
-global.crypto = {
-  randomUUID: jest.fn(() => 'mock-uuid-123')
-} as any;
+
+// Create a persistent mock function for crypto.randomUUID
+const mockRandomUUID = jest.fn(() => 'mock-uuid-123');
+
+// Define crypto on global with proper descriptor
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: mockRandomUUID,
+    subtle: global.crypto?.subtle,
+    getRandomValues: global.crypto?.getRandomValues
+  },
+  writable: true,
+  configurable: true
+});
+
+import { ImageProcessor } from '../../src/background/image-processor';
+import { IndexedDB } from '../../src/shared/indexed-db';
 
 // Mock DOMParser
 global.DOMParser = class {
@@ -57,6 +68,11 @@ describe('ImageProcessor', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Reset the persistent mock but keep the reference
+    mockRandomUUID.mockClear();
+    mockRandomUUID.mockReturnValue('mock-uuid-123');
+    
     imageProcessor = new ImageProcessor();
     mockIndexedDB = new IndexedDB() as jest.Mocked<IndexedDB>;
     (imageProcessor as any).indexedDB = mockIndexedDB;
@@ -73,15 +89,56 @@ describe('ImageProcessor', () => {
       
       mockIndexedDB.saveImage.mockResolvedValue();
       
+      // Mock img element that properly updates innerHTML when setAttribute is called
+      const mockImg = {
+        getAttribute: jest.fn((attr: string) => {
+          if (attr === 'src') return 'https://example.com/image.jpg';
+          if (attr === 'alt') return 'test';
+          return null;
+        }),
+        setAttribute: jest.fn(),
+        remove: jest.fn()
+      };
+      
+      // Track calls to setAttribute to simulate HTML update
+      let updatedSrc = 'https://example.com/image.jpg';
+      mockImg.setAttribute.mockImplementation((attr: string, value: string) => {
+        if (attr === 'src') updatedSrc = value;
+      });
+      
+      const mockDoc = {
+        body: { 
+          get innerHTML() {
+            return `<div><img src="${updatedSrc}" alt="test"></div>`;
+          }
+        },
+        querySelectorAll: jest.fn(() => [mockImg])
+      };
+      
+      (global.DOMParser as any) = class {
+        parseFromString() { return mockDoc; }
+      };
+      
       const result = await imageProcessor.processHtmlContent(htmlContent);
       
       expect(global.fetch).toHaveBeenCalledWith('https://example.com/image.jpg');
       expect(mockIndexedDB.saveImage).toHaveBeenCalledWith('image-mock-uuid-123', mockBlob);
+      expect(mockImg.setAttribute).toHaveBeenCalledWith('src', 'indexeddb://image-mock-uuid-123');
       expect(result).toContain('indexeddb://image-mock-uuid-123');
     });
 
     it('should handle content without images', async () => {
       const htmlContent = '<div><p>No images here</p></div>';
+      
+      // Reset DOMParser mock to return no images
+      const mockDoc = {
+        body: { innerHTML: htmlContent },
+        querySelectorAll: jest.fn(() => []) // No images found
+      };
+      
+      (global.DOMParser as any) = class {
+        parseFromString() { return mockDoc; }
+      };
       
       const result = await imageProcessor.processHtmlContent(htmlContent);
       
@@ -183,7 +240,7 @@ describe('ImageProcessor', () => {
         .mockResolvedValueOnce({ blob: () => Promise.resolve(mockBlob1) })
         .mockResolvedValueOnce({ blob: () => Promise.resolve(mockBlob2) });
       
-      (global.crypto.randomUUID as jest.Mock)
+      mockRandomUUID
         .mockReturnValueOnce('uuid-1')
         .mockReturnValueOnce('uuid-2');
       

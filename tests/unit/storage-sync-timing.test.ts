@@ -1,17 +1,20 @@
 import { SyncManager } from '../../src/background/sync-manager';
 import { ExtensionStorage } from '../../src/shared/storage';
 import { IndexedDB } from '../../src/shared/indexed-db';
+import { MultiScopeSyncManager } from '../../src/background/multi-scope-sync-manager';
 import { notifyContentScriptsOfSnippetUpdate } from '../../src/background/messaging-helpers';
 
 // Mock dependencies
 jest.mock('../../src/shared/storage');
 jest.mock('../../src/shared/indexed-db');
+jest.mock('../../src/background/multi-scope-sync-manager');
 jest.mock('../../src/background/messaging-helpers');
 
 describe('Storage Synchronization Timing', () => {
   let syncManager: SyncManager;
   let mockExtensionStorage: jest.Mocked<typeof ExtensionStorage>;
   let mockIndexedDB: jest.Mocked<IndexedDB>;
+  let mockMultiScopeSyncManager: jest.Mocked<MultiScopeSyncManager>;
   let mockNotify: jest.MockedFunction<typeof notifyContentScriptsOfSnippetUpdate>;
 
   beforeEach(() => {
@@ -20,6 +23,7 @@ describe('Storage Synchronization Timing', () => {
     
     mockExtensionStorage = ExtensionStorage as jest.Mocked<typeof ExtensionStorage>;
     mockIndexedDB = new IndexedDB() as jest.Mocked<IndexedDB>;
+    mockMultiScopeSyncManager = new MultiScopeSyncManager() as jest.Mocked<MultiScopeSyncManager>;
     mockNotify = notifyContentScriptsOfSnippetUpdate as jest.MockedFunction<typeof notifyContentScriptsOfSnippetUpdate>;
 
     // Mock successful operations
@@ -27,19 +31,21 @@ describe('Storage Synchronization Timing', () => {
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
     mockExtensionStorage.getScopedSources.mockResolvedValue([]);
     mockIndexedDB.saveSnippets.mockResolvedValue(undefined);
+    mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue([]);
     mockNotify.mockResolvedValue(undefined);
 
     syncManager = SyncManager.getInstance();
     (syncManager as any).indexedDB = mockIndexedDB;
+    (syncManager as any).multiScopeSyncManager = mockMultiScopeSyncManager;
   });
 
   it('should update IndexedDB before notifying content scripts', async () => {
     // Setup: Mock successful sync data
     const mockSnippets = [
       { 
-        key: 'eata', 
-        expansion: 'Bag of Dicks!!', 
-        source: 'google-drive' as const,
+        id: 'test-1',
+        trigger: 'eata', 
+        content: 'Bag of Dicks!!',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -48,16 +54,8 @@ describe('Storage Synchronization Timing', () => {
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
     mockExtensionStorage.getScopedSources.mockResolvedValue([]);
     
-    // Mock the cloud adapter to return test data
-    const mockAdapter = {
-      downloadSnippets: jest.fn().mockResolvedValue(mockSnippets),
-      uploadSnippets: jest.fn(),
-      isConnected: true,
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-    };
-    
-    (syncManager as any).currentAdapter = mockAdapter;
+    // Mock multiScopeSyncManager to return test data
+    mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue(mockSnippets);
 
     // Track call order
     const callOrder: string[] = [];
@@ -97,9 +95,9 @@ describe('Storage Synchronization Timing', () => {
 
     const mockSnippets = [
       { 
-        key: 'eata', 
-        expansion: 'Bag of Dicks!!', 
-        source: 'google-drive' as const,
+        id: 'test-2',
+        trigger: 'eata', 
+        content: 'Bag of Dicks!!',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -108,15 +106,8 @@ describe('Storage Synchronization Timing', () => {
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
     mockExtensionStorage.getScopedSources.mockResolvedValue([]);
     
-    const mockAdapter = {
-      downloadSnippets: jest.fn().mockResolvedValue(mockSnippets),
-      uploadSnippets: jest.fn(),
-      isConnected: true,
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-    };
-    
-    (syncManager as any).currentAdapter = mockAdapter;
+    // Mock multiScopeSyncManager to return test data
+    mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue(mockSnippets);
 
     // Execute sync and expect it to throw
     await expect(syncManager.syncNow()).rejects.toThrow('IndexedDB failed');
