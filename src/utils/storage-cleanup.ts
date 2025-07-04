@@ -18,6 +18,11 @@ export class StorageCleanup {
       // Get current settings
       const settings = await ExtensionStorage.getSettings();
       
+      // Handle null/undefined settings gracefully
+      if (!settings) {
+        return { cleaned: 0, errors: [] };
+      }
+      
       // Clean configured sources
       if (settings.configuredSources) {
         const validSources = settings.configuredSources.filter(source => {
@@ -31,7 +36,8 @@ export class StorageCleanup {
 
         // Update settings if we removed any sources
         if (validSources.length !== settings.configuredSources.length) {
-          await ExtensionStorage.updateSettings({
+          await ExtensionStorage.setSettings({
+            ...settings,
             configuredSources: validSources
           });
           console.log(`Cleaned ${cleaned} invalid configured sources`);
@@ -117,7 +123,8 @@ export class StorageCleanup {
 
       // Update if we found invalid sources
       if (invalid > 0) {
-        await ExtensionStorage.updateSettings({
+        await ExtensionStorage.setSettings({
+          ...settings,
           configuredSources: validSources
         });
         console.log(`Validation complete: ${valid} valid, ${invalid} invalid sources cleaned`);

@@ -65,18 +65,15 @@ describe('Trigger Detection Fuzzing', () => {
         const position = Math.floor(Math.random() * (text.length + 1));
 
         expect(() => {
-          const result = detector.detectTrigger(text, position);
-          // Result should be either null or a valid detection object
-          if (result !== null) {
-            expect(typeof result).toBe('object');
-            expect(result).toHaveProperty('snippet');
-            expect(result).toHaveProperty('triggerStart');
-            expect(result).toHaveProperty('triggerEnd');
-            expect(typeof result.triggerStart).toBe('number');
-            expect(typeof result.triggerEnd).toBe('number');
-            expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-            expect(result.triggerEnd).toBeLessThanOrEqual(text.length);
-            expect(result.triggerStart).toBeLessThanOrEqual(result.triggerEnd);
+          const result = detector.processInput(text, position);
+          // Result should be a valid TriggerMatch object
+          expect(typeof result).toBe('object');
+          expect(result).toHaveProperty('isMatch');
+          expect(result).toHaveProperty('state');
+          if (result.isMatch && result.matchEnd !== undefined) {
+            expect(typeof result.matchEnd).toBe('number');
+            expect(result.matchEnd).toBeGreaterThanOrEqual(0);
+            expect(result.matchEnd).toBeLessThanOrEqual(text.length);
           }
         }).not.toThrow();
       }
@@ -103,10 +100,9 @@ describe('Trigger Detection Fuzzing', () => {
       edgeCases.forEach((testCase, index) => {
         for (let pos = 0; pos <= testCase.length; pos++) {
           expect(() => {
-            const result = detector.detectTrigger(testCase, pos);
-            if (result !== null) {
-              expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-              expect(result.triggerEnd).toBeLessThanOrEqual(testCase.length);
+            const result = detector.processInput(testCase, pos);
+            if (result.isMatch) {
+              expect(result.matchEnd).toBeLessThanOrEqual(testCase.length);
             }
           }).not.toThrow(`Failed on edge case ${index} at position ${pos}`);
         }
@@ -129,10 +125,9 @@ describe('Trigger Detection Fuzzing', () => {
         const position = Math.floor(Math.random() * (unicodeText.length + 1));
 
         expect(() => {
-          const result = detector.detectTrigger(unicodeText, position);
-          if (result !== null) {
-            expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-            expect(result.triggerEnd).toBeLessThanOrEqual(unicodeText.length);
+          const result = detector.processInput(unicodeText, position);
+          if (result.isMatch) {
+            expect(result.matchEnd).toBeLessThanOrEqual(unicodeText.length);
           }
         }).not.toThrow();
       }
@@ -156,11 +151,10 @@ describe('Trigger Detection Fuzzing', () => {
 
         invalidPositions.forEach(pos => {
           expect(() => {
-            const result = detector.detectTrigger(text, pos);
+            const result = detector.processInput(text, pos);
             // Should either handle gracefully or return null
-            if (result !== null) {
-              expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-              expect(result.triggerEnd).toBeLessThanOrEqual(text.length);
+            if (result.isMatch) {
+              expect(result.matchEnd).toBeLessThanOrEqual(text.length);
             }
           }).not.toThrow();
         });
@@ -191,13 +185,12 @@ describe('Trigger Detection Fuzzing', () => {
       variations.forEach(variant => {
         for (let pos = 0; pos <= variant.length; pos++) {
           expect(() => {
-            const result = enhancedDetector.detectTrigger(variant, pos);
-            if (result !== null) {
-              expect(result).toHaveProperty('snippet');
-              expect(result).toHaveProperty('confidence');
-              expect(typeof result.confidence).toBe('number');
-              expect(result.confidence).toBeGreaterThanOrEqual(0);
-              expect(result.confidence).toBeLessThanOrEqual(1);
+            const result = enhancedDetector.processInput(variant, pos);
+            if (result.isMatch) {
+              expect(result).toHaveProperty('trigger');
+              expect(result).toHaveProperty('content');
+              expect(typeof result.trigger).toBe('string');
+              expect(typeof result.content).toBe('string');
             }
           }).not.toThrow();
         }
@@ -213,7 +206,7 @@ describe('Trigger Detection Fuzzing', () => {
         const text = generateRandomString(Math.floor(Math.random() * 50) + 1);
         const position = Math.floor(Math.random() * (text.length + 1));
 
-        detector.detectTrigger(text, position);
+        detector.processInput(text, position);
         
         // Memory usage shouldn't grow significantly
         if (i % 100 === 0 && global.gc) {
@@ -239,7 +232,7 @@ describe('Trigger Detection Fuzzing', () => {
           const position = Math.floor(Math.random() * (text.length + 1));
 
           const start = performance.now();
-          detector.detectTrigger(text, position);
+          detector.processInput(text, position);
           const end = performance.now();
 
           times.push(end - start);
@@ -286,14 +279,13 @@ describe('Trigger Detection Fuzzing', () => {
       pathologicalInputs.forEach(input => {
         for (let pos = 0; pos <= Math.min(input.length, 100); pos += 10) {
           const start = performance.now();
-          const result = detector.detectTrigger(input, pos);
+          const result = detector.processInput(input, pos);
           const duration = performance.now() - start;
 
           expect(duration).toBeLessThan(50); // Should be fast even in worst case
           
-          if (result !== null) {
-            expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-            expect(result.triggerEnd).toBeLessThanOrEqual(input.length);
+          if (result.isMatch) {
+            expect(result.matchEnd).toBeLessThanOrEqual(input.length);
           }
         }
       });
@@ -312,19 +304,19 @@ describe('Trigger Detection Fuzzing', () => {
         // Test at exact boundary
         const exactText = generateRandomString(bufferSize);
         expect(() => {
-          detector.detectTrigger(exactText, bufferSize);
+          detector.processInput(exactText, bufferSize);
         }).not.toThrow();
 
         // Test just before boundary
         const beforeText = generateRandomString(bufferSize - 1);
         expect(() => {
-          detector.detectTrigger(beforeText, bufferSize - 1);
+          detector.processInput(beforeText, bufferSize - 1);
         }).not.toThrow();
 
         // Test just after boundary
         const afterText = generateRandomString(bufferSize + 1);
         expect(() => {
-          detector.detectTrigger(afterText, bufferSize + 1);
+          detector.processInput(afterText, bufferSize + 1);
         }).not.toThrow();
       });
     });
@@ -355,10 +347,10 @@ describe('Trigger Detection Fuzzing', () => {
 
         for (let pos = 0; pos < mixedContent.length; pos += 10) {
           expect(() => {
-            const result = detector.detectTrigger(mixedContent, pos);
-            if (result !== null) {
-              expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-              expect(result.triggerEnd).toBeLessThanOrEqual(mixedContent.length);
+            const result = detector.processInput(mixedContent, pos);
+            if (result.isMatch) {
+              expect(result.matchEnd).toBeGreaterThanOrEqual(0);
+              expect(result.matchEnd).toBeLessThanOrEqual(mixedContent.length);
             }
           }).not.toThrow();
         }
@@ -378,11 +370,11 @@ describe('Trigger Detection Fuzzing', () => {
               const position = Math.floor(Math.random() * (text.length + 1));
               
               try {
-                const result = detector.detectTrigger(text, position);
-                if (result !== null) {
-                  expect(result).toHaveProperty('snippet');
-                  expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-                  expect(result.triggerEnd).toBeLessThanOrEqual(text.length);
+                const result = detector.processInput(text, position);
+                if (result.isMatch) {
+                  expect(result).toHaveProperty('trigger');
+                  expect(result.matchEnd).toBeGreaterThanOrEqual(0);
+                  expect(result.matchEnd).toBeLessThanOrEqual(text.length);
                 }
               } catch (error) {
                 throw new Error(`Concurrent access failed: ${error.message}`);
@@ -410,7 +402,7 @@ describe('Trigger Detection Fuzzing', () => {
         for (let i = 0; i < 100; i++) {
           const text = generateRandomString(50);
           const position = Math.floor(Math.random() * 51);
-          detector.detectTrigger(text, position);
+          detector.processInput(text, position);
         }
 
         // Memory usage should be bounded
@@ -437,10 +429,9 @@ describe('Trigger Detection Fuzzing', () => {
         positions.forEach(pos => {
           if (pos >= 0 && pos <= longString.length) {
             expect(() => {
-              const result = detector.detectTrigger(longString, pos);
-              if (result !== null) {
-                expect(result.triggerStart).toBeGreaterThanOrEqual(0);
-                expect(result.triggerEnd).toBeLessThanOrEqual(longString.length);
+              const result = detector.processInput(longString, pos);
+              if (result.isMatch) {
+                expect(result.matchEnd).toBeLessThanOrEqual(longString.length);
               }
             }).not.toThrow();
           }
@@ -477,12 +468,12 @@ describe('Trigger Detection Fuzzing', () => {
       // Test that detection works normally without executing malicious code
       maliciousSnippets.forEach(snippet => {
         const text = `test ${snippet.trigger} test`;
-        const result = detector.detectTrigger(text, text.indexOf(snippet.trigger) + snippet.trigger.length);
+        const result = detector.processInput(text, text.indexOf(snippet.trigger) + snippet.trigger.length);
         
-        if (result !== null) {
-          expect(result.snippet.content).toBe(snippet.content);
+        if (result.isMatch) {
+          expect(result.content).toBe(snippet.content);
           // Content should be returned as-is, not executed
-          expect(typeof result.snippet.content).toBe('string');
+          expect(typeof result.content).toBe('string');
         }
       });
 
@@ -501,7 +492,7 @@ describe('Trigger Detection Fuzzing', () => {
         if (snippet.trigger.length > 0) {
           const text = snippet.trigger;
           expect(() => {
-            maliciousTriggerDetector.detectTrigger(text, text.length);
+            maliciousTriggerDetector.processInput(text, text.length);
           }).not.toThrow();
         }
       });
@@ -534,11 +525,11 @@ describe('Trigger Detection Fuzzing', () => {
         testTexts.forEach(text => {
           for (let pos = 0; pos <= text.length; pos += Math.max(1, Math.floor(text.length / 10))) {
             expect(() => {
-              const result = detector.detectTrigger(text, pos);
-              if (result !== null) {
+              const result = detector.processInput(text, pos);
+              if (result.isMatch) {
                 // Should return normal detection result, not execute injection
-                expect(typeof result.snippet.trigger).toBe('string');
-                expect(typeof result.snippet.content).toBe('string');
+                expect(typeof result.trigger).toBe('string');
+                expect(typeof result.content).toBe('string');
               }
             }).not.toThrow();
           }

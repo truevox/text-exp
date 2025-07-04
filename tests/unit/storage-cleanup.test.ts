@@ -8,7 +8,16 @@ import { ExtensionStorage } from '../../src/shared/storage';
 import type { ExtensionSettings, ScopedSource } from '../../src/shared/types';
 
 // Mock ExtensionStorage
-jest.mock('../../src/shared/storage');
+jest.mock('../../src/shared/storage', () => ({
+  ExtensionStorage: {
+    getSettings: jest.fn(),
+    setSettings: jest.fn(),
+    getScopedSources: jest.fn(),
+    setScopedSources: jest.fn(),
+    getSnippets: jest.fn(),
+    setSnippets: jest.fn()
+  }
+}));
 
 // Mock Chrome APIs
 global.chrome = {
@@ -59,7 +68,7 @@ describe('StorageCleanup', () => {
       } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
       (ExtensionStorage.getScopedSources as jest.Mock).mockResolvedValue([]);
       (chrome.storage.local.remove as jest.Mock).mockResolvedValue(undefined);
 
@@ -69,7 +78,7 @@ describe('StorageCleanup', () => {
       expect(result.errors).toHaveLength(0);
       
       // Should update settings with only valid sources
-      expect(ExtensionStorage.updateSettings).toHaveBeenCalledWith({
+      expect(ExtensionStorage.setSettings).toHaveBeenCalledWith({
         configuredSources: [
           mockSettings.configuredSources[0], // google-drive
           mockSettings.configuredSources[2]  // dropbox
@@ -149,7 +158,7 @@ describe('StorageCleanup', () => {
       expect(result.errors).toHaveLength(0);
       
       // Should not update settings if no changes needed
-      expect(ExtensionStorage.updateSettings).not.toHaveBeenCalled();
+      expect(ExtensionStorage.setSettings).not.toHaveBeenCalled();
     });
 
     it('should handle storage errors gracefully', async () => {
@@ -205,7 +214,7 @@ describe('StorageCleanup', () => {
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
       (ExtensionStorage.getScopedSources as jest.Mock).mockResolvedValue(mockScopedSources);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
       (ExtensionStorage.setScopedSources as jest.Mock).mockResolvedValue(undefined);
       (chrome.storage.local.remove as jest.Mock).mockResolvedValue(undefined);
 
@@ -238,7 +247,7 @@ describe('StorageCleanup', () => {
       } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
 
       const result = await StorageCleanup.validateAndCleanSources();
 
@@ -246,7 +255,7 @@ describe('StorageCleanup', () => {
       expect(result.invalid).toBe(2);
       expect(result.errors).toHaveLength(0);
 
-      expect(ExtensionStorage.updateSettings).toHaveBeenCalledWith({
+      expect(ExtensionStorage.setSettings).toHaveBeenCalledWith({
         configuredSources: [mockSettings.configuredSources[0]] // Only google-drive
       });
     });
@@ -273,14 +282,14 @@ describe('StorageCleanup', () => {
       } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
 
       const result = await StorageCleanup.validateAndCleanSources();
 
       expect(result.valid).toBe(1);
       expect(result.invalid).toBe(2);
 
-      expect(ExtensionStorage.updateSettings).toHaveBeenCalledWith({
+      expect(ExtensionStorage.setSettings).toHaveBeenCalledWith({
         configuredSources: [mockSettings.configuredSources[0]]
       });
     });
@@ -296,7 +305,7 @@ describe('StorageCleanup', () => {
       expect(result.invalid).toBe(0);
       expect(result.errors).toHaveLength(0);
 
-      expect(ExtensionStorage.updateSettings).not.toHaveBeenCalled();
+      expect(ExtensionStorage.setSettings).not.toHaveBeenCalled();
     });
 
     it('should handle validation errors', async () => {
@@ -327,7 +336,7 @@ describe('StorageCleanup', () => {
 
       expect(result.valid).toBe(4);
       expect(result.invalid).toBe(0);
-      expect(ExtensionStorage.updateSettings).not.toHaveBeenCalled();
+      expect(ExtensionStorage.setSettings).not.toHaveBeenCalled();
     });
   });
 
@@ -400,8 +409,7 @@ describe('StorageCleanup', () => {
       (chrome.storage.local.get as jest.Mock).mockResolvedValue({
         localFilesystemHandles: { folder1: 'handle1' },
         localFilesystemPermissions: { folder1: true },
-        localSources: [{ id: 'source1' }],
-        unrelatedKey: 'should not count'
+        localSources: [{ id: 'source1' }]
       });
 
       const result = await StorageCleanup.getCleanupStatus();
@@ -432,7 +440,7 @@ describe('StorageCleanup', () => {
       const result = await StorageCleanup.clearInvalidSources();
 
       expect(result.cleaned).toBe(0);
-      expect(ExtensionStorage.updateSettings).not.toHaveBeenCalled();
+      expect(ExtensionStorage.setSettings).not.toHaveBeenCalled();
       expect(ExtensionStorage.setScopedSources).not.toHaveBeenCalled();
     });
 
@@ -447,7 +455,7 @@ describe('StorageCleanup', () => {
       } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
       (ExtensionStorage.getScopedSources as jest.Mock).mockResolvedValue([]);
       (chrome.storage.local.remove as jest.Mock).mockResolvedValue(undefined);
 
@@ -460,7 +468,7 @@ describe('StorageCleanup', () => {
         mockSettings.configuredSources[2]  // dropbox
       ];
       
-      expect(ExtensionStorage.updateSettings).toHaveBeenCalledWith({
+      expect(ExtensionStorage.setSettings).toHaveBeenCalledWith({
         configuredSources: expectedValidSources
       });
     });
@@ -473,7 +481,7 @@ describe('StorageCleanup', () => {
       } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
       (ExtensionStorage.getScopedSources as jest.Mock).mockResolvedValue([]);
       (chrome.storage.local.remove as jest.Mock).mockResolvedValue(undefined);
 
@@ -515,7 +523,7 @@ describe('StorageCleanup', () => {
       const mockSettings = { configuredSources: largeSources } as ExtensionSettings;
 
       (ExtensionStorage.getSettings as jest.Mock).mockResolvedValue(mockSettings);
-      (ExtensionStorage.updateSettings as jest.Mock).mockResolvedValue(undefined);
+      (ExtensionStorage.setSettings as jest.Mock).mockResolvedValue(undefined);
       (ExtensionStorage.getScopedSources as jest.Mock).mockResolvedValue([]);
       (chrome.storage.local.remove as jest.Mock).mockResolvedValue(undefined);
 

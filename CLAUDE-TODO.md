@@ -133,15 +133,30 @@ This document outlines the implementation plan for a powerful, collaborative tex
   - [x] Thoroughly test all features without a network connection.
   - [x] Implement graceful error handling for sync failures.
 
-### ✅ Test Coverage **EXCELLENT RESULTS**
+### 🚨 **CRITICAL: Test Execution Problems** - **IMMEDIATE ACTION REQUIRED**
+- [ ] **🚨 URGENT: Fix 105 failing tests out of 413 total**
+  - **Current Status**: 296 passing, 105 failing, 12 skipped 
+  - **Root Causes**: Mock timing issues, IndexedDB timeouts, event dispatching problems
+  - **Impact**: Test suite unreliable, can't validate code changes properly
+  - **Priority**: HIGHEST - blocks all development confidence
+
+### 🔧 **Specific Test Execution Issues to Fix**
+- [ ] **IndexedDB timeout issues** - tests failing after 5 seconds (need 10-15 second timeouts)
+- [ ] **Text replacer mock problems** - event dispatching not working in test environment  
+- [ ] **Storage cleanup mock errors** - `ExtensionStorage.updateSettings` is undefined
+- [ ] **Chrome API mock inconsistencies** - missing mock implementations
+- [ ] **Async timing race conditions** - tests finishing before operations complete
+
+### ✅ Test Coverage **ARCHITECTURE EXCELLENT, EXECUTION BROKEN**
 - [x] **Write comprehensive unit tests** for all core functionality (v0.6.2).
-  - **Status**: 169 passing tests out of 193 total - excellent coverage
+  - **Architecture**: Excellent test structure with fuzzing, security, performance tests
   - **Coverage**: Trigger detection, security features, text replacement, placeholder handling
+  - **Problem**: Many tests failing due to mock/timing issues, not logic problems
 - [x] **Write integration tests** for each `CloudAdapter` implementation (v0.6.2).
   - **Status**: Complete test suites for Google Drive, Dropbox, OneDrive, Local Filesystem
   - **Coverage**: Authentication flows, file operations, error handling, edge cases
 - [ ] **TODO: E2E tests** for full user journey (non-blocking).
-  - **Status**: Comprehensive unit and integration coverage provides confidence
+  - **Status**: Needs real browser automation with Playwright
 - [x] **Test multi-provider sync scenarios** with comprehensive mocking (v0.6.2).
   - **Status**: Multi-scope sync, conflict resolution, error states all tested
 
@@ -366,6 +381,12 @@ This document outlines the implementation plan for a powerful, collaborative tex
     - [x] index.ts - Unified parser interface
   - [ ] driveSync integration - Update sync pipeline
   - [ ] new‑snippet wizard UI - Format selection dropdown
+  - [ ] **feat:** customizable global toggle trigger for text expansion
+    - [ ] Settings UI for custom toggle trigger (default: Ctrl+Shift+T)
+    - [ ] Global keyboard listener in content script
+    - [ ] Visual indicator for expansion enabled/disabled state
+    - [ ] Persist toggle state in chrome.storage.sync
+    - [ ] Update options page with toggle configuration
   - [x] unit tests per format (fixtures in `tests/fixtures/`)
     - [x] tests/fixtures/sample.json
     - [x] tests/fixtures/sample.txt

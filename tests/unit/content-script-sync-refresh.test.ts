@@ -65,34 +65,32 @@ describe('Content Script Sync Refresh', () => {
   let messageListeners: ((message: any) => boolean)[];
 
   beforeEach(() => {
-    // Setup DOM mocks
-    Object.defineProperty(global, 'document', {
-      value: {
-        readyState: 'complete',
+    // Setup DOM mocks using direct assignment to avoid redefinition errors
+    const mockDocument = {
+      readyState: 'complete',
+      addEventListener: jest.fn(),
+      activeElement: null,
+      createElement: jest.fn().mockReturnValue({
+        style: {},
         addEventListener: jest.fn(),
-        activeElement: null,
-        createElement: jest.fn().mockReturnValue({
-          style: {},
-          addEventListener: jest.fn(),
-          appendChild: jest.fn(),
-          querySelector: jest.fn(),
-          innerHTML: ''
-        }),
-        body: {
-          appendChild: jest.fn()
-        }
-      },
-      writable: true
-    });
+        appendChild: jest.fn(),
+        querySelector: jest.fn(),
+        innerHTML: ''
+      }),
+      body: {
+        appendChild: jest.fn()
+      }
+    };
+    
+    const mockWindow = {
+      getSelection: jest.fn().mockReturnValue({
+        rangeCount: 0
+      })
+    };
 
-    Object.defineProperty(global, 'window', {
-      value: {
-        getSelection: jest.fn().mockReturnValue({
-          rangeCount: 0
-        })
-      },
-      writable: true
-    });
+    // Assign to global directly instead of redefining
+    (global as any).document = mockDocument;
+    (global as any).window = mockWindow;
 
     // Setup chrome.runtime.sendMessage mock
     mockSendMessage = jest.fn();
@@ -185,37 +183,64 @@ describe('Content Script Sync Refresh', () => {
       // Import and create content script instance
       const { ContentScript } = await import('../../src/content/content-script.js');
       
-      // Create a spy on the loadSnippets method
+      // Wait a bit for initialization to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Create content script instance which will register the message listener
       const contentScript = new ContentScript();
       const mockLoadSnippets = jest.fn();
       jest.spyOn(contentScript as any, 'loadSnippets').mockImplementation(mockLoadSnippets);
 
-      // Verify message listener was registered
+      // Wait for async initialization (loadSnippets called once during init)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Reset mock to only track calls from message handling
+      mockLoadSnippets.mockClear();
+
+      // Verify message listener was registered  
       expect(messageListeners.length).toBeGreaterThan(0);
       const messageListener = messageListeners[messageListeners.length - 1];
 
-      // Simulate receiving SNIPPETS_UPDATED message
-      const result = messageListener({ type: 'SNIPPETS_UPDATED' });
+      // Mock sendResponse function
+      const mockSendResponse = jest.fn();
 
-      // Verify loadSnippets was called and listener returned true
+      // Simulate receiving SNIPPETS_UPDATED message
+      const result = messageListener({ type: 'SNIPPETS_UPDATED' }, {}, mockSendResponse);
+
+      // Verify loadSnippets was called once for the message and listener returned true
       expect(mockLoadSnippets).toHaveBeenCalledTimes(1);
+      expect(mockSendResponse).toHaveBeenCalledWith({ success: true });
       expect(result).toBe(true);
     });
 
     it('should ignore unrelated messages', async () => {
       const { ContentScript } = await import('../../src/content/content-script.js');
+      
+      // Wait for any previous setup to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       const contentScript = new ContentScript();
       const mockLoadSnippets = jest.fn();
       jest.spyOn(contentScript as any, 'loadSnippets').mockImplementation(mockLoadSnippets);
 
+      // Wait for async initialization (loadSnippets called once during init)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Reset mock to only track calls from message handling
+      mockLoadSnippets.mockClear();
+
       const messageListener = messageListeners[messageListeners.length - 1];
       expect(messageListener).toBeDefined();
 
-      // Send unrelated message
-      const result = messageListener({ type: 'SOME_OTHER_MESSAGE' });
+      // Mock sendResponse function
+      const mockSendResponse = jest.fn();
 
-      // Verify loadSnippets was NOT called and listener returned false
+      // Send unrelated message
+      const result = messageListener({ type: 'SOME_OTHER_MESSAGE' }, {}, mockSendResponse);
+
+      // Verify loadSnippets was NOT called for unrelated message and listener returned false
       expect(mockLoadSnippets).not.toHaveBeenCalled();
+      expect(mockSendResponse).not.toHaveBeenCalled();
       expect(result).toBe(false);
     });
   });
@@ -239,26 +264,34 @@ describe('Content Script Sync Refresh', () => {
       const messagingHelpers = await import('../../src/background/messaging-helpers.js');
       const { notifyContentScriptsOfSnippetUpdate } = messagingHelpers;
       
+      // Wait for any previous setup to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // Import and setup content script
       const { ContentScript } = await import('../../src/content/content-script.js');
       const contentScript = new ContentScript();
       const mockLoadSnippets = jest.fn();
       jest.spyOn(contentScript as any, 'loadSnippets').mockImplementation(mockLoadSnippets);
 
+      // Wait for content script initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Step 1: Background script sends notification
       await notifyContentScriptsOfSnippetUpdate();
 
       // Wait for async operations to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Step 2: Simulate content script receiving the message
       const messageListener = messageListeners[messageListeners.length - 1];
-      messageListener({ type: 'SNIPPETS_UPDATED' });
+      const mockSendResponse = jest.fn();
+      messageListener({ type: 'SNIPPETS_UPDATED' }, {}, mockSendResponse);
 
       // Step 3: Verify the complete flow
       expect(mockChrome.tabs.query).toHaveBeenCalled();
       expect(mockChrome.tabs.sendMessage).toHaveBeenCalledWith(1, { type: 'SNIPPETS_UPDATED' });
       expect(mockLoadSnippets).toHaveBeenCalled();
+      expect(mockSendResponse).toHaveBeenCalledWith({ success: true });
     });
   });
 });

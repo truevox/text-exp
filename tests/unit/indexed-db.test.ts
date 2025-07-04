@@ -69,7 +69,8 @@ describe('IndexedDB', () => {
       // Setup successful connection
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onsuccess?.(new Event('success'));
+        const mockEvent = { target: mockRequest } as any;
+        mockRequest.onsuccess?.(mockEvent);
       }, 0);
 
       const db = await (indexedDB as any).openDB();
@@ -80,8 +81,9 @@ describe('IndexedDB', () => {
     it('should handle database upgrade needed', async () => {
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onupgradeneeded?.(new Event('upgradeneeded'));
-        mockRequest.onsuccess?.(new Event('success'));
+        const mockEvent = { target: mockRequest } as any;
+        mockRequest.onupgradeneeded?.(mockEvent);
+        mockRequest.onsuccess?.(mockEvent);
       }, 0);
 
       await (indexedDB as any).openDB();
@@ -93,7 +95,8 @@ describe('IndexedDB', () => {
     it('should handle database connection errors', async () => {
       setTimeout(() => {
         mockRequest.error = new Error('Connection failed');
-        mockRequest.onerror?.(new Event('error'));
+        const mockEvent = { target: mockRequest } as any;
+        mockRequest.onerror?.(mockEvent);
       }, 0);
 
       await expect((indexedDB as any).openDB()).rejects.toMatch(/IndexedDB error/);
@@ -103,7 +106,7 @@ describe('IndexedDB', () => {
       // First connection
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onsuccess?.(new Event('success'));
+        mockRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       const db1 = await (indexedDB as any).openDB();
@@ -138,7 +141,7 @@ describe('IndexedDB', () => {
       // Setup successful database connection
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onsuccess?.(new Event('success'));
+        mockRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
     });
 
@@ -147,14 +150,27 @@ describe('IndexedDB', () => {
       const clearRequest = { ...mockRequest };
       mockStore.clear.mockReturnValue(clearRequest);
       
-      // Mock add operations
-      const addRequests = mockSnippets.map(() => ({ ...mockRequest }));
-      mockStore.add.mockImplementation(() => addRequests.shift());
+      // Mock add operations - track the requests that will be created
+      const addRequests: any[] = [];
+      mockStore.add.mockImplementation(() => {
+        const addRequest = { ...mockRequest, onsuccess: null, onerror: null };
+        addRequests.push(addRequest);
+        return addRequest;
+      });
 
       setTimeout(() => {
-        clearRequest.onsuccess?.(new Event('success'));
-        addRequests.forEach(req => req.onsuccess?.(new Event('success')));
-      }, 0);
+        // Trigger clear success first
+        clearRequest.onsuccess?.({ target: clearRequest } as any);
+        
+        // Then trigger add success for each request after a small delay
+        setTimeout(() => {
+          addRequests.forEach(req => {
+            if (req.onsuccess) {
+              req.onsuccess({ target: req } as any);
+            }
+          });
+        }, 5);
+      }, 5);
 
       await indexedDB.saveSnippets(mockSnippets);
       
@@ -169,7 +185,7 @@ describe('IndexedDB', () => {
       mockStore.clear.mockReturnValue(clearRequest);
 
       setTimeout(() => {
-        clearRequest.onsuccess?.(new Event('success'));
+        clearRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       await indexedDB.saveSnippets([]);
@@ -184,7 +200,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         clearRequest.error = new Error('Clear failed');
-        clearRequest.onerror?.(new Event('error'));
+        clearRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.saveSnippets(mockSnippets)).rejects.toMatch(/Error clearing store/);
@@ -198,9 +214,9 @@ describe('IndexedDB', () => {
       mockStore.add.mockReturnValue(addRequest);
 
       setTimeout(() => {
-        clearRequest.onsuccess?.(new Event('success'));
+        clearRequest.onsuccess?.({ target: mockRequest } as any);
         addRequest.error = new Error('Add failed');
-        addRequest.onerror?.(new Event('error'));
+        addRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.saveSnippets([mockSnippets[0]])).rejects.toMatch(/Error adding snippet/);
@@ -212,7 +228,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         getRequest.result = mockSnippets;
-        getRequest.onsuccess?.(new Event('success'));
+        getRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       const result = await indexedDB.getSnippets();
@@ -227,7 +243,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         getRequest.error = new Error('Get failed');
-        getRequest.onerror?.(new Event('error'));
+        getRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.getSnippets()).rejects.toMatch(/Error getting snippets/);
@@ -238,7 +254,7 @@ describe('IndexedDB', () => {
       mockStore.clear.mockReturnValue(clearRequest);
 
       setTimeout(() => {
-        clearRequest.onsuccess?.(new Event('success'));
+        clearRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       await indexedDB.clearSnippets();
@@ -252,7 +268,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         clearRequest.error = new Error('Clear failed');
-        clearRequest.onerror?.(new Event('error'));
+        clearRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.clearSnippets()).rejects.toMatch(/Error clearing snippets/);
@@ -266,7 +282,7 @@ describe('IndexedDB', () => {
     beforeEach(() => {
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onsuccess?.(new Event('success'));
+        mockRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
     });
 
@@ -275,7 +291,7 @@ describe('IndexedDB', () => {
       mockStore.put.mockReturnValue(putRequest);
 
       setTimeout(() => {
-        putRequest.onsuccess?.(new Event('success'));
+        putRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       await indexedDB.saveImage(mockImageId, mockImageBlob);
@@ -292,7 +308,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         putRequest.error = new Error('Put failed');
-        putRequest.onerror?.(new Event('error'));
+        putRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.saveImage(mockImageId, mockImageBlob)).rejects.toMatch(/Error saving image/);
@@ -304,7 +320,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         getRequest.result = { id: mockImageId, data: mockImageBlob };
-        getRequest.onsuccess?.(new Event('success'));
+        getRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       const result = await indexedDB.getImage(mockImageId);
@@ -319,7 +335,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         getRequest.result = undefined;
-        getRequest.onsuccess?.(new Event('success'));
+        getRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
 
       const result = await indexedDB.getImage(mockImageId);
@@ -333,7 +349,7 @@ describe('IndexedDB', () => {
 
       setTimeout(() => {
         getRequest.error = new Error('Get failed');
-        getRequest.onerror?.(new Event('error'));
+        getRequest.onerror?.({ target: mockRequest } as any);
       }, 0);
 
       await expect(indexedDB.getImage(mockImageId)).rejects.toMatch(/Error getting image/);
@@ -344,7 +360,7 @@ describe('IndexedDB', () => {
     beforeEach(() => {
       setTimeout(() => {
         mockRequest.result = mockDB;
-        mockRequest.onsuccess?.(new Event('success'));
+        mockRequest.onsuccess?.({ target: mockRequest } as any);
       }, 0);
     });
 
