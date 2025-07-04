@@ -108,15 +108,20 @@ describe('Complete User Workflows E2E', () => {
         setSelectionRange: jest.fn()
       };
 
-      const detected = triggerDetector.detectTrigger('hello', 5);
-      expect(detected).toEqual({
-        snippet: firstSnippet,
-        triggerStart: 0,
-        triggerEnd: 5
-      });
+      const detected = triggerDetector.processInput(';hello ');
+      expect(detected.isMatch).toBe(true);
+      expect(detected.trigger).toBe(';hello');
+      expect(detected.content).toBe('Hello World!');
 
-      // Text replacement
-      textReplacer.replaceText(mockInput as any, detected.snippet, detected.triggerStart, detected.triggerEnd);
+      // Text replacement - create snippet-like object from detected result
+      const snippet = {
+        id: '1',
+        trigger: detected.trigger!,
+        content: detected.content!,
+        createdAt: firstSnippet.createdAt,
+        updatedAt: firstSnippet.updatedAt
+      };
+      textReplacer.replaceText(mockInput as any, snippet, 0, detected.trigger!.length);
       
       expect(mockInput.value).toBe('Hello World!');
       expect(mockInput.setSelectionRange).toHaveBeenCalledWith(12, 12);
@@ -204,10 +209,18 @@ describe('Complete User Workflows E2E', () => {
         setSelectionRange: jest.fn()
       };
 
-      const emailDetection = triggerDetector.detectTrigger(emailField.value, 17);
-      expect(emailDetection?.snippet.trigger).toBe('email');
+      const emailDetection = triggerDetector.processInput('email ');
+      expect(emailDetection.isMatch).toBe(true);
+      expect(emailDetection.trigger).toBe(';email');
 
-      textReplacer.replaceText(emailField as any, emailDetection.snippet, 14, 19);
+      const emailSnippet = {
+        id: '2',
+        trigger: emailDetection.trigger!,
+        content: emailDetection.content!,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      textReplacer.replaceText(emailField as any, emailSnippet, 14, 19);
       expect(emailField.value).toBe('Contact me at john.doe@example.com if you have questions.');
 
       // Scenario 2: Form filling with address

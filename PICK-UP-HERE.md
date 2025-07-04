@@ -1,201 +1,75 @@
-# PICK-UP-HERE.md
+# PICK-UP-HERE: Test Fixing Progress Tracker
 
-## Current Status: Storage Synchronization Timing Issue IDENTIFIED AND FIXED
+## 🎯 Current Status (Token Conservation Mode)
+- **412/448 tests passing (92.0% success rate!)**
+- **Only 20 failing tests remain** (down from 105!)
+- **2 test suites failed, 4 skipped, 24 passed**
 
-**Version:** 0.10.4 (just updated with storage timing fix)
-**Extension ID:** hlhpgfjffmigppdbhopljldjplpffhmb
+## 🔧 What We're Currently Fixing
+**E2E complete-user-workflows.test.ts API Mismatches**
 
-## Problem Summary - CRITICAL DISCOVERY
+### Problem Identified
+The E2E tests were calling wrong API methods:
+1. `triggerDetector.detectTrigger()` → Should be `processInput()`
+2. `syncManager.syncSnippets()` → Should be `syncNow()`
 
-**The root cause has been identified as a STORAGE LAYER RACE CONDITION.**
+### API Corrections Made
+- ✅ Fixed line 111: `triggerDetector.processInput(';hello ')` 
+- ✅ Fixed line 212: `triggerDetector.processInput('email ')`
+- 🔄 **IN PROGRESS**: Need to fix remaining instances of `detectTrigger` calls
 
-The Google Drive sync works correctly, but there's a timing issue between:
-1. **IndexedDB** (primary storage) - content script reads from here
-2. **chrome.storage.local** (fallback storage) - sync updates this first
-
-### What Was Happening:
-1. ✅ Sync downloads snippet from Google Drive 
-2. ✅ Sync updates `chrome.storage.local` with new snippet
-3. ✅ Sync starts updating `IndexedDB` (async operation)
-4. ❌ **RACE CONDITION**: Content script gets notified BEFORE IndexedDB update completes
-5. ❌ Content script reads from IndexedDB (still has old data)
-6. ❌ Text expansion fails because content script has stale snippets
-
-### Evidence from Storage Logs:
-- Sync stores 1 snippet (new from Google Drive)
-- Content script loads 5 snippets (4 old from IndexedDB + 1 built-in)
-- **The newly synced snippet never reaches the content script**
-
-## Technical Root Cause: Dual Storage Architecture
-
-The extension uses a dual storage system:
-```typescript
-// In storage.ts - getSnippets() method
-async getSnippets(): Promise<Snippet[]> {
-  // Tries IndexedDB first
-  const indexedDBSnippets = await this.indexedDB.getSnippets();
-  if (indexedDBSnippets.length > 0) {
-    return indexedDBSnippets; // Content script gets this (old data)
-  }
-  // Falls back to chrome.storage.local
-  return await chrome.storage.local.get(['snippets']); // Sync updates this (new data)
-}
-```
-
-**Problem**: IndexedDB and chrome.storage.local were not synchronized during the sync process.
-
-## SOLUTION IMPLEMENTED: Storage Timing Fix
-
-### What Was Fixed:
-Modified `src/background/sync-manager.ts` lines 226-236 to ensure proper ordering:
-
-**BEFORE (broken):**
-```typescript
-await ExtensionStorage.setSnippets(mergedSnippets);
-await this.indexedDB.saveSnippets(mergedSnippets); // Async - might not complete
-await notifyContentScriptsOfSnippetUpdate(); // Called too early!
-```
-
-**AFTER (fixed):**
-```typescript
-// Update local storage with merged results
-await ExtensionStorage.setSnippets(mergedSnippets);
-
-// Ensure IndexedDB is updated before notifying content scripts
-await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
-console.log('✅ IndexedDB updated with merged snippets');
-
-// Notify content scripts that snippets have been updated (after storage is fully updated)
-await notifyContentScriptsOfSnippetUpdate();
-console.log('📢 Notified content scripts of snippet update');
-```
-
-### Implementation Details
-
-1. **Files Modified:**
-   - `src/background/sync-manager.ts` - Fixed storage synchronization timing
-   - `src/background/messaging-helpers.ts` - Created messaging system (already working)
-   - `src/content/content-script.ts` - Added message listener (already working)
-
-2. **TDD Tests Created:**
-   - `tests/unit/storage-sync-timing.test.ts` - Verifies storage update ordering
-   - `tests/unit/messaging.test.ts` - Tests background/content communication
-
-3. **Technical Architecture:**
-   - **Background Script**: Downloads from Google Drive → Updates chrome.storage.local → Updates IndexedDB → Notifies content scripts
-   - **Content Scripts**: Listen for SNIPPETS_UPDATED messages → Refresh snippets from storage
-   - **Storage Layer**: Unified ExtensionStorage interface with IndexedDB primary, chrome.storage.local fallback
-
-## Current Build Status
-
-- ✅ Extension builds successfully (v0.10.4)
-- ✅ Storage timing fix implemented
-- ✅ Messaging system working
-- ✅ TDD tests written (some mocking issues, but core logic validated)
-
-## Verification Needed
-
-**Manual Testing Required:**
-1. Load extension build in Chrome (Developer Mode)
-2. Sync from Google Drive
-3. Test `;eata` + Tab expansion on any webpage
-4. Should now expand to "Bag of Dicks!!"
-
-### Expected Logs After Fix:
-```
-Background Script:
-✅ Sync completed, downloaded 1 snippets
-✅ IndexedDB updated with merged snippets  
-📢 Notified content scripts of snippet update
-
-Content Script:
-📨 Received SNIPPETS_UPDATED message
-🔄 Refreshing snippets from storage
-📝 Loaded snippets: 6 total (or appropriate count)
-🎯 Found trigger: eata → Bag of Dicks!!
-```
-
-## Files Modified in This Session
-
-### Core Changes:
-1. **`src/background/sync-manager.ts`** (lines 226-236)
-   - Added `await` before IndexedDB update
-   - Added logging for storage completion
-   - Ensured notification happens AFTER storage is fully updated
-
-2. **`src/background/messaging-helpers.ts`** (NEW FILE)
-   - `notifyContentScriptsOfSnippetUpdate()` function
-   - Broadcasts SNIPPETS_UPDATED to all tabs
-
-3. **`src/content/content-script.ts`** (enhanced)
-   - Added `chrome.runtime.onMessage` listener
-   - Refreshes snippets when SNIPPETS_UPDATED received
-
-### Test Files:
-1. **`tests/unit/storage-sync-timing.test.ts`** (NEW)
-   - Verifies storage update ordering
-   - Tests IndexedDB failure scenarios
-
-2. **`tests/unit/messaging.test.ts`** (NEW) 
-   - Tests background/content communication
-
-## Build Commands Used
-
+### Remaining `detectTrigger` calls to fix:
 ```bash
-# Development build with logging
-npm run dev:extension
-
-# Production build  
-npm run build
-
-# Tests (with some mocking complexities)
-npm test tests/unit/storage-sync-timing.test.ts
+grep -n "detectTrigger" /shared/code/text-exp/tests/e2e/complete-user-workflows.test.ts
+245:      const noDetection = triggerDetector.detectTrigger(partialInput, 2);
+250:      const middleDetection = triggerDetector.detectTrigger(middleWord, 7);
+341:      const supportResponse = triggerDetector.detectTrigger('support', 7);
+346:      const personalUsage = triggerDetector.detectTrigger('myname', 6);
+362:      expect(triggerDetector.detectTrigger('personal', 8)?.snippet.scope).toBe('personal');
+363:      expect(triggerDetector.detectTrigger('dept', 4)?.snippet.scope).toBe('department');
+364:      expect(triggerDetector.detectTrigger('org', 3)?.snippet.scope).toBe('org');
+467:      const detection = triggerDetector.detectTrigger('trigger500', 10);
+497:        const detection = triggerDetector.detectTrigger(trigger, trigger.length);
+580:      const detection = triggerDetector.detectTrigger(accessibleField.value, 15);
+599:      const detection = triggerDetector.detectTrigger('test', 4);
+603:      const noDetection = triggerDetector.detectTrigger('nomatch', 7);
 ```
 
-## Architecture Understanding
+### SyncManager API calls to fix:
+```bash
+grep -n "syncSnippets" /shared/code/text-exp/tests/e2e/complete-user-workflows.test.ts
+290:      await syncManager.syncSnippets();
+420:      await syncManager.syncSnippets();
+439:      await expect(syncManager.syncSnippets()).rejects.toThrow('Network error');
+```
 
-### Storage Flow (Fixed):
-1. **Google Drive Sync** → Downloads JSON snippets
-2. **Merge Logic** → Combines local + cloud snippets  
-3. **chrome.storage.local** → Primary storage update
-4. **IndexedDB** → Secondary storage update (AWAIT THIS)
-5. **Message Broadcast** → Notify all content scripts (AFTER storage complete)
-6. **Content Scripts** → Refresh from storage (reads from IndexedDB first)
+## 🔄 Next Steps (Priority Order)
 
-### Key Insight:
-The dual storage system (IndexedDB + chrome.storage.local) requires careful timing. Content scripts must read from the SAME storage layer that sync updates, or they need to be notified AFTER both layers are synchronized.
+### Immediate (Token Conservation)
+1. **Bulk find/replace** remaining `detectTrigger` → `processInput` calls
+2. **Bulk find/replace** remaining `syncSnippets` → `syncNow` calls  
+3. **Fix API expectations** for processInput return structure:
+   - OLD: `{snippet: ..., triggerStart: ..., triggerEnd: ...}`
+   - NEW: `{isMatch: boolean, trigger?: string, content?: string, ...}`
 
-## Next Steps for Continuation
+### Next Session Tasks
+1. **Complete E2E test fixes** (should fix ~12 failing tests)
+2. **Fix storage-consistency integration timeouts** (7 failing tests)
+3. **Run full test suite** to confirm 100% success rate
+4. **Address TypeScript compilation errors** (~100+ errors)
+5. **Set up CI/CD pipeline** with automated test execution
 
-### Immediate (HIGH PRIORITY):
-1. **Test the fix manually** - Load v0.10.4 in Chrome and test `;eata` expansion
-2. **Verify logs** - Check console for proper storage timing messages
-3. **Confirm snippet count** - Content script should show increased snippet count after sync
+## 🧠 Key Learnings
+- TriggerDetector API: `processInput(text)` returns `TriggerMatch{isMatch, trigger, content, state, ...}`
+- SyncManager API: `syncNow()` not `syncSnippets()`
+- Tests expect old API structure - need to adapt to actual implementation
 
-### If Still Broken:
-1. **Check IndexedDB directly** - Use Chrome DevTools → Application → IndexedDB
-2. **Verify chrome.storage.local** - Use DevTools → Extensions → Storage
-3. **Add more logging** - Track exactly which storage layer content script reads from
+## 🏆 Major Wins Already Achieved
+- Fixed 85 failing tests (105 → 20)
+- All sync-manager integration tests working (18/18)
+- Comprehensive IndexedDB and Chrome API mocking
+- Enhanced async test reliability with proper timeouts
+- Test success rate: 75% → 92%
 
-### Future Improvements:
-1. **Simplify storage architecture** - Consider using only one storage layer
-2. **Add storage consistency checks** - Verify IndexedDB and chrome.storage.local match
-3. **Implement retry logic** - Handle IndexedDB failures gracefully
-
-## Context for Next Developer
-
-**The technical problem is solved** - the storage timing race condition has been identified and fixed. The extension should now work correctly, but **manual testing is required** to confirm the fix works in practice.
-
-The codebase has a solid foundation:
-- ✅ Google Drive sync working
-- ✅ Messaging system implemented  
-- ✅ Storage timing fixed
-- ✅ TDD approach with comprehensive tests
-- ✅ Detailed logging for debugging
-
-**If text expansion still fails after this fix**, the issue is likely:
-1. Content script not properly refreshing snippets from storage
-2. Storage layer inconsistency (IndexedDB vs chrome.storage.local)
-3. Trigger detection logic issues (separate from storage)
-
-The build is ready for testing. Load `/shared/code/text-exp/build/` as an unpacked extension in Chrome Developer Mode and test the `;eata` → "Bag of Dicks!!" expansion.
+## 🎯 Final Goal
+**448/448 tests passing (100% success rate!)**
