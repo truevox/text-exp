@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PuffPuffPaste",
-  "version": "0.13.11",
+  "version": "0.15.0",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "permissions": [
     "storage",
@@ -58,6 +58,15 @@
       ]
     }
   ],
+  "commands": {
+    "toggle-expansion": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Toggle text expansion on/off globally"
+    }
+  },
   "oauth2": {
     "client_id": "1037463573947-mjb7i96il5j0b2ul3ou7c1vld0b0q96a.apps.googleusercontent.com",
     "scopes": [

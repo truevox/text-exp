@@ -32,7 +32,7 @@ function bumpVersion(type = 'feature') {
   const { major, minor, patch } = parseVersion(currentVersion);
   
   // Keep major at 0 until launch
-  let newMajor = 0;
+  const newMajor = 0;
   let newMinor = minor;
   let newPatch = patch;
   

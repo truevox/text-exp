@@ -1,6 +1,6 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.13.11",
+  "version": "0.15.0",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
@@ -38,6 +38,7 @@
   "author": "Marvin Bentley II",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.53.2",
     "@types/chrome": "^0.0.246",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.6.0",
