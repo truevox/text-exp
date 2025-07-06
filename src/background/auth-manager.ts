@@ -23,11 +23,11 @@ export interface TokenResponse {
 
 /**
  * Manages OAuth2 authentication for cloud providers
+ * Note: OAuth2 configuration is handled via manifest.json and Chrome's identity API
  */
 export class AuthManager {
-  private static readonly GOOGLE_CLIENT_ID =
-    "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
-  private static readonly GOOGLE_CLIENT_SECRET = "YOUR_CLIENT_SECRET"; // Store securely
+  // OAuth2 configuration is handled via manifest.json for Chrome extensions
+  // No need for hardcoded client IDs - Chrome identity API manages this
   private static get REDIRECT_URI(): string {
     return `https://${chrome.runtime.id}.chromiumapp.org/`;
   }
@@ -63,24 +63,21 @@ export class AuthManager {
         }
       }
 
-      // Start new OAuth flow
-      const authResult = await this.launchOAuthFlow();
-      if (!authResult.success) {
-        return { success: false, error: authResult.error };
-      }
-
-      // Exchange code for tokens
-      const tokens = await this.exchangeCodeForTokens(authResult.authCode);
-      if (!tokens) {
-        return { success: false, error: "Failed to exchange code for tokens" };
+      // Use Chrome's built-in identity API for Google OAuth
+      const accessToken = await this.getChromeIdentityToken();
+      if (!accessToken) {
+        return {
+          success: false,
+          error: "Failed to get access token from Chrome identity API",
+        };
       }
 
       // Create and store credentials
       const credentials: CloudCredentials = {
         provider: "google-drive",
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        accessToken: accessToken,
+        // Chrome identity API manages refresh automatically
+        expiresAt: new Date(Date.now() + 3600 * 1000), // Assume 1 hour expiry
       };
 
       await ExtensionStorage.setCloudCredentials(credentials);
@@ -97,16 +94,57 @@ export class AuthManager {
   }
 
   /**
-   * Launch OAuth2 web flow
+   * Get access token using Chrome's identity API
+   */
+  private static async getChromeIdentityToken(): Promise<string | null> {
+    try {
+      const provider = CLOUD_PROVIDERS["google-drive"];
+
+      return new Promise((resolve) => {
+        chrome.identity.getAuthToken(
+          {
+            interactive: true,
+            scopes: [...provider.scopes],
+          },
+          (token) => {
+            if (chrome.runtime.lastError) {
+              console.error("Chrome identity error:", chrome.runtime.lastError);
+              resolve(null);
+            } else {
+              resolve(token || null);
+            }
+          },
+        );
+      });
+    } catch (error) {
+      console.error("Error getting Chrome identity token:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Launch OAuth2 web flow (fallback for Chrome identity API)
    */
   private static async launchOAuthFlow(): Promise<
     { success: true; authCode: string } | { success: false; error: string }
   > {
     const provider = CLOUD_PROVIDERS["google-drive"];
 
+    // Chrome extensions should use Chrome's identity API instead of manual OAuth
+    // The client_id is configured in manifest.json
+    const manifest = chrome.runtime.getManifest();
+    const clientId = manifest.oauth2?.client_id;
+
+    if (!clientId) {
+      return {
+        success: false,
+        error: "OAuth2 client_id not configured in manifest.json",
+      };
+    }
+
     const authUrl =
       `${provider.authUrl}?` +
-      `client_id=${encodeURIComponent(this.GOOGLE_CLIENT_ID)}&` +
+      `client_id=${encodeURIComponent(clientId)}&` +
       `response_type=code&` +
       `redirect_uri=${encodeURIComponent(this.REDIRECT_URI)}&` +
       `scope=${encodeURIComponent(provider.scopes.join(" "))}&` +
@@ -153,14 +191,21 @@ export class AuthManager {
     authCode: string,
   ): Promise<TokenResponse | null> {
     try {
+      const manifest = chrome.runtime.getManifest();
+      const clientId = manifest.oauth2?.client_id;
+
+      if (!clientId) {
+        console.error("OAuth2 client_id not configured in manifest.json");
+        return null;
+      }
+
       const response = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          client_id: this.GOOGLE_CLIENT_ID,
-          client_secret: this.GOOGLE_CLIENT_SECRET,
+          client_id: clientId,
           code: authCode,
           grant_type: "authorization_code",
           redirect_uri: this.REDIRECT_URI,
@@ -183,52 +228,36 @@ export class AuthManager {
   }
 
   /**
-   * Refresh expired access token
+   * Refresh expired access token using Chrome's identity API
    */
-  static async refreshToken(refreshToken?: string): Promise<AuthResult> {
+  static async refreshToken(_refreshToken?: string): Promise<AuthResult> {
     try {
-      if (!refreshToken) {
-        const credentials = await ExtensionStorage.getCloudCredentials();
-        refreshToken = credentials?.refreshToken;
+      console.log("🔄 Refreshing token using Chrome identity API...");
+
+      // Chrome identity API handles token refresh automatically
+      // We just need to get a fresh token
+      const newToken = await this.getChromeIdentityToken();
+
+      if (!newToken) {
+        // Clear invalid credentials and require re-authentication
+        await ExtensionStorage.clearCloudCredentials();
+        return {
+          success: false,
+          error: "Failed to refresh token via Chrome identity API",
+        };
       }
 
-      if (!refreshToken) {
-        return { success: false, error: "No refresh token available" };
-      }
-
-      const response = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          client_id: this.GOOGLE_CLIENT_ID,
-          client_secret: this.GOOGLE_CLIENT_SECRET,
-          refresh_token: refreshToken,
-          grant_type: "refresh_token",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Token refresh failed: ${errorData.error_description || response.statusText}`,
-        );
-      }
-
-      const tokens = await response.json();
-
-      // Update stored credentials
+      // Update stored credentials with new token
       const updatedCredentials: CloudCredentials = {
         provider: "google-drive",
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || refreshToken, // Keep existing if not provided
-        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        accessToken: newToken,
+        // Chrome identity API manages refresh automatically, no refresh token needed
+        expiresAt: new Date(Date.now() + 3600 * 1000), // Assume 1 hour expiry
       };
 
       await ExtensionStorage.setCloudCredentials(updatedCredentials);
 
-      console.log("✅ Token refreshed successfully");
+      console.log("✅ Token refreshed successfully via Chrome identity API");
       return { success: true, credentials: updatedCredentials };
     } catch (error) {
       console.error("❌ Token refresh failed:", error);
@@ -272,28 +301,26 @@ export class AuthManager {
       const credentials = await ExtensionStorage.getCloudCredentials();
 
       if (!credentials || credentials.provider !== "google-drive") {
+        console.log("🔐 No Google Drive credentials, getting new token...");
+        return await this.getChromeIdentityToken();
+      }
+
+      // Validate current token
+      const isValid = await this.validateToken(credentials.accessToken);
+
+      if (isValid) {
+        return credentials.accessToken;
+      }
+
+      // Token invalid, get a fresh one using Chrome identity API
+      console.log("🔄 Token invalid, getting fresh token...");
+      const refreshResult = await this.refreshToken();
+
+      if (refreshResult.success && refreshResult.credentials) {
+        return refreshResult.credentials.accessToken;
+      } else {
         return null;
       }
-
-      // Check if token is expired (with 60 second buffer)
-      const expiresAt = credentials.expiresAt
-        ? new Date(credentials.expiresAt)
-        : null;
-      const now = new Date();
-      const bufferTime = 60 * 1000; // 60 seconds
-
-      if (!expiresAt || now.getTime() > expiresAt.getTime() - bufferTime) {
-        console.log("🔄 Token expired, refreshing...");
-        const refreshResult = await this.refreshToken(credentials.refreshToken);
-
-        if (refreshResult.success && refreshResult.credentials) {
-          return refreshResult.credentials.accessToken;
-        } else {
-          return null;
-        }
-      }
-
-      return credentials.accessToken;
     } catch (error) {
       console.error("Error ensuring valid token:", error);
       return null;

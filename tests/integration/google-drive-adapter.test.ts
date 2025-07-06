@@ -51,7 +51,7 @@ describe("GoogleDriveAdapter Integration", () => {
       expect(chrome.identity.getAuthToken).toHaveBeenCalledWith(
         {
           interactive: true,
-          scopes: ["https://www.googleapis.com/auth/drive"],
+          scopes: ["https://www.googleapis.com/auth/drive.file"],
         },
         expect.any(Function),
       );

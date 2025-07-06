@@ -82,6 +82,221 @@
 
 ---
 
+## 🔧 **Phase 4: Comprehensive Code Refactoring** - **MEDIUM PRIORITY**
+
+**Goal**: Refactor 10 large files (300+ lines) to improve maintainability and follow Single Responsibility Principle. **No internal logic changes - only reorganization.**
+
+### 📊 **Phase 4.1: Critical Files Refactoring** (>600 lines)
+
+#### **options.ts Refactoring** (1708 lines → ~200 lines)
+
+- [ ] **Create directory structure**
+  - Action: `mkdir -p src/options/{services,components,utils}`
+  - Priority: HIGH - Required for all subsequent steps
+
+- [ ] **Extract DOM Elements Map**
+  - New file: `src/options/utils/dom-elements.ts`
+  - Move: All `elements` object properties from options.ts
+  - Test: Unit test to verify all elements exist in DOM
+
+- [ ] **Extract Settings Service**
+  - New file: `src/options/services/settings-service.ts`
+  - Move: `loadSettings()`, `saveSettings()`, `handleSettingsChange()`
+  - Test: Unit tests for settings load/save operations
+
+- [ ] **Extract Sync Service**
+  - New file: `src/options/services/sync-service.ts`
+  - Move: `syncNow()`, `connectToCloudProvider()`, `disconnectFromCloudProvider()`
+  - Test: Unit tests for sync operations (mocked)
+
+- [ ] **Extract Data Management Service**
+  - New file: `src/options/services/data-management-service.ts`
+  - Move: `exportData()`, `importData()`, `clearAllData()`, `getStorageStats()`
+  - Test: Unit tests for import/export functionality
+
+- [ ] **Extract Folder Picker Component**
+  - New file: `src/options/components/folder-picker.ts`
+  - Move: All folder picker modal logic, `folderPickerModal` state
+  - Test: Component integration tests for folder selection
+
+- [ ] **Extract UI Manager**
+  - New file: `src/options/options-ui.ts`
+  - Move: All DOM manipulation, event listeners, status updates
+  - Test: UI interaction tests
+
+- [ ] **Extract Global Toggle Component**
+  - New file: `src/options/components/global-toggle.ts`
+  - Move: Global toggle shortcut logic, keyboard event handling
+  - Test: Unit tests for keyboard shortcut functionality
+
+- [ ] **Refactor Main Options File**
+  - Update: `src/options/options.ts` (~200 lines)
+  - Keep only: Main OptionsApp class as orchestrator
+  - Test: Integration tests for complete workflows
+
+#### **content-script.ts Refactoring** (897 lines → ~250 lines)
+
+- [ ] **Extract Event Handler**
+  - New file: `src/content/event-handler.ts`
+  - Move: All DOM event listeners (`input`, `keydown`, `focusin`, `focusout`)
+  - Test: Event handling unit tests
+
+- [ ] **Extract DOM Utilities**
+  - New file: `src/content/utils/dom-utils.ts`
+  - Move: `isTextInput()`, `getElementText()`, `getCursorPosition()`, `isContentEditable()`
+  - Test: DOM utility function tests
+
+- [ ] **Extract Test Snippet Modal**
+  - New file: `src/content/ui/test-snippet-modal.ts`
+  - Move: Test snippet customization modal logic
+  - Test: Modal component tests
+
+- [ ] **Refactor Main Content Script**
+  - Update: `src/content/content-script.ts` (~250 lines)
+  - Keep only: Main ContentScript class as orchestrator
+  - Test: End-to-end content script integration tests
+
+#### **sync-manager.ts Refactoring** (666 lines → ~400 lines)
+
+- [ ] **Extract Authentication Service**
+  - New file: `src/background/services/auth-service.ts`
+  - Move: All authentication flows for cloud providers
+  - Test: Authentication unit tests with mocked OAuth
+
+- [ ] **Extract Sync State Manager**
+  - New file: `src/background/sync-state.ts`
+  - Move: `syncInProgress`, `syncInterval` state management
+  - Test: State management unit tests
+
+- [ ] **Extract Notification Service**
+  - New file: `src/background/services/notification-service.ts`
+  - Move: `showNotification()` and related notification logic
+  - Test: Notification service unit tests
+
+- [ ] **Move Provider-Specific Logic**
+  - Update: `src/background/cloud-adapters/google-drive-adapter.ts`
+  - Move: `getGoogleDriveFolders()`, `createGoogleDriveFolder()` from sync-manager
+  - Test: Update cloud adapter tests
+
+#### **popup.ts Refactoring** (620 lines → ~200 lines)
+
+- [ ] **Extract Snippet Service**
+  - New file: `src/popup/services/snippet-service.ts`
+  - Move: All background script communication for snippets
+  - Test: Service communication unit tests
+
+- [ ] **Extract Snippet Modal Component**
+  - New file: `src/popup/components/snippet-modal.ts`
+  - Move: Add/edit snippet modal logic and DOM manipulation
+  - Test: Modal component tests
+
+- [ ] **Extract UI Manager**
+  - New file: `src/popup/popup-ui.ts`
+  - Move: All DOM rendering, search functionality, list updates
+  - Test: UI rendering and interaction tests
+
+- [ ] **Refactor Main Popup**
+  - Update: `src/popup/popup.ts` (~200 lines)
+  - Keep only: Main PopupApp class as orchestrator
+  - Test: Complete popup workflow integration tests
+
+### 📊 **Phase 4.2: Large Files Refactoring** (400-600 lines)
+
+#### **Parser Consolidation** (html.ts, tex.ts, md.ts)
+
+- [ ] **Create Base Parser Infrastructure**
+  - New file: `src/parsers/base-parser.ts`
+  - Create abstract BaseParser class with common methods
+  - Move: `normalizeContentType()`, `normalizeScope()`, `normalizeVariables()`
+
+- [ ] **Extract Parser Utils**
+  - New file: `src/parsers/utils/parser-utils.ts`
+  - Move: `extractYAMLFrontmatter()`, `hasYAMLFrontmatter()`
+  - Test: Parser utility unit tests
+
+- [ ] **Refactor Individual Parsers**
+  - Update files: `src/parsers/html-parser.ts`, `src/parsers/md-parser.ts`, `src/parsers/tex-parser.ts`
+  - Extend BaseParser, implement format-specific logic only
+  - Test: Parser-specific unit tests
+
+- [ ] **Create Parser Factory**
+  - Update file: `src/parsers/index.ts`
+  - Implement ParserFactory pattern for parser instantiation
+  - Test: Factory pattern unit tests
+
+#### **text-replacer.ts Refactoring** (503 lines → ~200 lines)
+
+- [ ] **Implement Strategy Pattern**
+  - New files: `src/content/replacement-strategies/{form-input-strategy.ts,content-editable-strategy.ts}`
+  - Create abstract interface for replacement strategies
+  - Test: Strategy pattern unit tests
+
+- [ ] **Extract Undo Manager**
+  - New file: `src/content/undo-manager.ts`
+  - Move: `_lastReplacement` state and `undoLastReplacement()` logic
+  - Test: Undo functionality unit tests
+
+- [ ] **Extract Cursor Manager**
+  - New file: `src/content/cursor-manager.ts`
+  - Move: `getCursorPosition()`, `setCursorPosition()` cursor logic
+  - Test: Cursor management unit tests
+
+#### **placeholder-handler.ts Refactoring** (432 lines → ~250 lines)
+
+- [ ] **Extract Variable Modal**
+  - New file: `src/content/ui/variable-modal.ts`
+  - Move: Variable prompt modal DOM and event logic
+  - Test: Variable modal component tests
+
+- [ ] **Extract Placeholder Service**
+  - New file: `src/content/services/placeholder-service.ts`
+  - Move: Variable replacement logic for built-in and custom variables
+  - Test: Placeholder replacement unit tests
+
+- [ ] **Extract Validation Service**
+  - New file: `src/content/services/validation-service.ts`
+  - Move: `validateVariables()` and related validation logic
+  - Test: Validation unit tests
+
+#### **enhanced-trigger-detector.ts Refactoring** (414 lines → ~250 lines)
+
+- [ ] **Extract Trie Data Structure**
+  - New file: `src/content/utils/trie.ts`
+  - Move: All trie-related logic (node creation, insertion, traversal)
+  - Test: Trie data structure unit tests
+
+- [ ] **Extract Performance Monitor**
+  - New file: `src/content/utils/performance-monitor.ts`
+  - Move: `getPerformanceStats()` and performance calculations
+  - Test: Performance monitoring unit tests
+
+- [ ] **Create Match Value Object**
+  - New file: `src/content/utils/match.ts`
+  - Create TriggerMatch value object and creation logic
+  - Test: Match object unit tests
+
+### 🔍 **Phase 4.3: Refactoring Verification**
+
+- [ ] **Verify All Tests Pass**
+  - Target: 505/505 tests passing (maintain 100% execution)
+  - Action: Run complete test validation after each refactoring step
+
+- [ ] **Verify File Size Targets**
+  - Target: All files under 300 lines
+  - Action: Check line counts with `wc -l src/**/*.ts | sort -nr`
+
+- [ ] **Verify No Behavior Changes**
+  - Test: Extension functionality unchanged
+  - Test: UI behavior identical
+  - Test: All cloud providers still work
+
+- [ ] **Update Documentation**
+  - Update: Import/export statements in all affected files
+  - Update: Any architectural documentation
+  - Update: Test documentation if test structure changes
+
+---
+
 ## 🤖 **CI/CD Enhancements** - **FUTURE GOALS**
 
 **Priority**: Optional improvements for development workflow

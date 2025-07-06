@@ -22,20 +22,28 @@ let imageProcessor: ImageProcessor;
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log("📦 PuffPuffPaste installed:", details.reason);
 
-  // Initialize managers
-  syncManager = SyncManager.getInstance();
-  scopedSourceManager = ScopedSourceManager.getInstance();
-  imageProcessor = new ImageProcessor();
+  try {
+    // Initialize managers
+    syncManager = SyncManager.getInstance();
+    scopedSourceManager = ScopedSourceManager.getInstance();
+    imageProcessor = new ImageProcessor();
 
-  await syncManager.initialize();
-  await scopedSourceManager.initialize();
+    await syncManager.initialize();
+    await scopedSourceManager.initialize();
 
-  if (details.reason === "install") {
-    console.log("🎉 First installation - initializing extension");
-    // TODO: Initialize default settings and show onboarding
-  } else if (details.reason === "update") {
-    console.log("🔄 Extension updated - checking for migrations");
-    // TODO: Handle version migrations if needed
+    console.log("✅ Extension managers initialized successfully");
+
+    if (details.reason === "install") {
+      console.log("🎉 First installation - initializing extension");
+      // TODO: Initialize default settings and show onboarding
+    } else if (details.reason === "update") {
+      console.log("🔄 Extension updated - checking for migrations");
+      // TODO: Handle version migrations if needed
+    }
+  } catch (error) {
+    console.error("❌ Failed to initialize extension managers:", error);
+    // Ensure extension still works in basic mode even if cloud auth fails
+    console.log("🔄 Extension will continue in local mode");
   }
 });
 
@@ -44,13 +52,21 @@ chrome.runtime.onStartup.addListener(async () => {
   console.log("🚀 Extension starting up");
   logVersion();
 
-  // Re-initialize managers on startup
-  if (!syncManager) {
-    syncManager = SyncManager.getInstance();
-    scopedSourceManager = ScopedSourceManager.getInstance();
+  try {
+    // Re-initialize managers on startup
+    if (!syncManager) {
+      syncManager = SyncManager.getInstance();
+      scopedSourceManager = ScopedSourceManager.getInstance();
 
-    await syncManager.initialize();
-    await scopedSourceManager.initialize();
+      await syncManager.initialize();
+      await scopedSourceManager.initialize();
+
+      console.log("✅ Extension managers re-initialized successfully");
+    }
+  } catch (error) {
+    console.error("❌ Failed to re-initialize extension managers:", error);
+    // Ensure extension still works in basic mode even if cloud auth fails
+    console.log("🔄 Extension will continue in local mode");
   }
 });
 

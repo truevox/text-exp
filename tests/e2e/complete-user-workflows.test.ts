@@ -37,6 +37,7 @@ global.chrome = {
     },
   },
   identity: {
+    getAuthToken: jest.fn(),
     launchWebAuthFlow: jest.fn(),
   },
 } as any;
@@ -217,12 +218,18 @@ describe("Complete User Workflows E2E", () => {
       ).resolves.toBeUndefined();
 
       // Test auth failure recovery - reset the mock for this specific test
-      (chrome.identity.launchWebAuthFlow as jest.Mock).mockResolvedValue(null);
+      (chrome.identity.getAuthToken as jest.Mock).mockImplementation(
+        (options, callback) => {
+          callback(null); // Simulate no token returned
+        },
+      );
       jest.spyOn(AuthManager, "authenticateWithGoogle").mockRestore();
 
       const authResult = await AuthManager.authenticateWithGoogle();
       expect(authResult.success).toBe(false);
-      expect(authResult.error).toContain("OAuth flow cancelled");
+      expect(authResult.error).toContain(
+        "Failed to get access token from Chrome identity API",
+      );
     }, 15000);
   });
 
