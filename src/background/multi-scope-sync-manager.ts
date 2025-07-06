@@ -30,14 +30,21 @@ export class MultiScopeSyncManager {
       for (const snippet of snippets) {
         const existing = snippetMap.get(snippet.trigger);
         const currentPriority = scopePriority[source.name] || 0;
-        // Extract priority number from existing scope (e.g., "priority4" -> 4)
-        const existingPriority = existing && existing.scope 
-          ? parseInt(existing.scope.replace('priority', '')) || 0 
-          : -1;
+        // Get priority from existing snippet's _priorityLevel or fallback to scope lookup
+        const existingPriority =
+          existing && (existing as any)._priorityLevel
+            ? (existing as any)._priorityLevel
+            : existing && existing.scope
+              ? scopePriority[existing.scope] || 0
+              : -1;
 
         if (!existing || currentPriority > existingPriority) {
-          const priorityName = `priority${currentPriority}`;
-          snippetMap.set(snippet.trigger, { ...snippet, scope: priorityName });
+          snippetMap.set(snippet.trigger, {
+            ...snippet,
+            scope: source.name,
+            // Add priority as a custom property for internal tracking
+            _priorityLevel: currentPriority,
+          } as any);
         }
       }
     }

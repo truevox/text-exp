@@ -192,13 +192,13 @@ describe("MultiScopeSyncManager: Snippet Merging Logic", () => {
     expect(snippetMap.get(";common")).toEqual(
       expect.objectContaining({
         content: "Personal version",
-        scope: "priority4",
+        scope: "personal",
       }),
     );
     expect(snippetMap.get(";shared")).toEqual(
       expect.objectContaining({
         content: "Department shared",
-        scope: "priority2",
+        scope: "department",
       }),
     );
     expect(snippetMap.has(";personal")).toBe(true);
