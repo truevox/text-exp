@@ -3,50 +3,57 @@
  * Critical security tests for XSS prevention
  */
 
-import { sanitizeHtml } from '../../src/shared/sanitizer';
+import { sanitizeHtml } from "../../src/shared/sanitizer";
 
 // Mock DOMParser with functional sanitization
 class FunctionalMockDOMParser {
-  parseFromString(markup: string, type: string) {
+  parseFromString(markup: string, _type: string) {
     let sanitizedHtml = markup;
-    
+
     // Remove script tags
-    sanitizedHtml = sanitizedHtml.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    
+    sanitizedHtml = sanitizedHtml.replace(
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      "",
+    );
+
     // Remove event handler attributes (with and without quotes)
-    sanitizedHtml = sanitizedHtml.replace(/\s*on\w+\s*=\s*(?:["'][^"']*["']|[^\s>]+)/gi, '');
-    
+    sanitizedHtml = sanitizedHtml.replace(
+      /\s*on\w+\s*=\s*(?:["'][^"']*["']|[^\s>]+)/gi,
+      "",
+    );
+
     const mockDoc = {
       body: { innerHTML: sanitizedHtml },
       querySelectorAll: (selector: string) => {
-        if (selector === 'script') {
+        if (selector === "script") {
           return []; // Scripts should be removed
         }
-        if (selector === '*[on*]') {
+        if (selector === "*[on*]") {
           return []; // Event handlers should be removed
         }
         return [];
-      }
+      },
     };
-    
+
     return mockDoc;
   }
 }
 
 global.DOMParser = FunctionalMockDOMParser as any;
 
-describe('sanitizeHtml', () => {
-  describe('Script Tag Removal', () => {
-    it('should remove script tags', () => {
-      const maliciousHtml = '<div>Safe content</div><script>alert("XSS")</script><p>More content</p>';
+describe("sanitizeHtml", () => {
+  describe("Script Tag Removal", () => {
+    it("should remove script tags", () => {
+      const maliciousHtml =
+        '<div>Safe content</div><script>alert("XSS")</script><p>More content</p>';
       const result = sanitizeHtml(maliciousHtml);
-      
+
       // Verify script tag was found and removed
-      expect(result).not.toContain('<script>');
+      expect(result).not.toContain("<script>");
       expect(result).not.toContain('alert("XSS")');
     });
 
-    it('should remove multiple script tags', () => {
+    it("should remove multiple script tags", () => {
       const maliciousHtml = `
         <div>Content</div>
         <script>alert('XSS1')</script>
@@ -54,63 +61,64 @@ describe('sanitizeHtml', () => {
         <script src="malicious.js"></script>
         <span>End</span>
       `;
-      
+
       const result = sanitizeHtml(maliciousHtml);
-      
-      expect(result).not.toContain('<script>');
+
+      expect(result).not.toContain("<script>");
       expect(result).not.toContain('src="malicious.js"');
     });
 
-    it('should handle script tags with different variations', () => {
+    it("should handle script tags with different variations", () => {
       const variations = [
-        '<script>alert(1)</script>',
-        '<SCRIPT>alert(1)</SCRIPT>',
+        "<script>alert(1)</script>",
+        "<SCRIPT>alert(1)</SCRIPT>",
         '<script type="text/javascript">alert(1)</script>',
         '<script src="evil.js"></script>',
-        '<script\nonclick="alert(1)">alert(1)</script>'
+        '<script\nonclick="alert(1)">alert(1)</script>',
       ];
 
-      variations.forEach(variation => {
-        const result = sanitizeHtml(variation);
-        expect(result).not.toContain('<script');
-        expect(result).not.toContain('alert(1)');
+      variations.forEach((variation) => {
+        const _result = sanitizeHtml(variation);
+        expect(_result).not.toContain("<script");
+        expect(_result).not.toContain("alert(1)");
       });
     });
   });
 
-  describe('Event Handler Removal', () => {
-    it('should remove onclick handlers', () => {
-      const maliciousHtml = '<div onclick="alert(\'XSS\')">Click me</div>';
+  describe("Event Handler Removal", () => {
+    it("should remove onclick handlers", () => {
+      const maliciousHtml = "<div onclick=\"alert('XSS')\">Click me</div>";
       sanitizeHtml(maliciousHtml);
-      
+
       // The mock should call removeAttribute for onclick
       // We can't test the exact result without a real DOM, but we verify the logic
       expect(true).toBe(true); // Placeholder - in real implementation would check result
     });
 
-    it('should remove various event handlers', () => {
+    it("should remove various event handlers", () => {
       const eventHandlers = [
-        'onclick',
-        'onload',
-        'onerror',
-        'onmouseover',
-        'onfocus',
-        'onblur',
-        'onsubmit',
-        'onchange'
+        "onclick",
+        "onload",
+        "onerror",
+        "onmouseover",
+        "onfocus",
+        "onblur",
+        "onsubmit",
+        "onchange",
       ];
 
-      eventHandlers.forEach(handler => {
-        const html = `<div ${handler}="maliciousCode()">Content</div>`;
+      eventHandlers.forEach((_handler, _index) => {
+        const html = `<div ${_handler}="maliciousCode()">Content</div>`;
         sanitizeHtml(html);
         // In real implementation, would verify handler is removed
       });
     });
 
-    it('should preserve safe attributes', () => {
-      const safeHtml = '<div class="safe" id="content" data-value="123">Safe content</div>';
+    it("should preserve safe attributes", () => {
+      const safeHtml =
+        '<div class="safe" id="content" data-value="123">Safe content</div>';
       const result = sanitizeHtml(safeHtml);
-      
+
       // Should preserve non-event attributes
       expect(result).toContain('class="safe"');
       expect(result).toContain('id="content"');
@@ -118,33 +126,34 @@ describe('sanitizeHtml', () => {
     });
   });
 
-  describe('Edge Cases and Complex Attacks', () => {
-    it('should handle empty input', () => {
-      const result = sanitizeHtml('');
-      expect(result).toBe('');
+  describe("Edge Cases and Complex Attacks", () => {
+    it("should handle empty input", () => {
+      const result = sanitizeHtml("");
+      expect(result).toBe("");
     });
 
-    it('should handle null/undefined input gracefully', () => {
+    it("should handle null/undefined input gracefully", () => {
       // TypeScript would prevent this, but JavaScript might pass these
       expect(() => sanitizeHtml(null as any)).not.toThrow();
       expect(() => sanitizeHtml(undefined as any)).not.toThrow();
     });
 
-    it('should handle plain text', () => {
-      const plainText = 'This is just plain text with no HTML';
+    it("should handle plain text", () => {
+      const plainText = "This is just plain text with no HTML";
       const result = sanitizeHtml(plainText);
       expect(result).toBe(plainText);
     });
 
-    it('should handle safe HTML', () => {
-      const safeHtml = '<p>Safe paragraph</p><strong>Bold text</strong><em>Italic</em>';
+    it("should handle safe HTML", () => {
+      const safeHtml =
+        "<p>Safe paragraph</p><strong>Bold text</strong><em>Italic</em>";
       const result = sanitizeHtml(safeHtml);
-      expect(result).toContain('<p>');
-      expect(result).toContain('<strong>');
-      expect(result).toContain('<em>');
+      expect(result).toContain("<p>");
+      expect(result).toContain("<strong>");
+      expect(result).toContain("<em>");
     });
 
-    it('should handle mixed safe and unsafe content', () => {
+    it("should handle mixed safe and unsafe content", () => {
       const mixedHtml = `
         <div class="safe">
           <p>Safe content</p>
@@ -153,19 +162,19 @@ describe('sanitizeHtml', () => {
           <strong>More safe content</strong>
         </div>
       `;
-      
+
       const result = sanitizeHtml(mixedHtml);
-      
+
       // Should preserve safe elements
-      expect(result).toContain('<p>Safe content</p>');
-      expect(result).toContain('<strong>More safe content</strong>');
-      
+      expect(result).toContain("<p>Safe content</p>");
+      expect(result).toContain("<strong>More safe content</strong>");
+
       // Should remove dangerous content
-      expect(result).not.toContain('<script>');
-      expect(result).not.toContain('onclick');
+      expect(result).not.toContain("<script>");
+      expect(result).not.toContain("onclick");
     });
 
-    it('should handle nested dangerous content', () => {
+    it("should handle nested dangerous content", () => {
       const nestedHtml = `
         <div>
           <p onclick="evil()">
@@ -174,127 +183,128 @@ describe('sanitizeHtml', () => {
           </p>
         </div>
       `;
-      
+
       sanitizeHtml(nestedHtml);
       // Should remove both script and onclick
     });
 
-    it('should handle malformed HTML', () => {
-      const malformedHtml = '<div><script>alert(1)</div></script><p>content';
+    it("should handle malformed HTML", () => {
+      const malformedHtml = "<div><script>alert(1)</div></script><p>content";
       const result = sanitizeHtml(malformedHtml);
-      
+
       // DOMParser should handle malformed HTML gracefully
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      expect(typeof result).toBe("string");
     });
   });
 
-  describe('Advanced XSS Prevention', () => {
-    it('should prevent javascript: URLs', () => {
+  describe("Advanced XSS Prevention", () => {
+    it("should prevent javascript: URLs", () => {
       // Note: Current implementation doesn't handle this, but should be added
       const javascriptUrl = '<a href="javascript:alert(1)">Click</a>';
       const result = sanitizeHtml(javascriptUrl);
-      
+
       // Future enhancement: should remove javascript: URLs
       expect(result).toBeDefined();
     });
 
-    it('should prevent data: URLs with scripts', () => {
+    it("should prevent data: URLs with scripts", () => {
       const dataUrl = '<img src="data:text/html,<script>alert(1)</script>">';
       const result = sanitizeHtml(dataUrl);
-      
+
       // Future enhancement: should sanitize data URLs
       expect(result).toBeDefined();
     });
 
-    it('should handle CSS injection attempts', () => {
-      const cssInjection = '<div style="background: url(javascript:alert(1))">Content</div>';
+    it("should handle CSS injection attempts", () => {
+      const cssInjection =
+        '<div style="background: url(javascript:alert(1))">Content</div>';
       const result = sanitizeHtml(cssInjection);
-      
+
       // Future enhancement: should sanitize style attributes
       expect(result).toBeDefined();
     });
 
-    it('should prevent SVG-based XSS', () => {
+    it("should prevent SVG-based XSS", () => {
       const svgXss = '<svg onload="alert(1)"><script>alert(2)</script></svg>';
       const result = sanitizeHtml(svgXss);
-      
+
       // Should remove script and onload
-      expect(result).not.toContain('<script>');
+      expect(result).not.toContain("<script>");
     });
   });
 
-  describe('Performance and Security', () => {
-    it('should handle large input efficiently', () => {
-      const largeHtml = '<div>' + 'a'.repeat(10000) + '</div>';
+  describe("Performance and Security", () => {
+    it("should handle large input efficiently", () => {
+      const largeHtml = "<div>" + "a".repeat(10000) + "</div>";
       const start = Date.now();
       const result = sanitizeHtml(largeHtml);
       const duration = Date.now() - start;
-      
+
       expect(result).toBeDefined();
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
     });
 
-    it('should prevent DoS via deeply nested elements', () => {
-      let deeplyNested = '';
+    it("should prevent DoS via deeply nested elements", () => {
+      let deeplyNested = "";
       for (let i = 0; i < 100; i++) {
-        deeplyNested += '<div>';
+        deeplyNested += "<div>";
       }
-      deeplyNested += 'content';
+      deeplyNested += "content";
       for (let i = 0; i < 100; i++) {
-        deeplyNested += '</div>';
+        deeplyNested += "</div>";
       }
-      
+
       const result = sanitizeHtml(deeplyNested);
       expect(result).toBeDefined();
     });
 
-    it('should handle Unicode and special characters', () => {
-      const unicodeHtml = '<div>Unicode: 你好 🌟 العربية</div>';
+    it("should handle Unicode and special characters", () => {
+      const unicodeHtml = "<div>Unicode: 你好 🌟 العربية</div>";
       const result = sanitizeHtml(unicodeHtml);
-      
-      expect(result).toContain('你好');
-      expect(result).toContain('🌟');
-      expect(result).toContain('العربية');
+
+      expect(result).toContain("你好");
+      expect(result).toContain("🌟");
+      expect(result).toContain("العربية");
     });
 
-    it('should preserve HTML entities', () => {
-      const entitiesHtml = '<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>';
+    it("should preserve HTML entities", () => {
+      const entitiesHtml = "<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>";
       const result = sanitizeHtml(entitiesHtml);
-      
+
       // Should preserve encoded entities (they're safe)
-      expect(result).toContain('&lt;');
-      expect(result).toContain('&gt;');
+      expect(result).toContain("&lt;");
+      expect(result).toContain("&gt;");
     });
   });
 
-  describe('Integration with Extension Context', () => {
-    it('should sanitize snippet content safely', () => {
+  describe("Integration with Extension Context", () => {
+    it("should sanitize snippet content safely", () => {
       const snippetContent = `
         <p>This is a snippet with <strong>formatting</strong></p>
         <script>maliciousCode()</script>
         <div onclick="steal()">Click me</div>
       `;
-      
+
       const result = sanitizeHtml(snippetContent);
-      
+
       // Should preserve formatting
-      expect(result).toContain('<strong>formatting</strong>');
-      
+      expect(result).toContain("<strong>formatting</strong>");
+
       // Should remove dangerous content
-      expect(result).not.toContain('<script>');
-      expect(result).not.toContain('onclick');
+      expect(result).not.toContain("<script>");
+      expect(result).not.toContain("onclick");
     });
 
-    it('should handle user input from forms', () => {
+    it("should handle user input from forms", () => {
       const userInput = '<img src="x" onerror="alert(document.cookie)">';
       const result = sanitizeHtml(userInput);
-      
-      expect(result).not.toContain('onerror');
-      expect(result).not.toContain('alert');
+
+      expect(result).not.toContain("onerror");
+      expect(result).not.toContain("alert");
     });
 
-    it('should sanitize imported data', () => {
+    it("should sanitize imported data", () => {
       const importedData = `
         <div class="snippet">
           <h3>Imported Snippet</h3>
@@ -302,68 +312,89 @@ describe('sanitizeHtml', () => {
           <p onmouseover="trackUser()">Content</p>
         </div>
       `;
-      
+
       const result = sanitizeHtml(importedData);
-      
-      expect(result).toContain('<h3>Imported Snippet</h3>');
-      expect(result).not.toContain('<script>');
-      expect(result).not.toContain('onmouseover');
+
+      expect(result).toContain("<h3>Imported Snippet</h3>");
+      expect(result).not.toContain("<script>");
+      expect(result).not.toContain("onmouseover");
     });
   });
 
-  describe('Security Regression Tests', () => {
+  describe("Security Regression Tests", () => {
     // These tests should be added when new attack vectors are discovered
-    
-    it('should prevent bypass via HTML comments', () => {
-      const commentBypass = '<!-- <script>alert(1)</script> --><script>alert(2)</script>';
+
+    it("should prevent bypass via HTML comments", () => {
+      const commentBypass =
+        "<!-- <script>alert(1)</script> --><script>alert(2)</script>";
       const result = sanitizeHtml(commentBypass);
-      
-      expect(result).not.toContain('alert(2)');
+
+      expect(result).not.toContain("alert(2)");
     });
 
-    it('should prevent bypass via CDATA sections', () => {
-      const cdataBypass = '<![CDATA[<script>alert(1)</script>]]>';
+    it("should prevent bypass via CDATA sections", () => {
+      const cdataBypass = "<![CDATA[<script>alert(1)</script>]]>";
       const result = sanitizeHtml(cdataBypass);
-      
+
       // Should handle CDATA sections safely
       expect(result).toBeDefined();
     });
 
-    it('should prevent mutation XSS attacks', () => {
+    it("should prevent mutation XSS attacks", () => {
       // These are advanced attacks that modify DOM after parsing
       const mutationXss = '<div id="test"><p>Text</p></div>';
       const result = sanitizeHtml(mutationXss);
-      
+
       // Basic test - more complex mutation testing would require DOM environment
       expect(result).toBeDefined();
     });
   });
 
-  describe('Fuzzing Tests', () => {
+  describe("Fuzzing Tests", () => {
     // Generates random HTML-like strings to test robustness
     const generateRandomHtml = (length: number): string => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/="\' ';
-      const htmlTags = ['div', 'p', 'span', 'script', 'img', 'a', 'h1', 'h2', 'h3'];
-      const eventHandlers = ['onclick', 'onload', 'onerror', 'onmouseover', 'onfocus'];
-      const attributes = ['class', 'id', 'src', 'href', 'style', 'data-test'];
-      
-      let result = '';
+      const chars =
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/=\"' ";
+      const htmlTags = [
+        "div",
+        "p",
+        "span",
+        "script",
+        "img",
+        "a",
+        "h1",
+        "h2",
+        "h3",
+      ];
+      const eventHandlers = [
+        "onclick",
+        "onload",
+        "onerror",
+        "onmouseover",
+        "onfocus",
+      ];
+      const attributes = ["class", "id", "src", "href", "style", "data-test"];
+
+      let result = "";
       for (let i = 0; i < length; i++) {
         const rand = Math.random();
-        
+
         if (rand < 0.1 && i < length - 10) {
           // Add opening tag
           const tag = htmlTags[Math.floor(Math.random() * htmlTags.length)];
           result += `<${tag}`;
-          
+
           // Sometimes add attributes
           if (Math.random() < 0.5) {
-            const attr = Math.random() < 0.3 
-              ? eventHandlers[Math.floor(Math.random() * eventHandlers.length)]
-              : attributes[Math.floor(Math.random() * attributes.length)];
+            const attr =
+              Math.random() < 0.3
+                ? eventHandlers[
+                    Math.floor(Math.random() * eventHandlers.length)
+                  ]
+                : attributes[Math.floor(Math.random() * attributes.length)];
             result += ` ${attr}="${chars.charAt(Math.floor(Math.random() * chars.length)).repeat(Math.floor(Math.random() * 10) + 1)}"`;
           }
-          result += '>';
+          result += ">";
         } else if (rand < 0.15) {
           // Add closing tag
           const tag = htmlTags[Math.floor(Math.random() * htmlTags.length)];
@@ -373,133 +404,140 @@ describe('sanitizeHtml', () => {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
       }
-      
+
       return result;
     };
 
-    it('should handle random HTML input without crashing (fuzz test)', () => {
+    it("should handle random HTML input without crashing (fuzz test)", () => {
       // Run multiple iterations with different random inputs
       for (let i = 0; i < 50; i++) {
-        const randomHtml = generateRandomHtml(Math.floor(Math.random() * 1000) + 100);
-        
+        const randomHtml = generateRandomHtml(
+          Math.floor(Math.random() * 1000) + 100,
+        );
+
         expect(() => {
           const result = sanitizeHtml(randomHtml);
-          expect(typeof result).toBe('string');
+          expect(typeof result).toBe("string");
         }).not.toThrow();
       }
     });
 
-    it('should handle malformed tags and attributes (fuzz test)', () => {
+    it("should handle malformed tags and attributes (fuzz test)", () => {
       const malformedInputs = [
         '<div onclick="alert(1)" class=><p>test</div>',
-        '<script src= >alert(1)</script>',
+        "<script src= >alert(1)</script>",
         '<img onerror=alert(1) src="">',
-        '<div onclick=alert(1)>test',
-        '<><><>test<><><>',
+        "<div onclick=alert(1)>test",
+        "<><><>test<><><>",
         '<div class="test onclick="evil()">content</div>',
-        '<script>alert(1)<script>alert(2)</script>',
-        '<<<div>>>test<<</div>>>',
-        '<div onclick=alert(1) onclick=alert(2)>test</div>'
+        "<script>alert(1)<script>alert(2)</script>",
+        "<<<div>>>test<<</div>>>",
+        "<div onclick=alert(1) onclick=alert(2)>test</div>",
       ];
 
-      malformedInputs.forEach((input, index) => {
+      malformedInputs.forEach((input, _index) => {
         expect(() => {
-          const result = sanitizeHtml(input);
-          expect(typeof result).toBe('string');
+          const _result = sanitizeHtml(input);
+          expect(typeof _result).toBe("string");
           // Should not contain dangerous patterns
-          expect(result).not.toContain('alert(');
+          expect(_result).not.toContain("alert(");
         }).not.toThrow();
       });
     });
 
-    it('should handle extremely long inputs (stress test)', () => {
+    it("should handle extremely long inputs (stress test)", () => {
       const longInput = generateRandomHtml(10000);
-      
+
       const start = Date.now();
       expect(() => {
         const result = sanitizeHtml(longInput);
-        expect(typeof result).toBe('string');
+        expect(typeof result).toBe("string");
       }).not.toThrow();
       const duration = Date.now() - start;
-      
+
       // Should complete within reasonable time
       expect(duration).toBeLessThan(5000);
     });
 
-    it('should handle inputs with many nested elements (DoS prevention)', () => {
+    it("should handle inputs with many nested elements (DoS prevention)", () => {
       // Generate deeply nested structure
-      let deepInput = '';
+      let deepInput = "";
       const maxDepth = 500;
-      
+
       for (let i = 0; i < maxDepth; i++) {
-        deepInput += '<div>';
+        deepInput += "<div>";
       }
-      deepInput += 'content';
+      deepInput += "content";
       for (let i = 0; i < maxDepth; i++) {
-        deepInput += '</div>';
+        deepInput += "</div>";
       }
 
       expect(() => {
         const result = sanitizeHtml(deepInput);
-        expect(typeof result).toBe('string');
+        expect(typeof result).toBe("string");
       }).not.toThrow();
     });
 
-    it('should handle Unicode edge cases (fuzzing)', () => {
+    it("should handle Unicode edge cases (fuzzing)", () => {
       const unicodeRanges = [
-        [0x0000, 0x007F], // Basic Latin
-        [0x0080, 0x00FF], // Latin-1 Supplement
-        [0x4E00, 0x9FFF], // CJK Unified Ideographs
-        [0x1F600, 0x1F64F], // Emoticons
-        [0xFFF0, 0xFFFF], // Specials
+        [0x0000, 0x007f], // Basic Latin
+        [0x0080, 0x00ff], // Latin-1 Supplement
+        [0x4e00, 0x9fff], // CJK Unified Ideographs
+        [0x1f600, 0x1f64f], // Emoticons
+        [0xfff0, 0xffff], // Specials
       ];
 
       for (let i = 0; i < 20; i++) {
-        let unicodeInput = '<div>';
-        
+        let unicodeInput = "<div>";
+
         // Add random Unicode characters
         for (let j = 0; j < 100; j++) {
-          const range = unicodeRanges[Math.floor(Math.random() * unicodeRanges.length)];
-          const codePoint = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+          const range =
+            unicodeRanges[Math.floor(Math.random() * unicodeRanges.length)];
+          const codePoint =
+            Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
           unicodeInput += String.fromCodePoint(codePoint);
         }
-        
-        unicodeInput += '</div>';
+
+        unicodeInput += "</div>";
 
         expect(() => {
           const result = sanitizeHtml(unicodeInput);
-          expect(typeof result).toBe('string');
+          expect(typeof result).toBe("string");
         }).not.toThrow();
       }
     });
 
-    it('should handle binary and control characters', () => {
-      const binaryInput = '<div>' + String.fromCharCode(0, 1, 2, 3, 8, 9, 10, 13, 27, 127) + '</div>';
-      
+    it("should handle binary and control characters", () => {
+      const binaryInput =
+        "<div>" +
+        String.fromCharCode(0, 1, 2, 3, 8, 9, 10, 13, 27, 127) +
+        "</div>";
+
       expect(() => {
         const result = sanitizeHtml(binaryInput);
-        expect(typeof result).toBe('string');
+        expect(typeof result).toBe("string");
       }).not.toThrow();
     });
 
-    it('should handle various encoding attacks (fuzzing)', () => {
+    it("should handle various encoding attacks (fuzzing)", () => {
       const encodingAttacks = [
-        '<div>%3Cscript%3Ealert(1)%3C/script%3E</div>',
-        '<div>&#60;script&#62;alert(1)&#60;/script&#62;</div>',
-        '<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>',
-        '<div>\\u003cscript\\u003ealert(1)\\u003c/script\\u003e</div>',
-        '<div onclick="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">test</div>'
+        "<div>%3Cscript%3Ealert(1)%3C/script%3E</div>",
+        "<div>&#60;script&#62;alert(1)&#60;/script&#62;</div>",
+        "<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>",
+        "<div>\\u003cscript\\u003ealert(1)\\u003c/script\\u003e</div>",
+        '<div onclick="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">test</div>',
       ];
 
-      encodingAttacks.forEach(attack => {
+      encodingAttacks.forEach((attack) => {
         expect(() => {
-          const result = sanitizeHtml(attack);
-          expect(typeof result).toBe('string');
+          const _result = sanitizeHtml(attack);
+          expect(typeof _result).toBe("string");
         }).not.toThrow();
       });
     });
 
-    it('should maintain performance under random input load', () => {
+    it("should maintain performance under random input load", () => {
       const iterations = 100;
       const times: number[] = [];
 

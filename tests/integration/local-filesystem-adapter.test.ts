@@ -1,15 +1,12 @@
-import { LocalFilesystemAdapter } from '../../src/background/cloud-adapters/local-filesystem-adapter';
-import { TextSnippet } from '../../src/shared/types';
+import { LocalFilesystemAdapter } from "../../src/background/cloud-adapters/local-filesystem-adapter";
 
-describe('LocalFilesystemAdapter Integration', () => {
-  let adapter: LocalFilesystemAdapter;
-
+describe("LocalFilesystemAdapter Integration", () => {
   beforeEach(() => {
-    adapter = new LocalFilesystemAdapter();
+    new LocalFilesystemAdapter();
     // Mock File System Access API calls here if running in a non-browser environment
   });
 
-  test.skip('should select a folder and persist handle', async () => {
+  test.skip("should select a folder and persist handle", async () => {
     // Mock window.showDirectoryPicker
     // const mockHandle = { name: 'test-folder', queryPermission: jest.fn().mockResolvedValue('granted'), requestPermission: jest.fn().mockResolvedValue('granted') };
     // jest.spyOn(window, 'showDirectoryPicker').mockResolvedValue(mockHandle as any);
@@ -18,7 +15,7 @@ describe('LocalFilesystemAdapter Integration', () => {
     // expect(await adapter.isAuthenticated()).toBe(true);
   });
 
-  test.skip('should upload and download snippets', async () => {
+  test.skip("should upload and download snippets", async () => {
     // Requires a selected folder
     // const mockSnippets: TextSnippet[] = [
     //   { id: '1', trigger: ';test', content: 'Test content', createdAt: new Date(), updatedAt: new Date() }
@@ -28,11 +25,11 @@ describe('LocalFilesystemAdapter Integration', () => {
     // expect(downloadedSnippets).toEqual(mockSnippets);
   });
 
-  test.skip('should handle changes based on file modification time', async () => {
+  test.skip("should handle changes based on file modification time", async () => {
     // Simulate file changes and check listChanges
   });
 
-  test.skip('should handle errors gracefully', async () => {
+  test.skip("should handle errors gracefully", async () => {
     // Test error scenarios
   });
 });

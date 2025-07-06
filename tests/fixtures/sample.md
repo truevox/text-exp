@@ -9,6 +9,7 @@ scope: "personal"
 isActive: true
 priority: 0
 ---
+
 # {projectName}
 
 ## Description
@@ -24,7 +25,7 @@ npm install {projectName}
 ## Usage
 
 ```javascript
-const {projectName} = require('{projectName}');
+const { projectName } = require("{projectName}");
 ```
 
 ## Features

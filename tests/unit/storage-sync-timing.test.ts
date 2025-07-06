@@ -1,30 +1,37 @@
-import { SyncManager } from '../../src/background/sync-manager';
-import { ExtensionStorage } from '../../src/shared/storage';
-import { IndexedDB } from '../../src/shared/indexed-db';
-import { MultiScopeSyncManager } from '../../src/background/multi-scope-sync-manager';
-import { notifyContentScriptsOfSnippetUpdate } from '../../src/background/messaging-helpers';
+import { SyncManager } from "../../src/background/sync-manager";
+import { ExtensionStorage } from "../../src/shared/storage";
+import { IndexedDB } from "../../src/shared/indexed-db";
+import { MultiScopeSyncManager } from "../../src/background/multi-scope-sync-manager";
+import { notifyContentScriptsOfSnippetUpdate } from "../../src/background/messaging-helpers";
 
 // Mock dependencies
-jest.mock('../../src/shared/storage');
-jest.mock('../../src/shared/indexed-db');
-jest.mock('../../src/background/multi-scope-sync-manager');
-jest.mock('../../src/background/messaging-helpers');
+jest.mock("../../src/shared/storage");
+jest.mock("../../src/shared/indexed-db");
+jest.mock("../../src/background/multi-scope-sync-manager");
+jest.mock("../../src/background/messaging-helpers");
 
-describe('Storage Synchronization Timing', () => {
+describe("Storage Synchronization Timing", () => {
   let syncManager: SyncManager;
   let mockExtensionStorage: jest.Mocked<typeof ExtensionStorage>;
   let mockIndexedDB: jest.Mocked<IndexedDB>;
   let mockMultiScopeSyncManager: jest.Mocked<MultiScopeSyncManager>;
-  let mockNotify: jest.MockedFunction<typeof notifyContentScriptsOfSnippetUpdate>;
+  let mockNotify: jest.MockedFunction<
+    typeof notifyContentScriptsOfSnippetUpdate
+  >;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    
-    mockExtensionStorage = ExtensionStorage as jest.Mocked<typeof ExtensionStorage>;
+
+    mockExtensionStorage = ExtensionStorage as jest.Mocked<
+      typeof ExtensionStorage
+    >;
     mockIndexedDB = new IndexedDB() as jest.Mocked<IndexedDB>;
-    mockMultiScopeSyncManager = new MultiScopeSyncManager() as jest.Mocked<MultiScopeSyncManager>;
-    mockNotify = notifyContentScriptsOfSnippetUpdate as jest.MockedFunction<typeof notifyContentScriptsOfSnippetUpdate>;
+    mockMultiScopeSyncManager =
+      new MultiScopeSyncManager() as jest.Mocked<MultiScopeSyncManager>;
+    mockNotify = notifyContentScriptsOfSnippetUpdate as jest.MockedFunction<
+      typeof notifyContentScriptsOfSnippetUpdate
+    >;
 
     // Mock successful operations
     mockExtensionStorage.setSnippets.mockResolvedValue(undefined);
@@ -39,37 +46,37 @@ describe('Storage Synchronization Timing', () => {
     (syncManager as any).multiScopeSyncManager = mockMultiScopeSyncManager;
   });
 
-  it('should update IndexedDB before notifying content scripts', async () => {
+  it("should update IndexedDB before notifying content scripts", async () => {
     // Setup: Mock successful sync data
     const mockSnippets = [
-      { 
-        id: 'test-1',
-        trigger: 'eata', 
-        content: 'Bag of Dicks!!',
+      {
+        id: "test-1",
+        trigger: "eata",
+        content: "Bag of Dicks!!",
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
 
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
     mockExtensionStorage.getScopedSources.mockResolvedValue([]);
-    
+
     // Mock multiScopeSyncManager to return test data
     mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue(mockSnippets);
 
     // Track call order
     const callOrder: string[] = [];
-    
+
     mockExtensionStorage.setSnippets.mockImplementation(async () => {
-      callOrder.push('chrome.storage.local');
+      callOrder.push("chrome.storage.local");
     });
-    
+
     mockIndexedDB.saveSnippets.mockImplementation(async () => {
-      callOrder.push('IndexedDB');
+      callOrder.push("IndexedDB");
     });
-    
+
     mockNotify.mockImplementation(async () => {
-      callOrder.push('notify-content-scripts');
+      callOrder.push("notify-content-scripts");
     });
 
     // Execute sync
@@ -77,9 +84,9 @@ describe('Storage Synchronization Timing', () => {
 
     // Verify call order: chrome.storage.local → IndexedDB → notify
     expect(callOrder).toEqual([
-      'chrome.storage.local',
-      'IndexedDB', 
-      'notify-content-scripts'
+      "chrome.storage.local",
+      "IndexedDB",
+      "notify-content-scripts",
     ]);
 
     // Verify all operations were called
@@ -88,36 +95,36 @@ describe('Storage Synchronization Timing', () => {
     expect(mockNotify).toHaveBeenCalled();
   });
 
-  it('should not notify content scripts if IndexedDB update fails', async () => {
+  it("should not notify content scripts if IndexedDB update fails", async () => {
     // Setup: IndexedDB fails
     mockExtensionStorage.setSnippets.mockResolvedValue(undefined);
-    mockIndexedDB.saveSnippets.mockRejectedValue(new Error('IndexedDB failed'));
+    mockIndexedDB.saveSnippets.mockRejectedValue(new Error("IndexedDB failed"));
 
     const mockSnippets = [
-      { 
-        id: 'test-2',
-        trigger: 'eata', 
-        content: 'Bag of Dicks!!',
+      {
+        id: "test-2",
+        trigger: "eata",
+        content: "Bag of Dicks!!",
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
 
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
     mockExtensionStorage.getScopedSources.mockResolvedValue([]);
-    
+
     // Mock multiScopeSyncManager to return test data
     mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue(mockSnippets);
 
     // Execute sync and expect it to throw
-    await expect(syncManager.syncNow()).rejects.toThrow('IndexedDB failed');
+    await expect(syncManager.syncNow()).rejects.toThrow("IndexedDB failed");
 
     // Verify chrome.storage.local was updated
     expect(mockExtensionStorage.setSnippets).toHaveBeenCalledWith(mockSnippets);
-    
+
     // Verify IndexedDB was attempted
     expect(mockIndexedDB.saveSnippets).toHaveBeenCalledWith(mockSnippets);
-    
+
     // Verify content scripts were NOT notified due to IndexedDB failure
     expect(mockNotify).not.toHaveBeenCalled();
   });
