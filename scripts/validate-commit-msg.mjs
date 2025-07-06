@@ -8,13 +8,18 @@ if (!commitMsgFile) {
 
 const commitMsg = fs.readFileSync(commitMsgFile, "utf-8").trim();
 
+// Split commit message into title and body
+const lines = commitMsg.split("\n");
+const title = lines[0].trim();
+
 // Regex to match the format: :emoji: Category, TC: 00.0%
 // This regex is simplified to check for any character at the start for the emoji,
 // as a full emoji regex can be complex and vary between platforms.
 const commitRegex =
   /^(.) [A-Z][a-z]+, TC: (100(\.\d{1,2})?|\d{1,2}(\.\d{1,2})?)%$/;
 
-if (!commitRegex.test(commitMsg)) {
+// Only validate the title line, allow detailed body
+if (!commitRegex.test(title)) {
   console.error(`\n\x1b[31m[INVALID COMMIT MESSAGE]\x1b[0m`);
   console.error(`------------------------`);
   console.error(`Your commit message does not follow the required format.`);
