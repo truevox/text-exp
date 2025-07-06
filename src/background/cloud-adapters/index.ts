@@ -3,10 +3,14 @@
  * Centralized management of cloud storage adapters
  */
 
-import type { CloudAdapter, CloudProvider, CloudAdapterFactory } from '../../shared/types.js';
-import { GoogleDriveAdapter } from './google-drive-adapter.js';
-import { DropboxAdapter } from './dropbox-adapter.js';
-import { OneDriveAdapter } from './onedrive-adapter.js';
+import type {
+  CloudAdapter,
+  CloudProvider,
+  CloudAdapterFactory,
+} from "../../shared/types.js";
+import { GoogleDriveAdapter } from "./google-drive-adapter.js";
+import { DropboxAdapter } from "./dropbox-adapter.js";
+import { OneDriveAdapter } from "./onedrive-adapter.js";
 
 /**
  * Factory class for creating cloud adapters
@@ -34,11 +38,11 @@ export class CloudAdapterFactoryImpl implements CloudAdapterFactory {
    */
   createAdapter(provider: CloudProvider): CloudAdapter {
     const adapterFactory = this.adapters.get(provider);
-    
+
     if (!adapterFactory) {
       throw new Error(`Unsupported cloud provider: ${provider}`);
     }
-    
+
     return adapterFactory();
   }
 
@@ -74,12 +78,12 @@ export class CloudAdapterFactoryImpl implements CloudAdapterFactory {
    * Register built-in adapters
    */
   private registerAdapters(): void {
-    this.adapters.set('google-drive', () => new GoogleDriveAdapter());
-    this.adapters.set('dropbox', () => new DropboxAdapter());
-    this.adapters.set('onedrive', () => new OneDriveAdapter());
-    
+    this.adapters.set("google-drive", () => new GoogleDriveAdapter());
+    this.adapters.set("dropbox", () => new DropboxAdapter());
+    this.adapters.set("onedrive", () => new OneDriveAdapter());
+
     // Local storage is handled by the extension's built-in storage
-    this.adapters.set('local', () => new LocalStorageAdapter());
+    this.adapters.set("local", () => new LocalStorageAdapter());
   }
 }
 
@@ -87,7 +91,7 @@ export class CloudAdapterFactoryImpl implements CloudAdapterFactory {
  * Local storage adapter (no cloud sync)
  */
 class LocalStorageAdapter implements CloudAdapter {
-  readonly provider = 'local' as const;
+  readonly provider = "local" as const;
 
   async initialize(): Promise<void> {
     // No initialization needed for local storage
@@ -100,8 +104,8 @@ class LocalStorageAdapter implements CloudAdapter {
   async authenticate(): Promise<any> {
     return {
       provider: this.provider,
-      accessToken: 'local',
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+      accessToken: "local",
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
     };
   }
 
@@ -126,7 +130,7 @@ class LocalStorageAdapter implements CloudAdapter {
       provider: this.provider,
       lastSync: new Date(),
       isOnline: true,
-      hasChanges: false
+      hasChanges: false,
     };
   }
 }

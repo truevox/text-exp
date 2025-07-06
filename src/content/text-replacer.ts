@@ -3,27 +3,32 @@
  * Handles the actual replacement of trigger text with expanded content
  */
 
-import type { ReplacementContext } from '../shared/types.js';
-import { ImageProcessor } from '../background/image-processor.js';
-import { sanitizeHtml } from '../shared/sanitizer.js';
+import type { ReplacementContext } from "../shared/types.js";
+import { ImageProcessor } from "../background/image-processor.js";
+import { sanitizeHtml } from "../shared/sanitizer.js";
 
 /**
  * Handles text replacement in various input types
  */
 export class TextReplacer {
   private imageProcessor: ImageProcessor;
-  private _lastReplacement: { element: HTMLElement; originalText: string; originalSelectionStart: number; originalSelectionEnd: number } | null = null;
+  private _lastReplacement: {
+    element: HTMLElement;
+    originalText: string;
+    originalSelectionStart: number;
+    originalSelectionEnd: number;
+  } | null = null;
 
   constructor(imageProcessor: ImageProcessor) {
     this.imageProcessor = imageProcessor;
   }
-  
+
   /**
    * Replace text in the given context
    */
   replaceText(context: ReplacementContext, newText: string): void {
     const { element, startOffset, endOffset } = context;
-    
+
     try {
       // Save current state for undo
       if (this.isFormInput(element)) {
@@ -40,7 +45,7 @@ export class TextReplacer {
           const range = selection.getRangeAt(0);
           this._lastReplacement = {
             element: element,
-            originalText: element.textContent || '',
+            originalText: element.textContent || "",
             originalSelectionStart: range.startOffset,
             originalSelectionEnd: range.endOffset,
           };
@@ -48,18 +53,22 @@ export class TextReplacer {
       }
 
       if (this.isFormInput(element)) {
-        this.replaceInFormInput(element as HTMLInputElement | HTMLTextAreaElement, startOffset, endOffset, newText);
+        this.replaceInFormInput(
+          element as HTMLInputElement | HTMLTextAreaElement,
+          startOffset,
+          endOffset,
+          newText,
+        );
       } else if (this.isContentEditable(element)) {
         this.replaceInContentEditable(element, startOffset, endOffset, newText);
       } else {
-        console.warn('Unsupported element type for text replacement');
+        console.warn("Unsupported element type for text replacement");
       }
-      
+
       // Trigger input event to notify other scripts
       this.triggerInputEvent(element);
-      
     } catch (error) {
-      console.error('Error replacing text:', error);
+      console.error("Error replacing text:", error);
     }
   }
 
@@ -70,22 +79,22 @@ export class TextReplacer {
     element: HTMLInputElement | HTMLTextAreaElement,
     startOffset: number,
     endOffset: number,
-    newText: string
+    newText: string,
   ): void {
     const currentValue = element.value;
     const beforeText = currentValue.substring(0, startOffset);
     const afterText = currentValue.substring(endOffset);
-    
+
     // Create new value
     const newValue = beforeText + newText + afterText;
-    
+
     // Update the input value
     element.value = newValue;
-    
+
     // Set cursor position after the inserted text
     const newCursorPosition = startOffset + newText.length;
     element.setSelectionRange(newCursorPosition, newCursorPosition);
-    
+
     // Focus the element to ensure cursor is visible
     element.focus();
   }
@@ -97,28 +106,28 @@ export class TextReplacer {
     element: HTMLElement,
     startOffset: number,
     endOffset: number,
-    newText: string
+    newText: string,
   ): void {
     const selection = window.getSelection();
     if (!selection) return;
-    
+
     // Create a range for the text to replace
     const range = this.createRangeFromOffsets(element, startOffset, endOffset);
     if (!range) return;
-    
+
     // Select the range
     selection.removeAllRanges();
     selection.addRange(range);
-    
+
     // Replace the selected text
     if (selection.rangeCount > 0) {
       const selectedRange = selection.getRangeAt(0);
       selectedRange.deleteContents();
-      
+
       // Insert new text
       const textNode = document.createTextNode(newText);
       selectedRange.insertNode(textNode);
-      
+
       // Position cursor after inserted text
       selectedRange.setStartAfter(textNode);
       selectedRange.setEndAfter(textNode);
@@ -130,53 +139,56 @@ export class TextReplacer {
   /**
    * Create a range from text offsets in a contenteditable element
    */
-  private createRangeFromOffsets(element: HTMLElement, startOffset: number, endOffset: number): Range | null {
+  private createRangeFromOffsets(
+    element: HTMLElement,
+    startOffset: number,
+    endOffset: number,
+  ): Range | null {
     const range = document.createRange();
     let currentOffset = 0;
-    
+
     const walker = document.createTreeWalker(
       element,
       NodeFilter.SHOW_TEXT,
       null,
-      false
     );
-    
+
     let startNode: Node | null = null;
     let endNode: Node | null = null;
     let startNodeOffset = 0;
     let endNodeOffset = 0;
-    
+
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       const nodeLength = node.textContent?.length || 0;
-      
+
       // Find start position
       if (!startNode && currentOffset + nodeLength >= startOffset) {
         startNode = node;
         startNodeOffset = startOffset - currentOffset;
       }
-      
+
       // Find end position
       if (!endNode && currentOffset + nodeLength >= endOffset) {
         endNode = node;
         endNodeOffset = endOffset - currentOffset;
         break;
       }
-      
+
       currentOffset += nodeLength;
     }
-    
+
     if (startNode && endNode) {
       try {
         range.setStart(startNode, startNodeOffset);
         range.setEnd(endNode, endNodeOffset);
         return range;
       } catch (error) {
-        console.error('Error creating range:', error);
+        console.error("Error creating range:", error);
         return null;
       }
     }
-    
+
     return null;
   }
 
@@ -188,21 +200,23 @@ export class TextReplacer {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
       const cursorPosition = input.selectionStart || 0;
       const currentValue = input.value;
-      
-      const newValue = currentValue.substring(0, cursorPosition) + text + currentValue.substring(cursorPosition);
+
+      const newValue =
+        currentValue.substring(0, cursorPosition) +
+        text +
+        currentValue.substring(cursorPosition);
       input.value = newValue;
-      
+
       // Set cursor after inserted text
       const newPosition = cursorPosition + text.length;
       input.setSelectionRange(newPosition, newPosition);
-      
     } else if (this.isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         const textNode = document.createTextNode(text);
         range.insertNode(textNode);
-        
+
         // Move cursor after inserted text
         range.setStartAfter(textNode);
         range.setEndAfter(textNode);
@@ -210,7 +224,7 @@ export class TextReplacer {
         selection.addRange(range);
       }
     }
-    
+
     this.triggerInputEvent(element);
   }
 
@@ -225,24 +239,29 @@ export class TextReplacer {
         range.deleteContents(); // Remove any selected text
 
         const sanitizedHtml = sanitizeHtml(html);
-        const div = document.createElement('div');
+        const div = document.createElement("div");
         div.innerHTML = sanitizedHtml;
 
         // Process images with indexeddb:// URLs
-        const images = div.querySelectorAll('img');
+        const images = div.querySelectorAll("img");
         images.forEach(async (img) => {
-          const src = img.getAttribute('src');
-          if (src && src.startsWith('indexeddb://')) {
-            const imageId = src.substring('indexeddb://'.length);
+          const src = img.getAttribute("src");
+          if (src && src.startsWith("indexeddb://")) {
+            const imageId = src.substring("indexeddb://".length);
             try {
-              const objectURL = await this.imageProcessor.retrieveImage(imageId);
+              const objectURL =
+                await this.imageProcessor.retrieveImage(imageId);
               if (objectURL) {
-                img.setAttribute('src', objectURL);
+                img.setAttribute("src", objectURL);
               } else {
                 img.remove(); // Remove if image not found in IndexedDB
               }
             } catch (error) {
-              console.error('Error retrieving image from IndexedDB:', imageId, error);
+              console.error(
+                "Error retrieving image from IndexedDB:",
+                imageId,
+                error,
+              );
               img.remove();
             }
           }
@@ -260,10 +279,12 @@ export class TextReplacer {
         range.setStartAfter(fragment);
         range.setEndAfter(fragment);
         selection.removeAllRanges();
-        selection.addRange(selectedRange);
+        selection.addRange(range);
       }
     } else {
-      console.warn('insertHtmlAtCursor only supported for contenteditable elements.');
+      console.warn(
+        "insertHtmlAtCursor only supported for contenteditable elements.",
+      );
     }
     this.triggerInputEvent(element);
   }
@@ -276,24 +297,26 @@ export class TextReplacer {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
       const start = input.selectionStart || 0;
       const end = input.selectionEnd || 0;
-      
+
       const currentValue = input.value;
-      const newValue = currentValue.substring(0, start) + newText + currentValue.substring(end);
+      const newValue =
+        currentValue.substring(0, start) +
+        newText +
+        currentValue.substring(end);
       input.value = newValue;
-      
+
       // Set cursor after replacement
       const newPosition = start + newText.length;
       input.setSelectionRange(newPosition, newPosition);
-      
     } else if (this.isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         range.deleteContents();
-        
+
         const textNode = document.createTextNode(newText);
         range.insertNode(textNode);
-        
+
         // Move cursor after replacement
         range.setStartAfter(textNode);
         range.setEndAfter(textNode);
@@ -301,7 +324,7 @@ export class TextReplacer {
         selection.addRange(range);
       }
     }
-    
+
     this.triggerInputEvent(element);
   }
 
@@ -316,9 +339,9 @@ export class TextReplacer {
       return input.value.substring(start, end);
     } else if (this.isContentEditable(element)) {
       const selection = window.getSelection();
-      return selection ? selection.toString() : '';
+      return selection ? selection.toString() : "";
     }
-    return '';
+    return "";
   }
 
   /**
@@ -326,14 +349,14 @@ export class TextReplacer {
    */
   private isFormInput(element: HTMLElement): boolean {
     const tagName = element.tagName.toLowerCase();
-    return tagName === 'input' || tagName === 'textarea';
+    return tagName === "input" || tagName === "textarea";
   }
 
   /**
    * Check if element is contenteditable
    */
   private isContentEditable(element: HTMLElement): boolean {
-    return element.contentEditable === 'true';
+    return element.contentEditable === "true";
   }
 
   /**
@@ -342,22 +365,22 @@ export class TextReplacer {
   private triggerInputEvent(element: HTMLElement): void {
     try {
       // Create and dispatch input event
-      const inputEvent = new Event('input', {
+      const inputEvent = new Event("input", {
         bubbles: true,
-        cancelable: true
+        cancelable: true,
       });
       element.dispatchEvent(inputEvent);
-      
+
       // Also trigger change event for form inputs
       if (this.isFormInput(element)) {
-        const changeEvent = new Event('change', {
+        const changeEvent = new Event("change", {
           bubbles: true,
-          cancelable: true
+          cancelable: true,
         });
         element.dispatchEvent(changeEvent);
       }
     } catch (error) {
-      console.error('Error triggering input event:', error);
+      console.error("Error triggering input event:", error);
     }
   }
 
@@ -366,16 +389,20 @@ export class TextReplacer {
    */
   undoLastReplacement(element: HTMLElement): void {
     if (!this._lastReplacement || this._lastReplacement.element !== element) {
-      console.warn('No last replacement to undo for this element.');
+      console.warn("No last replacement to undo for this element.");
       return;
     }
 
-    const { originalText, originalSelectionStart, originalSelectionEnd } = this._lastReplacement;
+    const { originalText, originalSelectionStart, originalSelectionEnd } =
+      this._lastReplacement;
 
     if (this.isFormInput(element)) {
       const inputElement = element as HTMLInputElement | HTMLTextAreaElement;
       inputElement.value = originalText;
-      inputElement.setSelectionRange(originalSelectionStart, originalSelectionEnd);
+      inputElement.setSelectionRange(
+        originalSelectionStart,
+        originalSelectionEnd,
+      );
     } else if (this.isContentEditable(element)) {
       element.textContent = originalText;
       // Restore selection (this might be tricky for complex contenteditable)
@@ -399,10 +426,10 @@ export class TextReplacer {
   clearText(element: HTMLElement): void {
     if (this.isFormInput(element)) {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
-      input.value = '';
+      input.value = "";
       input.setSelectionRange(0, 0);
     } else if (this.isContentEditable(element)) {
-      element.textContent = '';
+      element.textContent = "";
       // Set cursor to beginning
       const range = document.createRange();
       const selection = window.getSelection();
@@ -413,7 +440,7 @@ export class TextReplacer {
         selection.addRange(range);
       }
     }
-    
+
     this.triggerInputEvent(element);
   }
 
@@ -422,7 +449,9 @@ export class TextReplacer {
    */
   getCursorPosition(element: HTMLElement): number {
     if (this.isFormInput(element)) {
-      return (element as HTMLInputElement | HTMLTextAreaElement).selectionStart || 0;
+      return (
+        (element as HTMLInputElement | HTMLTextAreaElement).selectionStart || 0
+      );
     } else if (this.isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
@@ -446,19 +475,18 @@ export class TextReplacer {
     } else if (this.isContentEditable(element)) {
       const range = document.createRange();
       const selection = window.getSelection();
-      
+
       if (!selection) return;
-      
+
       let currentPosition = 0;
       const walker = document.createTreeWalker(
         element,
         NodeFilter.SHOW_TEXT,
         null,
-        false
       );
-      
+
       let node;
-      while (node = walker.nextNode()) {
+      while ((node = walker.nextNode())) {
         const nodeLength = node.textContent?.length || 0;
         if (currentPosition + nodeLength >= position) {
           range.setStart(node, position - currentPosition);
@@ -467,7 +495,7 @@ export class TextReplacer {
         }
         currentPosition += nodeLength;
       }
-      
+
       selection.removeAllRanges();
       selection.addRange(range);
     }

@@ -3,21 +3,19 @@
  * Handles personal, team, and org-level snippet sources with priority resolution
  */
 
-import type { 
-  ScopedSource, 
-  SnippetScope, 
-  CloudProvider, 
+import type {
+  ScopedSource,
+  SnippetScope,
   TextSnippet,
   CloudAdapter,
-  ConfiguredScopedSource // Import new type
-} from '../shared/types.js';
-import { ExtensionStorage } from '../shared/storage.js';
-import { getCloudAdapterFactory } from './cloud-adapters/index.js';
+} from "../shared/types.js";
+import { ExtensionStorage } from "../shared/storage.js";
+import { getCloudAdapterFactory } from "./cloud-adapters/index.js";
 
 /**
  * Priority order for scope resolution (higher index = higher priority)
  */
-const SCOPE_PRIORITY: SnippetScope[] = ['org', 'team', 'personal'];
+const SCOPE_PRIORITY: SnippetScope[] = ["org", "team", "personal"];
 
 /**
  * Manages multiple scoped snippet sources with conflict resolution
@@ -44,9 +42,12 @@ export class ScopedSourceManager {
    */
   async initialize(): Promise<void> {
     const storedSources = await ExtensionStorage.getScopedSources();
-    
+
     for (const source of storedSources) {
-      this.scopedSources.set(this.getSourceKey(source.scope, source.name), source);
+      this.scopedSources.set(
+        this.getSourceKey(source.scope, source.name),
+        source,
+      );
     }
   }
 
@@ -56,7 +57,7 @@ export class ScopedSourceManager {
   async addScopedSource(source: ScopedSource): Promise<void> {
     const key = this.getSourceKey(source.scope, source.name);
     this.scopedSources.set(key, source);
-    
+
     await this.saveScopedSources();
   }
 
@@ -67,7 +68,7 @@ export class ScopedSourceManager {
     const key = this.getSourceKey(scope, name);
     this.scopedSources.delete(key);
     this.adapters.delete(key);
-    
+
     await this.saveScopedSources();
   }
 
@@ -82,52 +83,59 @@ export class ScopedSourceManager {
    * Get scoped sources by scope
    */
   getScopedSourcesByScope(scope: SnippetScope): ScopedSource[] {
-    return this.getScopedSources().filter(source => source.scope === scope);
+    return this.getScopedSources().filter((source) => source.scope === scope);
   }
-
 
   /**
    * Sync all scoped sources and merge snippets with priority resolution
    */
   async syncAllSources(): Promise<TextSnippet[]> {
-    const allSnippets: Map<string, { snippet: TextSnippet; scope: SnippetScope }> = new Map();
-    
+    const allSnippets: Map<
+      string,
+      { snippet: TextSnippet; scope: SnippetScope }
+    > = new Map();
+
     // Load snippets from all sources
     for (const source of this.scopedSources.values()) {
       try {
         const adapter = await this.getAdapterForSource(source);
-        const snippets = await adapter.downloadSnippets();
-        
+        const snippets = await adapter.downloadSnippets(source.folderId || "");
+
         // Add snippets with scope information
         for (const snippet of snippets) {
           const existing = allSnippets.get(snippet.trigger);
-          
-          if (!existing || this.hasHigherPriority(source.scope, existing.scope)) {
+
+          if (
+            !existing ||
+            this.hasHigherPriority(source.scope, existing.scope)
+          ) {
             allSnippets.set(snippet.trigger, { snippet, scope: source.scope });
           }
         }
-        
+
         // Update last sync time
         source.lastSync = new Date();
-        
       } catch (error) {
-        console.error(`Failed to sync ${source.scope} source ${source.name}:`, error);
+        console.error(
+          `Failed to sync ${source.scope} source ${source.name}:`,
+          error,
+        );
       }
     }
-    
+
     // Save updated sources
     await this.saveScopedSources();
-    
+
     // Return merged snippets (priority already resolved)
-    const mergedSnippets = Array.from(allSnippets.values()).map(item => ({
+    const mergedSnippets = Array.from(allSnippets.values()).map((item) => ({
       ...item.snippet,
       // Add scope metadata to snippet for reference
-      scope: item.scope
+      scope: item.scope,
     })) as (TextSnippet & { scope: SnippetScope })[];
-    
+
     // Save merged snippets to local cache
     await ExtensionStorage.setSnippets(mergedSnippets);
-    
+
     return mergedSnippets;
   }
 
@@ -136,12 +144,12 @@ export class ScopedSourceManager {
    */
   async getAllTriggers(): Promise<string[]> {
     const triggers = new Set<string>();
-    
+
     for (const source of this.scopedSources.values()) {
       try {
         const adapter = await this.getAdapterForSource(source);
-        const snippets = await adapter.downloadSnippets();
-        
+        const snippets = await adapter.downloadSnippets(source.folderId || "");
+
         for (const snippet of snippets) {
           triggers.add(snippet.trigger);
         }
@@ -149,29 +157,34 @@ export class ScopedSourceManager {
         console.error(`Failed to get triggers from ${source.name}:`, error);
       }
     }
-    
+
     return Array.from(triggers);
   }
 
   /**
    * Add snippet to specific scope
    */
-  async addSnippetToScope(snippet: TextSnippet, scope: SnippetScope): Promise<void> {
+  async addSnippetToScope(
+    snippet: TextSnippet,
+    scope: SnippetScope,
+  ): Promise<void> {
     const scopeSources = this.getScopedSourcesByScope(scope);
-    
+
     if (scopeSources.length === 0) {
       throw new Error(`No ${scope} sources configured`);
     }
-    
+
     // Add to the first source of the specified scope
     const source = scopeSources[0];
     const adapter = await this.getAdapterForSource(source);
-    
-    const existingSnippets = await adapter.downloadSnippets();
+
+    const existingSnippets = await adapter.downloadSnippets(
+      source.folderId || "",
+    );
     const updatedSnippets = [...existingSnippets, snippet];
-    
+
     await adapter.uploadSnippets(updatedSnippets);
-    
+
     // Trigger a full sync to update merged snippets
     await this.syncAllSources();
   }
@@ -179,55 +192,78 @@ export class ScopedSourceManager {
   /**
    * Get sync status for all sources
    */
-  async getSyncStatus(): Promise<Record<string, { scope: SnippetScope; name: string; lastSync?: Date; snippetCount: number }>> {
-    const status: Record<string, { scope: SnippetScope; name: string; lastSync?: Date; snippetCount: number }> = {};
-    
+  async getSyncStatus(): Promise<
+    Record<
+      string,
+      {
+        scope: SnippetScope;
+        name: string;
+        lastSync?: Date;
+        snippetCount: number;
+      }
+    >
+  > {
+    const status: Record<
+      string,
+      {
+        scope: SnippetScope;
+        name: string;
+        lastSync?: Date;
+        snippetCount: number;
+      }
+    > = {};
+
     for (const source of this.scopedSources.values()) {
       try {
         const adapter = await this.getAdapterForSource(source);
-        const snippets = await adapter.downloadSnippets();
-        
+        const snippets = await adapter.downloadSnippets(source.folderId || "");
+
         status[this.getSourceKey(source.scope, source.name)] = {
           scope: source.scope,
           name: source.displayName,
           lastSync: source.lastSync,
-          snippetCount: snippets.length
+          snippetCount: snippets.length,
         };
       } catch (error) {
         status[this.getSourceKey(source.scope, source.name)] = {
           scope: source.scope,
           name: source.displayName,
           lastSync: source.lastSync,
-          snippetCount: 0
+          snippetCount: 0,
         };
       }
     }
-    
+
     return status;
   }
 
   /**
    * Get adapter for a scoped source
    */
-  private async getAdapterForSource(source: ScopedSource): Promise<CloudAdapter> {
+  private async getAdapterForSource(
+    source: ScopedSource,
+  ): Promise<CloudAdapter> {
     const key = this.getSourceKey(source.scope, source.name);
-    
+
     if (!this.adapters.has(key)) {
       const factory = getCloudAdapterFactory();
       const adapter = factory.createAdapter(source.provider);
-      
+
       // Initialize adapter with stored credentials if needed
-      
+
       this.adapters.set(key, adapter);
     }
-    
+
     return this.adapters.get(key)!;
   }
 
   /**
    * Check if scope A has higher priority than scope B
    */
-  private hasHigherPriority(scopeA: SnippetScope, scopeB: SnippetScope): boolean {
+  private hasHigherPriority(
+    scopeA: SnippetScope,
+    scopeB: SnippetScope,
+  ): boolean {
     const priorityA = SCOPE_PRIORITY.indexOf(scopeA);
     const priorityB = SCOPE_PRIORITY.indexOf(scopeB);
     return priorityA > priorityB;

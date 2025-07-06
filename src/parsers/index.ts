@@ -3,13 +3,18 @@
  * Provides a single entry point for all format parsing operations
  */
 
-import { JSONParser } from './json.js';
-import { TxtParser } from './txt.js';
-import { MarkdownParser } from './md.js';
-import { HTMLParser } from './html.js';
-import { LaTeXParser } from './tex.js';
-import { detectFormat, type SnippetFormat } from '../utils/detectFormat.js';
-import type { FormatParser, SnippetDoc, ParseOptions, SerializeOptions } from '../types/snippet-formats.js';
+import { JSONParser } from "./json.js";
+import { TxtParser } from "./txt.js";
+import { MarkdownParser } from "./md.js";
+import { HTMLParser } from "./html.js";
+import { LaTeXParser } from "./tex.js";
+import { detectFormat, type SnippetFormat } from "../utils/detectFormat.js";
+import type {
+  FormatParser,
+  SnippetDoc,
+  ParseOptions,
+  SerializeOptions,
+} from "../types/snippet-formats.js";
 
 /**
  * Parser factory and unified interface for all snippet formats
@@ -19,12 +24,12 @@ export class MultiFormatParser {
 
   constructor() {
     this.parsers = new Map([
-      ['json', new JSONParser()],
-      ['txt', new TxtParser()],
-      ['md', new MarkdownParser()],
-      ['html', new HTMLParser()],
-      ['tex', new LaTeXParser()]
-    ]);
+      ["json", new JSONParser()],
+      ["txt", new TxtParser()],
+      ["md", new MarkdownParser()],
+      ["html", new HTMLParser()],
+      ["tex", new LaTeXParser()],
+    ] as Array<[SnippetFormat, FormatParser]>);
   }
 
   /**
@@ -34,8 +39,12 @@ export class MultiFormatParser {
    * @param options - Parse options
    * @returns Parsed snippet document(s)
    */
-  parse(content: string, fileName?: string, options: ParseOptions = {}): SnippetDoc | SnippetDoc[] {
-    const format = detectFormat(fileName || '', content);
+  parse(
+    content: string,
+    fileName?: string,
+    options: ParseOptions = {},
+  ): SnippetDoc | SnippetDoc[] {
+    const format = detectFormat(fileName || "", content);
     return this.parseAs(content, format, fileName, options);
   }
 
@@ -47,16 +56,23 @@ export class MultiFormatParser {
    * @param options - Parse options
    * @returns Parsed snippet document(s)
    */
-  parseAs(content: string, format: SnippetFormat, fileName?: string, options: ParseOptions = {}): SnippetDoc | SnippetDoc[] {
+  parseAs(
+    content: string,
+    format: SnippetFormat,
+    fileName?: string,
+    _options: ParseOptions = {},
+  ): SnippetDoc | SnippetDoc[] {
     const parser = this.getParser(format);
     if (!parser) {
       throw new Error(`No parser available for format: ${format}`);
     }
 
     try {
-      return parser.parse(content, fileName, options);
+      return parser.parse(content, fileName);
     } catch (error) {
-      throw new Error(`Failed to parse ${format} content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to parse ${format} content: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -67,23 +83,33 @@ export class MultiFormatParser {
    * @param options - Serialization options
    * @returns Serialized string content
    */
-  serialize(docs: SnippetDoc | SnippetDoc[], format?: SnippetFormat, options: SerializeOptions = {}): string {
-    const targetFormat = format || (Array.isArray(docs) ? docs[0]?.format : docs.format) || 'json';
+  serialize(
+    docs: SnippetDoc | SnippetDoc[],
+    format?: SnippetFormat,
+    _options: SerializeOptions = {},
+  ): string {
+    const targetFormat =
+      format || (Array.isArray(docs) ? docs[0]?.format : docs.format) || "json";
     const parser = this.getParser(targetFormat);
-    
+
     if (!parser) {
       throw new Error(`No parser available for format: ${targetFormat}`);
     }
 
     try {
       // If converting between formats, convert the documents first
-      if (format && format !== (Array.isArray(docs) ? docs[0]?.format : docs.format)) {
+      if (
+        format &&
+        format !== (Array.isArray(docs) ? docs[0]?.format : docs.format)
+      ) {
         docs = this.convertFormat(docs, format);
       }
 
-      return parser.serialize(docs, options);
+      return parser.serialize(docs);
     } catch (error) {
-      throw new Error(`Failed to serialize ${targetFormat} content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to serialize ${targetFormat} content: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -93,12 +119,15 @@ export class MultiFormatParser {
    * @param format - The format to validate against
    * @returns Validation result
    */
-  validate(content: string, format: SnippetFormat): { valid: boolean; errors: string[] } {
+  validate(
+    content: string,
+    format: SnippetFormat,
+  ): { valid: boolean; errors: string[] } {
     const parser = this.getParser(format);
     if (!parser) {
       return {
         valid: false,
-        errors: [`No parser available for format: ${format}`]
+        errors: [`No parser available for format: ${format}`],
       };
     }
 
@@ -111,16 +140,19 @@ export class MultiFormatParser {
    * @param targetFormat - The target format
    * @returns Converted document(s)
    */
-  convertFormat(docs: SnippetDoc | SnippetDoc[], targetFormat: SnippetFormat): SnippetDoc | SnippetDoc[] {
+  convertFormat(
+    docs: SnippetDoc | SnippetDoc[],
+    targetFormat: SnippetFormat,
+  ): SnippetDoc | SnippetDoc[] {
     const docsArray = Array.isArray(docs) ? docs : [docs];
-    const convertedDocs = docsArray.map(doc => ({
+    const convertedDocs = docsArray.map((doc) => ({
       ...doc,
       format: targetFormat,
       // Update content type if needed
       meta: {
         ...doc.meta,
-        contentType: this.getContentTypeForFormat(targetFormat)
-      }
+        contentType: this.getContentTypeForFormat(targetFormat),
+      },
     }));
 
     return Array.isArray(docs) ? convertedDocs : convertedDocs[0];
@@ -167,7 +199,7 @@ export class MultiFormatParser {
    * @returns Detected format
    */
   detectFormat(content: string, fileName?: string): SnippetFormat {
-    return detectFormat(fileName || '', content);
+    return detectFormat(fileName || "", content);
   }
 
   /**
@@ -176,7 +208,10 @@ export class MultiFormatParser {
    * @param options - Parse options
    * @returns Array of parsed documents
    */
-  parseMultiple(files: Array<{ content: string; fileName?: string }>, options: ParseOptions = {}): SnippetDoc[] {
+  parseMultiple(
+    files: Array<{ content: string; fileName?: string }>,
+    options: ParseOptions = {},
+  ): SnippetDoc[] {
     const results: SnippetDoc[] = [];
 
     for (const file of files) {
@@ -188,7 +223,9 @@ export class MultiFormatParser {
           results.push(parsed);
         }
       } catch (error) {
-        console.warn(`Failed to parse file ${file.fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.warn(
+          `Failed to parse file ${file.fileName}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
         // Continue with other files
       }
     }
@@ -201,38 +238,41 @@ export class MultiFormatParser {
    * @param files - Array of file objects with content and format
    * @returns Validation results for each file
    */
-  validateMultiple(files: Array<{ content: string; format: SnippetFormat; fileName?: string }>): Array<{ fileName?: string; valid: boolean; errors: string[] }> {
-    return files.map(file => ({
+  validateMultiple(
+    files: Array<{ content: string; format: SnippetFormat; fileName?: string }>,
+  ): Array<{ fileName?: string; valid: boolean; errors: string[] }> {
+    return files.map((file) => ({
       fileName: file.fileName,
-      ...this.validate(file.content, file.format)
+      ...this.validate(file.content, file.format),
     }));
   }
 
-  private getContentTypeForFormat(format: SnippetFormat): "plainText" | "markdown" | "html" | "latex" {
+  private getContentTypeForFormat(
+    format: SnippetFormat,
+  ): "plainText" | "markdown" | "html" | "latex" {
     switch (format) {
-      case 'json':
-        return 'plainText';
-      case 'txt':
-        return 'plainText';
-      case 'md':
-        return 'markdown';
-      case 'html':
-        return 'html';
-      case 'tex':
-        return 'latex';
+      case "json":
+        return "plainText";
+      case "txt":
+        return "plainText";
+      case "md":
+        return "markdown";
+      case "html":
+        return "html";
+      case "tex":
+        return "latex";
       default:
-        return 'plainText';
+        return "plainText";
     }
   }
-
 }
 
 // Export individual parsers
-export { JSONParser } from './json.js';
-export { TxtParser } from './txt.js';
-export { MarkdownParser } from './md.js';
-export { HTMLParser } from './html.js';
-export { LaTeXParser } from './tex.js';
+export { JSONParser } from "./json.js";
+export { TxtParser } from "./txt.js";
+export { MarkdownParser } from "./md.js";
+export { HTMLParser } from "./html.js";
+export { LaTeXParser } from "./tex.js";
 
 // Export the unified parser as default
 export default MultiFormatParser;

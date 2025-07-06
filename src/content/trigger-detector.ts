@@ -9,11 +9,11 @@ export interface Snippet {
 }
 
 export enum TriggerState {
-  IDLE = 'idle',
-  TYPING = 'typing',
-  COMPLETE = 'complete',
-  AMBIGUOUS = 'ambiguous',
-  NO_MATCH = 'no_match'
+  IDLE = "idle",
+  TYPING = "typing",
+  COMPLETE = "complete",
+  AMBIGUOUS = "ambiguous",
+  NO_MATCH = "no_match",
 }
 
 export interface TriggerMatch {
@@ -37,9 +37,23 @@ export class TriggerDetector {
   private root: TrieNode;
   private prefix: string;
   private snippets: Snippet[];
-  private delimiters = new Set([' ', '\t', '\n', '.', ',', '!', '?', ';', ':', '(', ')', '[', ']']);
+  private delimiters = new Set([
+    " ",
+    "\t",
+    "\n",
+    ".",
+    ",",
+    "!",
+    "?",
+    ";",
+    ":",
+    "(",
+    ")",
+    "[",
+    "]",
+  ]);
 
-  constructor(snippets: Snippet[], prefix: string = ';') {
+  constructor(snippets: Snippet[], prefix: string = ";") {
     this.prefix = prefix;
     this.snippets = [...snippets];
     this.root = { children: new Map(), isEnd: false };
@@ -48,18 +62,18 @@ export class TriggerDetector {
 
   private buildTrie(): void {
     this.root = { children: new Map(), isEnd: false };
-    
+
     for (const snippet of this.snippets) {
       let node = this.root;
       const trigger = snippet.trigger;
-      
+
       for (const char of trigger) {
         if (!node.children.has(char)) {
           node.children.set(char, { children: new Map(), isEnd: false });
         }
         node = node.children.get(char)!;
       }
-      
+
       node.isEnd = true;
       node.content = snippet.content;
       node.trigger = trigger;
@@ -79,7 +93,7 @@ export class TriggerDetector {
     if (cursorPosition === undefined) {
       return this.processInputWithContext(input, 0);
     }
-    
+
     // Look for trigger at or before cursor position
     const textUpToCursor = input.substring(0, cursorPosition);
     return this.processInputWithContext(textUpToCursor, 0);
@@ -98,7 +112,7 @@ export class TriggerDetector {
     // Extract trigger and check if there's a delimiter
     let triggerEnd = triggerStart;
     let hasDelimiter = false;
-    
+
     // Find the end of the trigger (including delimiter if present)
     // Start from triggerStart + 1 to skip the prefix character
     triggerEnd = triggerStart + 1;
@@ -109,13 +123,17 @@ export class TriggerDetector {
       }
       triggerEnd++;
     }
-    
+
     const triggerText = input.slice(triggerStart, triggerEnd);
-    
+
     if (!triggerText) {
       return { isMatch: false, state: TriggerState.IDLE };
     }
-    return this.matchTriggerWithDelimiter(triggerText, triggerStart, hasDelimiter);
+    return this.matchTriggerWithDelimiter(
+      triggerText,
+      triggerStart,
+      hasDelimiter,
+    );
   }
 
   private findTriggerStart(input: string, contextStart: number): number {
@@ -131,17 +149,21 @@ export class TriggerDetector {
 
   private extractTriggerText(input: string, start: number): string {
     let end = start;
-    
+
     while (end < input.length && !this.delimiters.has(input[end])) {
       end++;
     }
-    
+
     return input.slice(start, end);
   }
 
-  private matchTriggerWithDelimiter(triggerText: string, startPos: number, hasDelimiter: boolean): TriggerMatch {
+  private matchTriggerWithDelimiter(
+    triggerText: string,
+    startPos: number,
+    hasDelimiter: boolean,
+  ): TriggerMatch {
     let node = this.root;
-    
+
     // Traverse the trie to see if we can match the trigger
     for (const char of triggerText) {
       if (!node.children.has(char)) {
@@ -149,7 +171,7 @@ export class TriggerDetector {
       }
       node = node.children.get(char)!;
     }
-    
+
     // If we have a delimiter, we can match immediately if this is a valid trigger
     if (hasDelimiter) {
       if (node.isEnd) {
@@ -158,59 +180,59 @@ export class TriggerDetector {
           trigger: node.trigger!,
           content: node.content!,
           matchEnd: startPos + node.trigger!.length,
-          state: TriggerState.COMPLETE
+          state: TriggerState.COMPLETE,
         };
       } else {
         return { isMatch: false, state: TriggerState.NO_MATCH };
       }
     }
-    
+
     // No delimiter - check state
     if (node.isEnd) {
       // This is a complete trigger, but check for longer possibilities
       const possibleCompletions = this.findPossibleCompletions(node);
-      
+
       if (possibleCompletions.length > 0) {
         return {
           isMatch: false,
           state: TriggerState.AMBIGUOUS,
           potentialTrigger: triggerText,
-          possibleCompletions
+          possibleCompletions,
         };
       } else {
         return {
           isMatch: false,
           state: TriggerState.COMPLETE,
-          potentialTrigger: triggerText
+          potentialTrigger: triggerText,
         };
       }
     }
-    
+
     // Still typing
     return {
       isMatch: false,
       state: TriggerState.TYPING,
-      potentialTrigger: triggerText
+      potentialTrigger: triggerText,
     };
   }
 
   private findPossibleCompletions(node: TrieNode): string[] {
     const completions: string[] = [];
-    
+
     const traverse = (currentNode: TrieNode, path: string) => {
       if (currentNode.isEnd && currentNode.trigger) {
         completions.push(currentNode.trigger);
       }
-      
+
       for (const [char, childNode] of currentNode.children) {
         traverse(childNode, path + char);
       }
     };
-    
+
     for (const [char, childNode] of node.children) {
       traverse(childNode, char);
     }
-    
+
     return completions;
   }
 
@@ -226,5 +248,4 @@ export class TriggerDetector {
     this.snippets = [...newSnippets];
     this.buildTrie();
   }
-
 }

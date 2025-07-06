@@ -3,20 +3,20 @@
  * Handles synchronization with Google Drive storage
  */
 
-import { BaseCloudAdapter } from './base-adapter.js';
-import type { CloudCredentials, TextSnippet } from '../../shared/types.js';
-import { SYNC_CONFIG, CLOUD_PROVIDERS } from '../../shared/constants.js';
+import { BaseCloudAdapter } from "./base-adapter.js";
+import type { CloudCredentials, TextSnippet } from "../../shared/types.js";
+import { SYNC_CONFIG, CLOUD_PROVIDERS } from "../../shared/constants.js";
 
 /**
  * Google Drive adapter for cloud synchronization
  */
 export class GoogleDriveAdapter extends BaseCloudAdapter {
-  readonly provider = 'google-drive' as const;
-  
-  private static readonly API_BASE = 'https://www.googleapis.com';
+  readonly provider = "google-drive" as const;
+
+  private static readonly API_BASE = "https://www.googleapis.com";
   private static readonly DRIVE_API = `${GoogleDriveAdapter.API_BASE}/drive/v3`;
   private static readonly UPLOAD_API = `${GoogleDriveAdapter.API_BASE}/upload/drive/v3`;
-  
+
   private fileId: string | null = null;
 
   /**
@@ -25,40 +25,45 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
       // Try Chrome's built-in OAuth first
-      const manifest = chrome.runtime.getManifest();
-      const scopes = CLOUD_PROVIDERS['google-drive'].scopes;
-      
-      console.log('🔐 Attempting Chrome identity.getAuthToken...');
-      
-      chrome.identity.getAuthToken({
-        interactive: true,
-        scopes: scopes
-      }, (token) => {
-        if (chrome.runtime.lastError) {
-          console.log('🔐 Chrome identity failed, falling back to manual OAuth:', chrome.runtime.lastError.message);
-          // Fallback to manual OAuth flow
-          this.authenticateManually(resolve, reject);
-          return;
-        }
-        
-        if (!token) {
-          console.error('🚫 No token received from Chrome identity');
-          reject(new Error('Authentication failed - no token'));
-          return;
-        }
-        
-        console.log('✅ Chrome identity token received');
-        
-        // Create credentials object
-        const credentials: CloudCredentials = {
-          provider: this.provider,
-          accessToken: token,
-          // Chrome handles token expiration automatically
-          expiresAt: undefined
-        };
-        
-        resolve(credentials);
-      });
+      const scopes = CLOUD_PROVIDERS["google-drive"].scopes;
+
+      console.log("🔐 Attempting Chrome identity.getAuthToken...");
+
+      chrome.identity.getAuthToken(
+        {
+          interactive: true,
+          scopes: [...scopes], // Convert readonly array to mutable
+        },
+        (token) => {
+          if (chrome.runtime.lastError) {
+            console.log(
+              "🔐 Chrome identity failed, falling back to manual OAuth:",
+              chrome.runtime.lastError.message,
+            );
+            // Fallback to manual OAuth flow
+            this.authenticateManually(resolve, reject);
+            return;
+          }
+
+          if (!token) {
+            console.error("🚫 No token received from Chrome identity");
+            reject(new Error("Authentication failed - no token"));
+            return;
+          }
+
+          console.log("✅ Chrome identity token received");
+
+          // Create credentials object
+          const credentials: CloudCredentials = {
+            provider: this.provider,
+            accessToken: token,
+            // Chrome handles token expiration automatically
+            expiresAt: undefined,
+          };
+
+          resolve(credentials);
+        },
+      );
     });
   }
 
@@ -67,35 +72,41 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   private authenticateManually(resolve: Function, reject: Function): void {
     const authUrl = this.buildAuthUrl();
-    console.log('🔐 Google Drive manual auth URL:', authUrl);
-    
-    chrome.identity.launchWebAuthFlow({
-      url: authUrl,
-      interactive: true
-    }, (redirectUrl) => {
-      if (chrome.runtime.lastError) {
-        console.error('🚫 Manual OAuth error:', chrome.runtime.lastError.message);
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      
-      if (!redirectUrl) {
-        console.error('🚫 No redirect URL received');
-        reject(new Error('Authentication cancelled'));
-        return;
-      }
-      
-      console.log('✅ OAuth redirect URL received:', redirectUrl);
-      
-      try {
-        const credentials = this.parseAuthResponse(redirectUrl);
-        console.log('✅ OAuth credentials parsed successfully');
-        resolve(credentials);
-      } catch (error) {
-        console.error('🚫 Failed to parse OAuth response:', error);
-        reject(error);
-      }
-    });
+    console.log("🔐 Google Drive manual auth URL:", authUrl);
+
+    chrome.identity.launchWebAuthFlow(
+      {
+        url: authUrl,
+        interactive: true,
+      },
+      (redirectUrl) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "🚫 Manual OAuth error:",
+            chrome.runtime.lastError.message,
+          );
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!redirectUrl) {
+          console.error("🚫 No redirect URL received");
+          reject(new Error("Authentication cancelled"));
+          return;
+        }
+
+        console.log("✅ OAuth redirect URL received:", redirectUrl);
+
+        try {
+          const credentials = this.parseAuthResponse(redirectUrl);
+          console.log("✅ OAuth credentials parsed successfully");
+          resolve(credentials);
+        } catch (error) {
+          console.error("🚫 Failed to parse OAuth response:", error);
+          reject(error);
+        }
+      },
+    );
   }
 
   /**
@@ -104,7 +115,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   async uploadSnippets(snippets: TextSnippet[]): Promise<void> {
     const sanitizedSnippets = this.sanitizeSnippets(snippets);
     const data = JSON.stringify(sanitizedSnippets, null, 2);
-    
+
     await this.retryOperation(async () => {
       if (this.fileId) {
         // Update existing file
@@ -120,37 +131,49 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    * Download snippets from Google Drive
    */
   async downloadSnippets(folderId?: string): Promise<TextSnippet[]> {
-    console.log(`📥 GoogleDriveAdapter.downloadSnippets called with folderId: ${folderId}`);
+    console.log(
+      `📥 GoogleDriveAdapter.downloadSnippets called with folderId: ${folderId}`,
+    );
     return this.retryOperation(async () => {
       // Find the snippets file (optionally in a specific folder)
       if (!this.fileId) {
-        console.log(`🔍 Looking for snippets file in folder: ${folderId || 'root'}`);
+        console.log(
+          `🔍 Looking for snippets file in folder: ${folderId || "root"}`,
+        );
         this.fileId = await this.findSnippetsFile(folderId);
         console.log(`🔍 Found fileId: ${this.fileId}`);
       }
-      
+
       if (!this.fileId) {
-        console.log('⚠️ No snippets file found, returning empty array');
+        console.log("⚠️ No snippets file found, returning empty array");
         return []; // No file exists yet
       }
-      
+
       // Download file content
       console.log(`📋 Downloading file content for fileId: ${this.fileId}`);
       const content = await this.downloadFile(this.fileId);
       console.log(`📋 Downloaded content length: ${content.length}`);
-      
+
       try {
         const snippets = JSON.parse(content) as TextSnippet[];
-        console.log(`✅ Successfully parsed ${snippets.length} snippets from Google Drive`);
-        console.log(`📋 Parsed snippets:`, snippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 50) + '...' })));
-        return snippets.map(snippet => ({
+        console.log(
+          `✅ Successfully parsed ${snippets.length} snippets from Google Drive`,
+        );
+        console.log(
+          `📋 Parsed snippets:`,
+          snippets.map((s) => ({
+            trigger: s.trigger,
+            content: s.content.substring(0, 50) + "...",
+          })),
+        );
+        return snippets.map((snippet) => ({
           ...snippet,
           createdAt: new Date(snippet.createdAt),
-          updatedAt: new Date(snippet.updatedAt)
+          updatedAt: new Date(snippet.updatedAt),
         }));
       } catch (error) {
-        console.error('Failed to parse snippets file:', error);
-        console.error('File content:', content);
+        console.error("Failed to parse snippets file:", error);
+        console.error("File content:", content);
         return [];
       }
     });
@@ -163,23 +186,30 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     // For Google Drive, we re-upload the file without the deleted snippets
     const currentSnippets = await this.downloadSnippets();
     const filteredSnippets = currentSnippets.filter(
-      snippet => !snippetIds.includes(snippet.id)
+      (snippet) => !snippetIds.includes(snippet.id),
     );
-    
+
     await this.uploadSnippets(filteredSnippets);
   }
 
   /**
    * Get list of available folders without selecting one
    */
-  async getFolders(parentId?: string): Promise<Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>> {
+  async getFolders(
+    parentId?: string,
+  ): Promise<
+    Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
+  > {
     try {
-      console.log('📁 Fetching Google Drive folders for picker...', parentId ? `in parent: ${parentId}` : 'root');
-      
+      console.log(
+        "📁 Fetching Google Drive folders for picker...",
+        parentId ? `in parent: ${parentId}` : "root",
+      );
+
       // Check if we have valid credentials
       const authHeaders = this.getAuthHeaders();
-      console.log('🔑 Auth headers:', authHeaders);
-      
+      console.log("🔑 Auth headers:", authHeaders);
+
       // Build query for folders in specific parent or root
       let query = "mimeType='application/vnd.google-apps.folder'";
       if (parentId) {
@@ -187,35 +217,38 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       } else {
         query += " and 'root' in parents";
       }
-      
+
       // Get list of folders from Google Drive
       const response = await fetch(
         `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,parents)&orderBy=name`,
-        { headers: authHeaders }
+        { headers: authHeaders },
       );
-      
-      console.log('📁 Folders API response status:', response.status, response.statusText);
-      
+
+      console.log(
+        "📁 Folders API response status:",
+        response.status,
+        response.statusText,
+      );
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('📁 Folders API error response:', errorText);
+        console.error("📁 Folders API error response:", errorText);
         throw new Error(`Failed to fetch folders: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       const folders = data.files || [];
-      
-      console.log('📁 Found folders for picker:', folders.length);
-      
+
+      console.log("📁 Found folders for picker:", folders.length);
+
       return folders.map((folder: any) => ({
         id: folder.id,
         name: folder.name,
-        parentId: folder.parents?.[0] || 'root',
-        isFolder: true
+        parentId: folder.parents?.[0] || "root",
+        isFolder: true,
       }));
-      
     } catch (error) {
-      console.error('Failed to get Google Drive folders:', error);
+      console.error("Failed to get Google Drive folders:", error);
       throw error;
     }
   }
@@ -225,45 +258,53 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   async selectFolder(): Promise<{ folderId: string; folderName: string }> {
     try {
-      console.log('📁 Fetching Google Drive folders...');
-      
+      console.log("📁 Fetching Google Drive folders...");
+
       // Check if we have valid credentials
       const authHeaders = this.getAuthHeaders();
-      console.log('🔑 Auth headers:', authHeaders);
-      
+      console.log("🔑 Auth headers:", authHeaders);
+
       // Get list of folders from Google Drive
       const response = await fetch(
         `${GoogleDriveAdapter.DRIVE_API}/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name)&orderBy=name`,
-        { headers: authHeaders }
+        { headers: authHeaders },
       );
-      
-      console.log('📁 Folders API response status:', response.status, response.statusText);
-      
+
+      console.log(
+        "📁 Folders API response status:",
+        response.status,
+        response.statusText,
+      );
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('📁 Folders API error response:', errorText);
+        console.error("📁 Folders API error response:", errorText);
         throw new Error(`Failed to fetch folders: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       const folders = data.files || [];
-      console.log('📁 Found folders:', folders.length);
-      
+      console.log("📁 Found folders:", folders.length);
+
       if (folders.length === 0) {
         // Create a default folder
-        const defaultFolder = await this.createFolder('PuffPuffPaste Snippets');
+        const defaultFolder = await this.createFolder("PuffPuffPaste Snippets");
         return { folderId: defaultFolder.id, folderName: defaultFolder.name };
       }
-      
+
       // For now, return the first folder found
       // TODO: Implement proper folder selection UI
       const selectedFolder = folders[0];
-      console.log('📁 Selected folder:', selectedFolder);
-      console.log('📁 Returning folder ID:', selectedFolder.id, 'name:', selectedFolder.name);
+      console.log("📁 Selected folder:", selectedFolder);
+      console.log(
+        "📁 Returning folder ID:",
+        selectedFolder.id,
+        "name:",
+        selectedFolder.name,
+      );
       return { folderId: selectedFolder.id, folderName: selectedFolder.name };
-      
     } catch (error) {
-      console.error('Failed to select Google Drive folder:', error);
+      console.error("Failed to select Google Drive folder:", error);
       throw error;
     }
   }
@@ -275,9 +316,11 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     if (!this.credentials?.accessToken) {
       return false;
     }
-    
+
     try {
-      const response = await fetch(`${GoogleDriveAdapter.API_BASE}/oauth2/v1/tokeninfo?access_token=${this.credentials.accessToken}`);
+      const response = await fetch(
+        `${GoogleDriveAdapter.API_BASE}/oauth2/v1/tokeninfo?access_token=${this.credentials.accessToken}`,
+      );
       return response.ok;
     } catch {
       return false;
@@ -289,9 +332,12 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   protected async checkConnectivity(): Promise<boolean> {
     try {
-      const response = await fetch(`${GoogleDriveAdapter.DRIVE_API}/about?fields=user`, {
-        headers: this.getAuthHeaders()
-      });
+      const response = await fetch(
+        `${GoogleDriveAdapter.DRIVE_API}/about?fields=user`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
       return response.ok;
     } catch {
       return false;
@@ -322,31 +368,31 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   private buildAuthUrl(): string {
     // Get client ID from manifest.json oauth2 configuration
     const manifest = chrome.runtime.getManifest();
-    const clientId = manifest.oauth2?.client_id || '';
+    const clientId = manifest.oauth2?.client_id || "";
     const redirectUri = chrome.identity.getRedirectURL();
-    
-    console.log('🔧 OAuth configuration:', {
+
+    console.log("🔧 OAuth configuration:", {
       clientId,
       redirectUri,
-      authUrl: CLOUD_PROVIDERS['google-drive'].authUrl,
-      scopes: CLOUD_PROVIDERS['google-drive'].scopes
+      authUrl: CLOUD_PROVIDERS["google-drive"].authUrl,
+      scopes: CLOUD_PROVIDERS["google-drive"].scopes,
     });
-    
+
     // Try using the manifest's redirect URI first, then fallback to chrome.identity
     const finalRedirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
-    
-    console.log('🔧 Using redirect URI:', finalRedirectUri);
-    
+
+    console.log("🔧 Using redirect URI:", finalRedirectUri);
+
     const params = new URLSearchParams({
       client_id: clientId,
-      response_type: 'token',
-      scope: CLOUD_PROVIDERS['google-drive'].scopes.join(' '),
+      response_type: "token",
+      scope: CLOUD_PROVIDERS["google-drive"].scopes.join(" "),
       redirect_uri: finalRedirectUri,
-      access_type: 'online',
-      prompt: 'consent'
+      access_type: "online",
+      prompt: "consent",
     });
-    
-    return `${CLOUD_PROVIDERS['google-drive'].authUrl}?${params.toString()}`;
+
+    return `${CLOUD_PROVIDERS["google-drive"].authUrl}?${params.toString()}`;
   }
 
   /**
@@ -356,40 +402,102 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     const url = new URL(redirectUrl);
     const fragment = url.hash.substring(1);
     const params = new URLSearchParams(fragment);
-    
-    const accessToken = params.get('access_token');
-    const expiresIn = params.get('expires_in');
-    
+
+    const accessToken = params.get("access_token");
+    const expiresIn = params.get("expires_in");
+
     if (!accessToken) {
-      throw new Error('No access token received');
+      throw new Error("No access token received");
     }
-    
+
     return {
       provider: this.provider,
       accessToken,
-      expiresAt: expiresIn ? new Date(Date.now() + parseInt(expiresIn) * 1000) : undefined
+      expiresAt: expiresIn
+        ? new Date(Date.now() + parseInt(expiresIn) * 1000)
+        : undefined,
     };
+  }
+
+  /**
+   * List all files in a folder with their metadata
+   */
+  async listFiles(folderId?: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      mimeType?: string;
+      modifiedTime?: string;
+    }>
+  > {
+    const targetFolderId = folderId || "root";
+    console.log(`📁 Listing files in Google Drive folder: ${targetFolderId}`);
+
+    const response = await fetch(
+      `${GoogleDriveAdapter.DRIVE_API}/files?` +
+        `q=parents in '${targetFolderId}' and mimeType!='application/vnd.google-apps.folder'&` +
+        `fields=files(id,name,mimeType,modifiedTime)&` +
+        `orderBy=name`,
+      { headers: this.getAuthHeaders() },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to list files: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const files = data.files || [];
+
+    console.log(`📋 Found ${files.length} files in folder`);
+    return files.map((file: any) => ({
+      id: file.id,
+      name: file.name,
+      mimeType: file.mimeType,
+      modifiedTime: file.modifiedTime,
+    }));
+  }
+
+  /**
+   * Download raw file content by ID
+   */
+  async downloadFileContent(fileId: string): Promise<string> {
+    console.log(`📥 Downloading file content for ID: ${fileId}`);
+
+    const response = await fetch(
+      `${GoogleDriveAdapter.DRIVE_API}/files/${fileId}?alt=media`,
+      { headers: this.getAuthHeaders() },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download file content: ${response.statusText}`,
+      );
+    }
+
+    const content = await response.text();
+    console.log(`📄 Downloaded ${content.length} characters`);
+    return content;
   }
 
   /**
    * Check if the adapter is authenticated (has valid credentials)
    */
-  async isAuthenticated(): Promise<boolean> {
+  override async isAuthenticated(): Promise<boolean> {
     if (!this.credentials?.accessToken) {
       return false;
     }
-    
+
     // Check if token is expired
     if (this.credentials.expiresAt && this.credentials.expiresAt < new Date()) {
-      console.log('🔐 Google Drive token expired');
+      console.log("🔐 Google Drive token expired");
       return false;
     }
-    
+
     // Test the connection with a simple API call
     try {
       const response = await fetch(
         `${GoogleDriveAdapter.DRIVE_API}/about?fields=user`,
-        { headers: this.getAuthHeaders() }
+        { headers: this.getAuthHeaders() },
       );
       return response.ok;
     } catch {
@@ -402,8 +510,8 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
    */
   private getAuthHeaders(): Record<string, string> {
     return {
-      'Authorization': `Bearer ${this.credentials?.accessToken}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${this.credentials?.accessToken}`,
+      "Content-Type": "application/json",
     };
   }
 
@@ -415,27 +523,31 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     if (folderId) {
       query += ` and '${folderId}' in parents`;
     }
-    
-    console.log('🔍 Searching for snippets file:', { query, folderId });
-    
+
+    console.log("🔍 Searching for snippets file:", { query, folderId });
+
     const url = `${GoogleDriveAdapter.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name)`;
-    console.log('🔍 Search URL:', url);
-    
+    console.log("🔍 Search URL:", url);
+
     const response = await fetch(url, { headers: this.getAuthHeaders() });
-    
-    console.log('🔍 Search response status:', response.status, response.statusText);
-    
+
+    console.log(
+      "🔍 Search response status:",
+      response.status,
+      response.statusText,
+    );
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('🔍 Search error response:', errorText);
+      console.error("🔍 Search error response:", errorText);
       throw new Error(`Failed to search files: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     const files = data.files || [];
-    
-    console.log('🔍 Found files:', files);
-    
+
+    console.log("🔍 Found files:", files);
+
     return files.length > 0 ? files[0].id : null;
   }
 
@@ -445,28 +557,31 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   private async createFile(content: string): Promise<string> {
     const metadata = {
       name: SYNC_CONFIG.FILE_NAME,
-      parents: ['appDataFolder'] // Store in app-specific folder
+      parents: ["appDataFolder"], // Store in app-specific folder
     };
-    
+
     const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', new Blob([content], { type: 'application/json' }));
-    
+    form.append(
+      "metadata",
+      new Blob([JSON.stringify(metadata)], { type: "application/json" }),
+    );
+    form.append("file", new Blob([content], { type: "application/json" }));
+
     const response = await fetch(
       `${GoogleDriveAdapter.UPLOAD_API}/files?uploadType=multipart&fields=id`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`
+          Authorization: `Bearer ${this.credentials?.accessToken}`,
         },
-        body: form
-      }
+        body: form,
+      },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to create file: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.id;
   }
@@ -478,15 +593,15 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     const response = await fetch(
       `${GoogleDriveAdapter.UPLOAD_API}/files/${fileId}?uploadType=media`,
       {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.credentials?.accessToken}`,
+          "Content-Type": "application/json",
         },
-        body: content
-      }
+        body: content,
+      },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update file: ${response.statusText}`);
     }
@@ -498,43 +613,46 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   private async downloadFile(fileId: string): Promise<string> {
     const response = await fetch(
       `${GoogleDriveAdapter.DRIVE_API}/files/${fileId}?alt=media`,
-      { headers: this.getAuthHeaders() }
+      { headers: this.getAuthHeaders() },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);
     }
-    
+
     return response.text();
   }
 
   /**
    * Create a new folder in Google Drive
    */
-  async createFolder(name: string, parentId?: string): Promise<{ id: string; name: string }> {
+  async createFolder(
+    name: string,
+    parentId?: string,
+  ): Promise<{ id: string; name: string }> {
     const metadata: any = {
       name,
-      mimeType: 'application/vnd.google-apps.folder'
+      mimeType: "application/vnd.google-apps.folder",
     };
-    
+
     // Add parent folder if specified
-    if (parentId && parentId !== 'root') {
+    if (parentId && parentId !== "root") {
       metadata.parents = [parentId];
     }
-    
+
     const response = await fetch(
       `${GoogleDriveAdapter.DRIVE_API}/files?fields=id,name`,
       {
-        method: 'POST',
+        method: "POST",
         headers: this.getAuthHeaders(),
-        body: JSON.stringify(metadata)
-      }
+        body: JSON.stringify(metadata),
+      },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to create folder: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 }

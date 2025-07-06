@@ -6,18 +6,18 @@
 export function sanitizeHtml(html: string): string {
   // Handle null/undefined input gracefully
   if (html == null) {
-    return '';
+    return "";
   }
-  
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
 
   // Remove script tags
-  doc.querySelectorAll('script').forEach(script => script.remove());
+  doc.querySelectorAll("script").forEach((script) => script.remove());
 
   // Remove attributes that can execute code
-  doc.querySelectorAll('*[on*]').forEach(element => {
-    Array.from(element.attributes).forEach(attr => {
-      if (attr.name.startsWith('on')) {
+  doc.querySelectorAll("*[on*]").forEach((element) => {
+    Array.from(element.attributes).forEach((attr) => {
+      if (attr.name.startsWith("on")) {
         element.removeAttribute(attr.name);
       }
     });

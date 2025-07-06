@@ -10,7 +10,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   color: #333;
@@ -271,8 +273,13 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-info {
@@ -463,41 +470,41 @@ body {
     margin: 0;
     box-shadow: none;
   }
-  
+
   .header {
     padding: 24px;
   }
-  
+
   .header-content {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
-  
+
   .main-content {
     padding: 24px;
   }
-  
+
   .cloud-status {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .sync-actions,
   .data-actions {
     flex-direction: column;
   }
-  
+
   .sync-actions button,
   .data-actions button {
     width: 100%;
   }
-  
+
   .data-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .footer-content {
     flex-direction: column;
     align-items: flex-start;
@@ -509,20 +516,20 @@ body {
   .header {
     padding: 20px;
   }
-  
+
   .main-content {
     padding: 20px;
   }
-  
+
   .settings-content {
     padding: 20px;
   }
-  
+
   .setting-input,
   .setting-select {
     max-width: none;
   }
-  
+
   .setting-slider {
     max-width: none;
   }
@@ -620,45 +627,45 @@ body {
     background: #1a1a1a;
     color: #e0e0e0;
   }
-  
+
   .container {
     background: #2d2d2d;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   }
-  
+
   .settings-section {
     background: #2d2d2d;
     border-color: #404040;
   }
-  
+
   .section-title {
     background: #383838;
     border-color: #404040;
     color: #e0e0e0;
   }
-  
+
   .setting-description {
     color: #b0b0b0;
   }
-  
+
   .setting-input,
   .setting-select {
     background: #383838;
     border-color: #404040;
     color: #e0e0e0;
   }
-  
+
   .cloud-status,
   .data-stats {
     background: #383838;
     border-color: #404040;
   }
-  
+
   .footer {
     background: #383838;
     border-color: #404040;
   }
-  
+
   .status-banner {
     background: #2d3748;
     border-color: #4299e1;
@@ -839,7 +846,7 @@ body {
 }
 
 .breadcrumb-item:not(:last-child)::after {
-  content: '>';
+  content: ">";
   margin-left: 8px;
   color: #718096;
 }
@@ -883,78 +890,78 @@ body {
   .modal-content {
     background: #2d2d2d;
   }
-  
+
   .modal-header {
     background: #383838;
     border-color: #404040;
   }
-  
+
   .modal-header h3 {
     color: #e0e0e0;
   }
-  
+
   .modal-close {
     color: #a0a0a0;
   }
-  
+
   .modal-close:hover {
     background: #404040;
   }
-  
+
   .modal-description {
     color: #b0b0b0;
   }
-  
+
   .folder-list {
     border-color: #404040;
   }
-  
+
   .folder-item {
     border-color: #404040;
   }
-  
+
   .folder-item:hover {
     background: #383838;
   }
-  
+
   .folder-item.selected {
     background: #2d4a5d;
     border-left-color: #4299e1;
   }
-  
+
   .folder-name {
     color: #e0e0e0;
   }
-  
+
   .folder-path {
     color: #a0a0a0;
   }
-  
+
   .modal-footer {
     background: #383838;
     border-color: #404040;
   }
-  
+
   .error-message {
     background: #4a1c1c;
     border-color: #c53030;
     color: #feb2b2;
   }
-  
+
   .folder-breadcrumb {
     background: #383838;
     border-color: #404040;
     color: #e0e0e0;
   }
-  
+
   .breadcrumb-item:hover {
     background: #404040;
   }
-  
+
   .folder-action-button {
     color: #a0a0a0;
   }
-  
+
   .folder-action-button:hover {
     background: #404040;
     color: #e0e0e0;

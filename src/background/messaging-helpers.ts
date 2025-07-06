@@ -12,11 +12,14 @@ export async function notifyContentScriptsOfSnippetUpdate(): Promise<void> {
     // Query all tabs
     chrome.tabs.query({}, (tabs) => {
       // Send message to each tab's content script
-      tabs.forEach(tab => {
+      tabs.forEach((tab) => {
         if (tab.id) {
-          chrome.tabs.sendMessage(tab.id, { type: 'SNIPPETS_UPDATED' })
+          chrome.tabs
+            .sendMessage(tab.id, { type: "SNIPPETS_UPDATED" })
             .then(() => {
-              console.debug(`Successfully notified tab ${tab.id} of snippet update`);
+              console.debug(
+                `Successfully notified tab ${tab.id} of snippet update`,
+              );
             })
             .catch((error) => {
               // Silently handle errors (tab might not have content script or be closed)
@@ -26,7 +29,7 @@ export async function notifyContentScriptsOfSnippetUpdate(): Promise<void> {
       });
     });
   } catch (error) {
-    console.error('Failed to notify content scripts of snippet update:', error);
+    console.error("Failed to notify content scripts of snippet update:", error);
   }
 }
 
@@ -36,15 +39,18 @@ export async function notifyContentScriptsOfSnippetUpdate(): Promise<void> {
 export async function broadcastToContentScripts(message: any): Promise<void> {
   try {
     chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
+      tabs.forEach((tab) => {
         if (tab.id) {
           chrome.tabs.sendMessage(tab.id, message).catch((error) => {
-            console.debug(`Failed to broadcast to tab ${tab.id}:`, error.message);
+            console.debug(
+              `Failed to broadcast to tab ${tab.id}:`,
+              error.message,
+            );
           });
         }
       });
     });
   } catch (error) {
-    console.error('Failed to broadcast to content scripts:', error);
+    console.error("Failed to broadcast to content scripts:", error);
   }
 }

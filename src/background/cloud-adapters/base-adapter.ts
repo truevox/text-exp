@@ -3,21 +3,21 @@
  * Provides common functionality for all cloud storage adapters
  */
 
-import type { 
-  CloudAdapter, 
-  CloudProvider, 
-  CloudCredentials, 
-  TextSnippet, 
-  SyncStatus 
-} from '../../shared/types.js';
-import { SYNC_CONFIG, ERROR_MESSAGES } from '../../shared/constants.js';
+import type {
+  CloudAdapter,
+  CloudProvider,
+  CloudCredentials,
+  TextSnippet,
+  SyncStatus,
+} from "../../shared/types.js";
+import { SYNC_CONFIG, ERROR_MESSAGES } from "../../shared/constants.js";
 
 /**
  * Abstract base class for cloud adapters
  */
 export abstract class BaseCloudAdapter implements CloudAdapter {
   abstract readonly provider: CloudProvider;
-  
+
   protected credentials: CloudCredentials | null = null;
   protected isInitialized = false;
 
@@ -27,9 +27,9 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
   async initialize(credentials: CloudCredentials): Promise<void> {
     this.credentials = credentials;
     this.isInitialized = true;
-    
+
     // Validate credentials
-    if (!await this.validateCredentials()) {
+    if (!(await this.validateCredentials())) {
       throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
     }
   }
@@ -41,7 +41,7 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
     if (!this.isInitialized || !this.credentials) {
       return false;
     }
-    
+
     return this.validateCredentials();
   }
 
@@ -69,23 +69,25 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
    * Sync local changes with remote storage
    */
   async syncSnippets(localSnippets: TextSnippet[]): Promise<TextSnippet[]> {
-    if (!await this.isAuthenticated()) {
+    if (!(await this.isAuthenticated())) {
       throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
     }
 
     try {
       // Download remote snippets
       const remoteSnippets = await this.downloadSnippets();
-      
+
       // Merge local and remote snippets
       const mergedSnippets = this.mergeSnippets(localSnippets, remoteSnippets);
-      
+
       // Upload merged snippets back to cloud
       await this.uploadSnippets(mergedSnippets);
-      
+
       return mergedSnippets;
     } catch (error) {
-      throw new Error(`${ERROR_MESSAGES.SYNC_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `${ERROR_MESSAGES.SYNC_FAILED}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -95,15 +97,17 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
   async getSyncStatus(): Promise<SyncStatus> {
     const isOnline = await this.checkConnectivity();
     const isAuth = await this.isAuthenticated();
-    
-    console.log(`🔍 ${this.provider} getSyncStatus: connectivity=${isOnline}, auth=${isAuth}`);
-    
+
+    console.log(
+      `🔍 ${this.provider} getSyncStatus: connectivity=${isOnline}, auth=${isAuth}`,
+    );
+
     return {
       provider: this.provider,
       lastSync: await this.getLastSyncTime(),
       isOnline: isOnline && isAuth,
       hasChanges: await this.hasLocalChanges(),
-      error: isAuth ? undefined : ERROR_MESSAGES.AUTHENTICATION_FAILED
+      error: isAuth ? undefined : ERROR_MESSAGES.AUTHENTICATION_FAILED,
     };
   }
 
@@ -130,18 +134,21 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
   /**
    * Merge local and remote snippets using conflict resolution
    */
-  protected mergeSnippets(localSnippets: TextSnippet[], remoteSnippets: TextSnippet[]): TextSnippet[] {
+  protected mergeSnippets(
+    localSnippets: TextSnippet[],
+    remoteSnippets: TextSnippet[],
+  ): TextSnippet[] {
     const merged = new Map<string, TextSnippet>();
-    
+
     // Add all remote snippets first
-    remoteSnippets.forEach(snippet => {
+    remoteSnippets.forEach((snippet) => {
       merged.set(snippet.id, snippet);
     });
-    
+
     // Merge local snippets, resolving conflicts by timestamp
-    localSnippets.forEach(localSnippet => {
+    localSnippets.forEach((localSnippet) => {
       const remoteSnippet = merged.get(localSnippet.id);
-      
+
       if (!remoteSnippet) {
         // Local snippet is new
         merged.set(localSnippet.id, localSnippet);
@@ -149,14 +156,14 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
         // Conflict resolution: use the most recently updated
         const localTime = new Date(localSnippet.updatedAt).getTime();
         const remoteTime = new Date(remoteSnippet.updatedAt).getTime();
-        
+
         if (localTime > remoteTime) {
           merged.set(localSnippet.id, localSnippet);
         }
         // If remote is newer or equal, keep the remote version (already in map)
       }
     });
-    
+
     return Array.from(merged.values());
   }
 
@@ -165,16 +172,16 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
    */
   protected async retryOperation<T>(
     operation: () => Promise<T>,
-    maxRetries: number = SYNC_CONFIG.MAX_RETRIES
+    maxRetries: number = SYNC_CONFIG.MAX_RETRIES,
   ): Promise<T> {
     let lastError: Error;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        
+        lastError = error instanceof Error ? error : new Error("Unknown error");
+
         if (attempt < maxRetries) {
           // Exponential backoff
           const delay = SYNC_CONFIG.RETRY_DELAY * Math.pow(2, attempt - 1);
@@ -182,7 +189,7 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
         }
       }
     }
-    
+
     throw lastError!;
   }
 
@@ -190,7 +197,7 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
    * Sleep utility for retry delays
    */
   protected sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -205,10 +212,10 @@ export abstract class BaseCloudAdapter implements CloudAdapter {
    */
   protected validateSnippet(snippet: any): snippet is TextSnippet {
     return (
-      typeof snippet === 'object' &&
-      typeof snippet.id === 'string' &&
-      typeof snippet.trigger === 'string' &&
-      typeof snippet.content === 'string' &&
+      typeof snippet === "object" &&
+      typeof snippet.id === "string" &&
+      typeof snippet.trigger === "string" &&
+      typeof snippet.content === "string" &&
       snippet.createdAt instanceof Date &&
       snippet.updatedAt instanceof Date
     );

@@ -3,19 +3,20 @@
  * Handles synchronization with Microsoft OneDrive storage
  */
 
-import { BaseCloudAdapter } from './base-adapter.js';
-import type { CloudCredentials, TextSnippet } from '../../shared/types.js';
-import { SYNC_CONFIG, CLOUD_PROVIDERS } from '../../shared/constants.js';
+import { BaseCloudAdapter } from "./base-adapter.js";
+import type { CloudCredentials, TextSnippet } from "../../shared/types.js";
+import { SYNC_CONFIG, CLOUD_PROVIDERS } from "../../shared/constants.js";
 
 /**
  * OneDrive adapter for cloud synchronization
  */
 export class OneDriveAdapter extends BaseCloudAdapter {
-  readonly provider = 'onedrive' as const;
-  
-  private static readonly API_BASE = 'https://graph.microsoft.com/v1.0';
-  private static readonly AUTH_BASE = 'https://login.microsoftonline.com/common/oauth2/v2.0';
-  
+  readonly provider = "onedrive" as const;
+
+  private static readonly API_BASE = "https://graph.microsoft.com/v1.0";
+  private static readonly AUTH_BASE =
+    "https://login.microsoftonline.com/common/oauth2/v2.0";
+
   private fileId: string | null = null;
 
   /**
@@ -23,27 +24,30 @@ export class OneDriveAdapter extends BaseCloudAdapter {
    */
   async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
-      chrome.identity.launchWebAuthFlow({
-        url: this.buildAuthUrl(),
-        interactive: true
-      }, (redirectUrl) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        
-        if (!redirectUrl) {
-          reject(new Error('Authentication cancelled'));
-          return;
-        }
-        
-        try {
-          const credentials = this.parseAuthResponse(redirectUrl);
-          resolve(credentials);
-        } catch (error) {
-          reject(error);
-        }
-      });
+      chrome.identity.launchWebAuthFlow(
+        {
+          url: this.buildAuthUrl(),
+          interactive: true,
+        },
+        (redirectUrl) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (!redirectUrl) {
+            reject(new Error("Authentication cancelled"));
+            return;
+          }
+
+          try {
+            const credentials = this.parseAuthResponse(redirectUrl);
+            resolve(credentials);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
     });
   }
 
@@ -53,7 +57,7 @@ export class OneDriveAdapter extends BaseCloudAdapter {
   async uploadSnippets(snippets: TextSnippet[]): Promise<void> {
     const sanitizedSnippets = this.sanitizeSnippets(snippets);
     const data = JSON.stringify(sanitizedSnippets, null, 2);
-    
+
     await this.retryOperation(async () => {
       if (this.fileId) {
         // Update existing file
@@ -74,23 +78,23 @@ export class OneDriveAdapter extends BaseCloudAdapter {
       if (!this.fileId) {
         this.fileId = await this.findSnippetsFile();
       }
-      
+
       if (!this.fileId) {
         return []; // No file exists yet
       }
-      
+
       // Download file content
       const content = await this.downloadFile(this.fileId);
-      
+
       try {
         const snippets = JSON.parse(content) as TextSnippet[];
-        return snippets.map(snippet => ({
+        return snippets.map((snippet) => ({
           ...snippet,
           createdAt: new Date(snippet.createdAt),
-          updatedAt: new Date(snippet.updatedAt)
+          updatedAt: new Date(snippet.updatedAt),
         }));
       } catch (error) {
-        console.error('Failed to parse snippets file:', error);
+        console.error("Failed to parse snippets file:", error);
         return [];
       }
     });
@@ -103,9 +107,9 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     // For OneDrive, we re-upload the file without the deleted snippets
     const currentSnippets = await this.downloadSnippets();
     const filteredSnippets = currentSnippets.filter(
-      snippet => !snippetIds.includes(snippet.id)
+      (snippet) => !snippetIds.includes(snippet.id),
     );
-    
+
     await this.uploadSnippets(filteredSnippets);
   }
 
@@ -116,10 +120,10 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     if (!this.credentials?.accessToken) {
       return false;
     }
-    
+
     try {
       const response = await fetch(`${OneDriveAdapter.API_BASE}/me`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
       });
       return response.ok;
     } catch {
@@ -133,7 +137,7 @@ export class OneDriveAdapter extends BaseCloudAdapter {
   protected async checkConnectivity(): Promise<boolean> {
     try {
       const response = await fetch(`${OneDriveAdapter.API_BASE}/me/drive`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
       });
       return response.ok;
     } catch {
@@ -162,12 +166,12 @@ export class OneDriveAdapter extends BaseCloudAdapter {
    */
   private buildAuthUrl(): string {
     const params = new URLSearchParams({
-      client_id: process.env.ONEDRIVE_CLIENT_ID || '',
-      response_type: 'token',
-      scope: CLOUD_PROVIDERS.onedrive.scopes.join(' '),
-      redirect_uri: chrome.identity.getRedirectURL()
+      client_id: process.env.ONEDRIVE_CLIENT_ID || "",
+      response_type: "token",
+      scope: CLOUD_PROVIDERS.onedrive.scopes.join(" "),
+      redirect_uri: chrome.identity.getRedirectURL(),
     });
-    
+
     return `${OneDriveAdapter.AUTH_BASE}/authorize?${params.toString()}`;
   }
 
@@ -178,18 +182,20 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     const url = new URL(redirectUrl);
     const fragment = url.hash.substring(1);
     const params = new URLSearchParams(fragment);
-    
-    const accessToken = params.get('access_token');
-    const expiresIn = params.get('expires_in');
-    
+
+    const accessToken = params.get("access_token");
+    const expiresIn = params.get("expires_in");
+
     if (!accessToken) {
-      throw new Error('No access token received');
+      throw new Error("No access token received");
     }
-    
+
     return {
       provider: this.provider,
       accessToken,
-      expiresAt: expiresIn ? new Date(Date.now() + parseInt(expiresIn) * 1000) : undefined
+      expiresAt: expiresIn
+        ? new Date(Date.now() + parseInt(expiresIn) * 1000)
+        : undefined,
     };
   }
 
@@ -198,8 +204,8 @@ export class OneDriveAdapter extends BaseCloudAdapter {
    */
   private getAuthHeaders(): Record<string, string> {
     return {
-      'Authorization': `Bearer ${this.credentials?.accessToken}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${this.credentials?.accessToken}`,
+      "Content-Type": "application/json",
     };
   }
 
@@ -210,17 +216,17 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     const encodedFileName = encodeURIComponent(SYNC_CONFIG.FILE_NAME);
     const response = await fetch(
       `${OneDriveAdapter.API_BASE}/me/drive/root:/${encodedFileName}`,
-      { headers: this.getAuthHeaders() }
+      { headers: this.getAuthHeaders() },
     );
-    
+
     if (response.status === 404) {
       return null; // File not found
     }
-    
+
     if (!response.ok) {
       throw new Error(`Failed to find file: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.id;
   }
@@ -233,19 +239,19 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     const response = await fetch(
       `${OneDriveAdapter.API_BASE}/me/drive/root:/${encodedFileName}:/content`,
       {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.credentials?.accessToken}`,
+          "Content-Type": "application/json",
         },
-        body: content
-      }
+        body: content,
+      },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to create file: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.id;
   }
@@ -257,15 +263,15 @@ export class OneDriveAdapter extends BaseCloudAdapter {
     const response = await fetch(
       `${OneDriveAdapter.API_BASE}/me/drive/items/${fileId}/content`,
       {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.credentials?.accessToken}`,
+          "Content-Type": "application/json",
         },
-        body: content
-      }
+        body: content,
+      },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update file: ${response.statusText}`);
     }
@@ -277,13 +283,13 @@ export class OneDriveAdapter extends BaseCloudAdapter {
   private async downloadFile(fileId: string): Promise<string> {
     const response = await fetch(
       `${OneDriveAdapter.API_BASE}/me/drive/items/${fileId}/content`,
-      { headers: this.getAuthHeaders() }
+      { headers: this.getAuthHeaders() },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);
     }
-    
+
     return response.text();
   }
 
@@ -293,13 +299,13 @@ export class OneDriveAdapter extends BaseCloudAdapter {
   private async getFileMetadata(fileId: string): Promise<any> {
     const response = await fetch(
       `${OneDriveAdapter.API_BASE}/me/drive/items/${fileId}`,
-      { headers: this.getAuthHeaders() }
+      { headers: this.getAuthHeaders() },
     );
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get file metadata: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 }

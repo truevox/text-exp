@@ -3,9 +3,13 @@
  * Handles the extension popup interface
  */
 
-import { SnippetMessages, SettingsMessages, SyncMessages } from '../shared/messaging.js';
-import type { TextSnippet, ExtensionSettings } from '../shared/types.js';
-import { UI_CONFIG } from '../shared/constants.js';
+import {
+  SnippetMessages,
+  SettingsMessages,
+  SyncMessages,
+} from "../shared/messaging.js";
+import type { TextSnippet, ExtensionSettings } from "../shared/types.js";
+import { UI_CONFIG } from "../shared/constants.js";
 
 /**
  * Main popup application class
@@ -14,32 +18,44 @@ class PopupApp {
   private snippets: TextSnippet[] = [];
   private settings: ExtensionSettings | null = null;
   private currentEditingSnippet: TextSnippet | null = null;
-  private searchQuery = '';
+  private searchQuery = "";
 
   // DOM elements
   private elements = {
-    searchInput: document.getElementById('searchInput') as HTMLInputElement,
-    snippetList: document.getElementById('snippetList') as HTMLElement,
-    emptyState: document.getElementById('emptyState') as HTMLElement,
-    loadingState: document.getElementById('loadingState') as HTMLElement,
-    addSnippetButton: document.getElementById('addSnippetButton') as HTMLButtonElement,
-    syncButton: document.getElementById('syncButton') as HTMLButtonElement,
-    settingsButton: document.getElementById('settingsButton') as HTMLButtonElement,
-    syncStatus: document.getElementById('syncStatus') as HTMLElement,
-    syncStatusClose: document.getElementById('syncStatusClose') as HTMLButtonElement,
-    
+    searchInput: document.getElementById("searchInput") as HTMLInputElement,
+    snippetList: document.getElementById("snippetList") as HTMLElement,
+    emptyState: document.getElementById("emptyState") as HTMLElement,
+    loadingState: document.getElementById("loadingState") as HTMLElement,
+    addSnippetButton: document.getElementById(
+      "addSnippetButton",
+    ) as HTMLButtonElement,
+    syncButton: document.getElementById("syncButton") as HTMLButtonElement,
+    settingsButton: document.getElementById(
+      "settingsButton",
+    ) as HTMLButtonElement,
+    syncStatus: document.getElementById("syncStatus") as HTMLElement,
+    syncStatusClose: document.getElementById(
+      "syncStatusClose",
+    ) as HTMLButtonElement,
+
     // Modal elements
-    snippetModal: document.getElementById('snippetModal') as HTMLElement,
-    modalTitle: document.getElementById('modalTitle') as HTMLElement,
-    modalClose: document.getElementById('modalClose') as HTMLButtonElement,
-    modalCancel: document.getElementById('modalCancel') as HTMLButtonElement,
-    modalSave: document.getElementById('modalSave') as HTMLButtonElement,
-    snippetForm: document.getElementById('snippetForm') as HTMLFormElement,
-    triggerInput: document.getElementById('triggerInput') as HTMLInputElement,
-    contentTextarea: document.getElementById('contentTextarea') as HTMLTextAreaElement,
-    descriptionInput: document.getElementById('descriptionInput') as HTMLInputElement,
-    tagsInput: document.getElementById('tagsInput') as HTMLInputElement,
-    sharedCheckbox: document.getElementById('sharedCheckbox') as HTMLInputElement,
+    snippetModal: document.getElementById("snippetModal") as HTMLElement,
+    modalTitle: document.getElementById("modalTitle") as HTMLElement,
+    modalClose: document.getElementById("modalClose") as HTMLButtonElement,
+    modalCancel: document.getElementById("modalCancel") as HTMLButtonElement,
+    modalSave: document.getElementById("modalSave") as HTMLButtonElement,
+    snippetForm: document.getElementById("snippetForm") as HTMLFormElement,
+    triggerInput: document.getElementById("triggerInput") as HTMLInputElement,
+    contentTextarea: document.getElementById(
+      "contentTextarea",
+    ) as HTMLTextAreaElement,
+    descriptionInput: document.getElementById(
+      "descriptionInput",
+    ) as HTMLInputElement,
+    tagsInput: document.getElementById("tagsInput") as HTMLInputElement,
+    sharedCheckbox: document.getElementById(
+      "sharedCheckbox",
+    ) as HTMLInputElement,
   };
 
   constructor() {
@@ -56,8 +72,8 @@ class PopupApp {
       await this.loadSnippets();
       this.updateUI();
     } catch (error) {
-      console.error('Failed to initialize popup:', error);
-      this.showError('Failed to load extension data');
+      console.error("Failed to initialize popup:", error);
+      this.showError("Failed to load extension data");
     }
   }
 
@@ -66,32 +82,47 @@ class PopupApp {
    */
   private setupEventListeners(): void {
     // Search
-    this.elements.searchInput.addEventListener('input', 
-      this.debounce(() => this.handleSearch(), UI_CONFIG.DEBOUNCE_DELAY)
+    this.elements.searchInput.addEventListener(
+      "input",
+      this.debounce(() => this.handleSearch(), UI_CONFIG.DEBOUNCE_DELAY),
     );
 
     // Buttons
-    this.elements.addSnippetButton.addEventListener('click', () => this.showAddSnippetModal());
-    this.elements.syncButton.addEventListener('click', () => this.syncSnippets());
-    this.elements.settingsButton.addEventListener('click', () => this.openSettings());
+    this.elements.addSnippetButton.addEventListener("click", () =>
+      this.showAddSnippetModal(),
+    );
+    this.elements.syncButton.addEventListener("click", () =>
+      this.syncSnippets(),
+    );
+    this.elements.settingsButton.addEventListener("click", () =>
+      this.openSettings(),
+    );
 
     // Modal
-    this.elements.modalClose.addEventListener('click', () => this.hideSnippetModal());
-    this.elements.modalCancel.addEventListener('click', () => this.hideSnippetModal());
-    this.elements.snippetForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+    this.elements.modalClose.addEventListener("click", () =>
+      this.hideSnippetModal(),
+    );
+    this.elements.modalCancel.addEventListener("click", () =>
+      this.hideSnippetModal(),
+    );
+    this.elements.snippetForm.addEventListener("submit", (e) =>
+      this.handleFormSubmit(e),
+    );
 
     // Sync status
-    this.elements.syncStatusClose.addEventListener('click', () => this.hideSyncStatus());
+    this.elements.syncStatusClose.addEventListener("click", () =>
+      this.hideSyncStatus(),
+    );
 
     // Close modal on overlay click
-    this.elements.snippetModal.addEventListener('click', (e) => {
+    this.elements.snippetModal.addEventListener("click", (e) => {
       if (e.target === this.elements.snippetModal) {
         this.hideSnippetModal();
       }
     });
 
     // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => this.handleKeydown(e));
+    document.addEventListener("keydown", (e) => this.handleKeydown(e));
   }
 
   /**
@@ -101,7 +132,7 @@ class PopupApp {
     try {
       this.settings = await SettingsMessages.getSettings();
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error("Failed to load settings:", error);
     }
   }
 
@@ -116,10 +147,10 @@ class PopupApp {
       this.snippets = Array.isArray(result) ? result : [];
       this.hideLoading();
     } catch (error) {
-      console.error('Failed to load snippets:', error);
+      console.error("Failed to load snippets:", error);
       this.snippets = []; // Ensure snippets is an empty array on failure
       this.hideLoading();
-      this.showError('Failed to load snippets');
+      this.showError("Failed to load snippets");
     }
   }
 
@@ -128,7 +159,7 @@ class PopupApp {
    */
   private updateUI(): void {
     const filteredSnippets = this.getFilteredSnippets();
-    
+
     if (filteredSnippets.length === 0) {
       this.showEmptyState();
     } else {
@@ -146,11 +177,12 @@ class PopupApp {
     }
 
     const query = this.searchQuery.toLowerCase();
-    return this.snippets.filter(snippet => 
-      snippet.trigger.toLowerCase().includes(query) ||
-      snippet.content.toLowerCase().includes(query) ||
-      snippet.description?.toLowerCase().includes(query) ||
-      snippet.tags?.some(tag => tag.toLowerCase().includes(query))
+    return this.snippets.filter(
+      (snippet) =>
+        snippet.trigger.toLowerCase().includes(query) ||
+        snippet.content.toLowerCase().includes(query) ||
+        snippet.description?.toLowerCase().includes(query) ||
+        snippet.tags?.some((tag) => tag.toLowerCase().includes(query)),
     );
   }
 
@@ -158,16 +190,16 @@ class PopupApp {
    * Render snippets in the list
    */
   private renderSnippets(snippets: TextSnippet[]): void {
-    this.elements.snippetList.innerHTML = '';
-    
+    this.elements.snippetList.innerHTML = "";
+
     // Ensure snippets is an array before calling forEach
     if (Array.isArray(snippets)) {
-      snippets.forEach(snippet => {
+      snippets.forEach((snippet) => {
         const snippetElement = this.createSnippetElement(snippet);
         this.elements.snippetList.appendChild(snippetElement);
       });
     } else {
-      console.error('renderSnippets called with non-array:', snippets);
+      console.error("renderSnippets called with non-array:", snippets);
     }
   }
 
@@ -175,20 +207,25 @@ class PopupApp {
    * Create a snippet list item element
    */
   private createSnippetElement(snippet: TextSnippet): HTMLElement {
-    const element = document.createElement('div');
-    element.className = 'snippet-item';
+    const element = document.createElement("div");
+    element.className = "snippet-item";
     element.dataset.snippetId = snippet.id;
 
-    const truncatedContent = snippet.content.length > 100 ? 
-      snippet.content.substring(0, 100) + '...' : 
-      snippet.content;
+    const truncatedContent =
+      snippet.content.length > 100
+        ? snippet.content.substring(0, 100) + "..."
+        : snippet.content;
 
-    const tags = snippet.tags?.map(tag => 
-      `<span class="snippet-tag">${this.escapeHtml(tag)}</span>`
-    ).join('') || '';
+    const tags =
+      snippet.tags
+        ?.map(
+          (tag) => `<span class="snippet-tag">${this.escapeHtml(tag)}</span>`,
+        )
+        .join("") || "";
 
-    const sharedIndicator = snippet.isShared ? 
-      '<span class="snippet-shared">Shared</span>' : '';
+    const sharedIndicator = snippet.isShared
+      ? '<span class="snippet-shared">Shared</span>'
+      : "";
 
     element.innerHTML = `
       <div class="snippet-header">
@@ -221,22 +258,22 @@ class PopupApp {
     `;
 
     // Add event listeners to action buttons
-    element.addEventListener('click', (e) => {
+    element.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
-      const button = target.closest('.snippet-action') as HTMLButtonElement;
-      
+      const button = target.closest(".snippet-action") as HTMLButtonElement;
+
       if (button) {
         e.stopPropagation();
         const action = button.dataset.action;
-        
+
         switch (action) {
-          case 'use':
+          case "use":
             this.useSnippet(snippet);
             break;
-          case 'edit':
+          case "edit":
             this.editSnippet(snippet);
             break;
-          case 'delete':
+          case "delete":
             this.deleteSnippet(snippet);
             break;
         }
@@ -257,8 +294,8 @@ class PopupApp {
       await SnippetMessages.expandText(snippet.trigger);
       window.close(); // Close popup after use
     } catch (error) {
-      console.error('Failed to use snippet:', error);
-      this.showError('Failed to expand snippet');
+      console.error("Failed to use snippet:", error);
+      this.showError("Failed to expand snippet");
     }
   }
 
@@ -267,15 +304,15 @@ class PopupApp {
    */
   private editSnippet(snippet: TextSnippet): void {
     this.currentEditingSnippet = snippet;
-    this.elements.modalTitle.textContent = 'Edit Snippet';
-    
+    this.elements.modalTitle.textContent = "Edit Snippet";
+
     // Populate form
     this.elements.triggerInput.value = snippet.trigger;
     this.elements.contentTextarea.value = snippet.content;
-    this.elements.descriptionInput.value = snippet.description || '';
-    this.elements.tagsInput.value = snippet.tags?.join(', ') || '';
+    this.elements.descriptionInput.value = snippet.description || "";
+    this.elements.tagsInput.value = snippet.tags?.join(", ") || "";
     this.elements.sharedCheckbox.checked = snippet.isShared || false;
-    
+
     this.showSnippetModal();
   }
 
@@ -291,10 +328,10 @@ class PopupApp {
       await SnippetMessages.deleteSnippet(snippet.id);
       await this.loadSnippets();
       this.updateUI();
-      this.showSuccess('Snippet deleted successfully');
+      this.showSuccess("Snippet deleted successfully");
     } catch (error) {
-      console.error('Failed to delete snippet:', error);
-      this.showError('Failed to delete snippet');
+      console.error("Failed to delete snippet:", error);
+      this.showError("Failed to delete snippet");
     }
   }
 
@@ -310,7 +347,7 @@ class PopupApp {
     }
 
     this.currentEditingSnippet = null;
-    this.elements.modalTitle.textContent = 'Add Snippet';
+    this.elements.modalTitle.textContent = "Add Snippet";
     this.elements.snippetForm.reset();
     this.showSnippetModal();
   }
@@ -319,7 +356,7 @@ class PopupApp {
    * Show snippet modal
    */
   private showSnippetModal(): void {
-    this.elements.snippetModal.classList.remove('hidden');
+    this.elements.snippetModal.classList.remove("hidden");
     this.elements.triggerInput.focus();
   }
 
@@ -327,7 +364,7 @@ class PopupApp {
    * Hide snippet modal
    */
   private hideSnippetModal(): void {
-    this.elements.snippetModal.classList.add('hidden');
+    this.elements.snippetModal.classList.add("hidden");
     this.currentEditingSnippet = null;
   }
 
@@ -336,35 +373,37 @@ class PopupApp {
    */
   private async handleFormSubmit(e: Event): Promise<void> {
     e.preventDefault();
-    
-    const formData = new FormData(this.elements.snippetForm);
+
     const snippetData = {
       trigger: this.elements.triggerInput.value.trim(),
       content: this.elements.contentTextarea.value.trim(),
       description: this.elements.descriptionInput.value.trim() || undefined,
-      tags: this.elements.tagsInput.value.trim() ? 
-        this.elements.tagsInput.value.split(',').map(tag => tag.trim()) : 
-        undefined,
+      tags: this.elements.tagsInput.value.trim()
+        ? this.elements.tagsInput.value.split(",").map((tag) => tag.trim())
+        : undefined,
       isShared: this.elements.sharedCheckbox.checked,
     };
 
     try {
       if (this.currentEditingSnippet) {
         // Update existing snippet
-        await SnippetMessages.updateSnippet(this.currentEditingSnippet.id, snippetData);
-        this.showSuccess('Snippet updated successfully');
+        await SnippetMessages.updateSnippet(
+          this.currentEditingSnippet.id,
+          snippetData,
+        );
+        this.showSuccess("Snippet updated successfully");
       } else {
         // Add new snippet
         await SnippetMessages.addSnippet(snippetData);
-        this.showSuccess('Snippet added successfully');
+        this.showSuccess("Snippet added successfully");
       }
-      
+
       this.hideSnippetModal();
       await this.loadSnippets();
       this.updateUI();
     } catch (error) {
-      console.error('Failed to save snippet:', error);
-      this.showError('Failed to save snippet');
+      console.error("Failed to save snippet:", error);
+      this.showError("Failed to save snippet");
     }
   }
 
@@ -382,18 +421,19 @@ class PopupApp {
   private async syncSnippets(): Promise<void> {
     try {
       this.elements.syncButton.disabled = true;
-      this.showSyncStatus('Syncing...', 'info');
-      
+      this.showSyncStatus("Syncing...", "info");
+
       await SyncMessages.syncSnippets();
       await this.loadSnippets();
       this.updateUI();
-      
-      this.showSyncStatus('Sync completed successfully', 'success');
+
+      this.showSyncStatus("Sync completed successfully", "success");
     } catch (error) {
-      console.error('Sync failed:', error);
+      console.error("Sync failed:", error);
       // Safely access error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during sync';
-      this.showSyncStatus('Sync failed: ' + errorMessage, 'error');
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error during sync";
+      this.showSyncStatus("Sync failed: " + errorMessage, "error");
     } finally {
       this.elements.syncButton.disabled = false;
     }
@@ -411,7 +451,7 @@ class PopupApp {
    */
   private openSettingsToLocalSources(): void {
     chrome.tabs.create({
-      url: chrome.runtime.getURL('options/options.html#local-folder-sources')
+      url: chrome.runtime.getURL("options/options.html#local-folder-sources"),
     });
   }
 
@@ -425,14 +465,15 @@ class PopupApp {
       }
 
       // Check if any cloud provider is selected (not just 'local')
-      const isCloudProviderSelected = this.settings?.cloudProvider && this.settings.cloudProvider !== 'local';
+      const isCloudProviderSelected =
+        this.settings?.cloudProvider && this.settings.cloudProvider !== "local";
 
       // Check if any local filesystem sources are configured
       const hasLocalSources = false; // Local filesystem support removed
-      
+
       return isCloudProviderSelected || hasLocalSources;
     } catch (error) {
-      console.error('Failed to check storage configuration:', error);
+      console.error("Failed to check storage configuration:", error);
       return false;
     }
   }
@@ -441,19 +482,26 @@ class PopupApp {
    * Show toast message about storage setup requirement
    */
   private showStorageSetupToast(): void {
-    this.showSyncStatus('You need to select where to store your snippets before you can create any', 'info');
+    this.showSyncStatus(
+      "You need to select where to store your snippets before you can create any",
+      "info",
+    );
   }
 
   /**
    * Show sync status message
    */
-  private showSyncStatus(message: string, type: 'info' | 'success' | 'error'): void {
+  private showSyncStatus(
+    message: string,
+    type: "info" | "success" | "error",
+  ): void {
     this.elements.syncStatus.className = `sync-status ${type}`;
-    this.elements.syncStatus.querySelector('.sync-status-text')!.textContent = message;
-    this.elements.syncStatus.classList.remove('hidden');
-    
+    this.elements.syncStatus.querySelector(".sync-status-text")!.textContent =
+      message;
+    this.elements.syncStatus.classList.remove("hidden");
+
     // Auto-hide success messages
-    if (type === 'success') {
+    if (type === "success") {
       setTimeout(() => this.hideSyncStatus(), 3000);
     }
   }
@@ -462,54 +510,54 @@ class PopupApp {
    * Hide sync status
    */
   private hideSyncStatus(): void {
-    this.elements.syncStatus.classList.add('hidden');
+    this.elements.syncStatus.classList.add("hidden");
   }
 
   /**
    * Show loading state
    */
   private showLoading(): void {
-    this.elements.loadingState.classList.remove('hidden');
-    this.elements.snippetList.classList.add('hidden');
-    this.elements.emptyState.classList.add('hidden');
+    this.elements.loadingState.classList.remove("hidden");
+    this.elements.snippetList.classList.add("hidden");
+    this.elements.emptyState.classList.add("hidden");
   }
 
   /**
    * Hide loading state
    */
   private hideLoading(): void {
-    this.elements.loadingState.classList.add('hidden');
-    this.elements.snippetList.classList.remove('hidden');
+    this.elements.loadingState.classList.add("hidden");
+    this.elements.snippetList.classList.remove("hidden");
   }
 
   /**
    * Show empty state
    */
   private showEmptyState(): void {
-    this.elements.emptyState.classList.remove('hidden');
-    this.elements.snippetList.classList.add('hidden');
+    this.elements.emptyState.classList.remove("hidden");
+    this.elements.snippetList.classList.add("hidden");
   }
 
   /**
    * Hide empty state
    */
   private hideEmptyState(): void {
-    this.elements.emptyState.classList.add('hidden');
-    this.elements.snippetList.classList.remove('hidden');
+    this.elements.emptyState.classList.add("hidden");
+    this.elements.snippetList.classList.remove("hidden");
   }
 
   /**
    * Show error message
    */
   private showError(message: string): void {
-    this.showSyncStatus(message, 'error');
+    this.showSyncStatus(message, "error");
   }
 
   /**
    * Show success message
    */
   private showSuccess(message: string): void {
-    this.showSyncStatus(message, 'success');
+    this.showSyncStatus(message, "success");
   }
 
   /**
@@ -517,18 +565,21 @@ class PopupApp {
    */
   private handleKeydown(e: KeyboardEvent): void {
     // Escape key - close modal
-    if (e.key === 'Escape' && !this.elements.snippetModal.classList.contains('hidden')) {
+    if (
+      e.key === "Escape" &&
+      !this.elements.snippetModal.classList.contains("hidden")
+    ) {
       this.hideSnippetModal();
     }
-    
+
     // Ctrl/Cmd + N - new snippet
-    if (e.key === 'n' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "n" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       this.showAddSnippetModal();
     }
-    
+
     // Ctrl/Cmd + F - focus search
-    if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "f" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       this.elements.searchInput.focus();
     }
@@ -538,7 +589,7 @@ class PopupApp {
    * Escape HTML for safe insertion
    */
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -548,10 +599,10 @@ class PopupApp {
    */
   private debounce<T extends (...args: any[]) => any>(
     func: T,
-    delay: number
+    delay: number,
   ): (...args: Parameters<T>) => void {
     let timeoutId: number;
-    
+
     return (...args: Parameters<T>) => {
       clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => func(...args), delay);
@@ -560,8 +611,8 @@ class PopupApp {
 }
 
 // Initialize popup when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     new PopupApp();
   });
 } else {

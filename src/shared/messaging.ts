@@ -3,16 +3,14 @@
  * Handles communication between content scripts, popup, and background
  */
 
-import type { 
-  BaseMessage, 
-  MessageType, 
-  TextSnippet, 
+import type {
+  BaseMessage,
+  MessageType,
+  TextSnippet,
   ExtensionSettings,
-  ExpandTextMessage,
-  VariablePromptMessage,
   CloudProvider,
-  SnippetScope 
-} from './types.js';
+  SnippetScope,
+} from "./types.js";
 
 /**
  * Message sender utility class
@@ -22,21 +20,21 @@ export class MessageSender {
    * Send message to background script
    */
   static async sendToBackground<T = any>(
-    type: MessageType, 
-    data?: any
+    type: MessageType,
+    data?: any,
   ): Promise<T> {
     const message: BaseMessage = {
       type,
       timestamp: Date.now(),
-      ...data
+      ...data,
     };
-    
+
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(message, (response) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
         } else if (response && response.success === false) {
-          reject(new Error(response.error || 'Unknown error'));
+          reject(new Error(response.error || "Unknown error"));
         } else if (response && response.success === true) {
           resolve(response.data);
         } else {
@@ -53,14 +51,14 @@ export class MessageSender {
   static async sendToContentScript<T = any>(
     tabId: number,
     type: MessageType,
-    data?: any
+    data?: any,
   ): Promise<T> {
     const message: BaseMessage = {
       type,
       timestamp: Date.now(),
-      ...data
+      ...data,
     };
-    
+
     return new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(tabId, message, (response) => {
         if (chrome.runtime.lastError) {
@@ -77,13 +75,16 @@ export class MessageSender {
    */
   static async sendToActiveTab<T = any>(
     type: MessageType,
-    data?: any
+    data?: any,
   ): Promise<T> {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     if (!tab.id) {
-      throw new Error('No active tab found');
+      throw new Error("No active tab found");
     }
-    
+
     return this.sendToContentScript(tab.id, type, data);
   }
 
@@ -92,23 +93,23 @@ export class MessageSender {
    */
   static async broadcastToAllTabs(
     type: MessageType,
-    data?: any
+    data?: any,
   ): Promise<void> {
     const tabs = await chrome.tabs.query({});
     const message: BaseMessage = {
       type,
       timestamp: Date.now(),
-      ...data
+      ...data,
     };
-    
+
     const promises = tabs
-      .filter(tab => tab.id !== undefined)
-      .map(tab => 
+      .filter((tab) => tab.id !== undefined)
+      .map((tab) =>
         chrome.tabs.sendMessage(tab.id!, message).catch(() => {
           // Ignore errors for tabs that can't receive messages
-        })
+        }),
       );
-    
+
     await Promise.allSettled(promises);
   }
 }
@@ -122,7 +123,10 @@ export class MessageHandler {
   /**
    * Register a message handler
    */
-  on<T = any>(type: MessageType, handler: (data: T, sender: chrome.runtime.MessageSender) => any): void {
+  on<T = any>(
+    type: MessageType,
+    handler: (data: T, sender: chrome.runtime.MessageSender) => any,
+  ): void {
     this.handlers.set(type, handler);
   }
 
@@ -132,25 +136,27 @@ export class MessageHandler {
   listen(): void {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const handler = this.handlers.get(message.type);
-      
+
       if (handler) {
         try {
           const result = handler(message, sender);
-          
+
           // Handle async responses
           if (result instanceof Promise) {
             result
               .then(sendResponse)
-              .catch(error => sendResponse({ error: error.message }));
+              .catch((error) => sendResponse({ error: error.message }));
             return true; // Keep message channel open
           } else {
             sendResponse(result);
           }
         } catch (error) {
-          sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+          sendResponse({
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
         }
       }
-      
+
       return false;
     });
   }
@@ -178,42 +184,52 @@ export class SnippetMessages {
    * Request snippets from background
    */
   static async getSnippets(): Promise<TextSnippet[]> {
-    return MessageSender.sendToBackground('GET_SNIPPETS');
+    return MessageSender.sendToBackground("GET_SNIPPETS");
   }
 
   /**
    * Add a new snippet
    */
-  static async addSnippet(snippet: Omit<TextSnippet, 'id' | 'createdAt' | 'updatedAt'>): Promise<TextSnippet> {
-    return MessageSender.sendToBackground('ADD_SNIPPET', { snippet });
+  static async addSnippet(
+    snippet: Omit<TextSnippet, "id" | "createdAt" | "updatedAt">,
+  ): Promise<TextSnippet> {
+    return MessageSender.sendToBackground("ADD_SNIPPET", { snippet });
   }
 
   /**
    * Update an existing snippet
    */
-  static async updateSnippet(id: string, updates: Partial<TextSnippet>): Promise<void> {
-    return MessageSender.sendToBackground('UPDATE_SNIPPET', { id, updates });
+  static async updateSnippet(
+    id: string,
+    updates: Partial<TextSnippet>,
+  ): Promise<void> {
+    return MessageSender.sendToBackground("UPDATE_SNIPPET", { id, updates });
   }
 
   /**
    * Delete a snippet
    */
   static async deleteSnippet(id: string): Promise<void> {
-    return MessageSender.sendToBackground('DELETE_SNIPPET', { id });
+    return MessageSender.sendToBackground("DELETE_SNIPPET", { id });
   }
 
   /**
    * Trigger text expansion
    */
-  static async expandText(trigger: string, variables?: Record<string, string>): Promise<void> {
-    return MessageSender.sendToActiveTab('EXPAND_TEXT', { trigger, variables });
+  static async expandText(
+    trigger: string,
+    variables?: Record<string, string>,
+  ): Promise<void> {
+    return MessageSender.sendToActiveTab("EXPAND_TEXT", { trigger, variables });
   }
 
   /**
    * Request variable input from user
    */
-  static async promptForVariables(snippet: TextSnippet): Promise<Record<string, string>> {
-    return MessageSender.sendToActiveTab('VARIABLE_PROMPT', { snippet });
+  static async promptForVariables(
+    snippet: TextSnippet,
+  ): Promise<Record<string, string>> {
+    return MessageSender.sendToActiveTab("VARIABLE_PROMPT", { snippet });
   }
 }
 
@@ -225,14 +241,16 @@ export class SettingsMessages {
    * Get extension settings
    */
   static async getSettings(): Promise<ExtensionSettings> {
-    return MessageSender.sendToBackground('GET_SETTINGS');
+    return MessageSender.sendToBackground("GET_SETTINGS");
   }
 
   /**
    * Update extension settings
    */
-  static async updateSettings(settings: Partial<ExtensionSettings>): Promise<void> {
-    return MessageSender.sendToBackground('UPDATE_SETTINGS', { settings });
+  static async updateSettings(
+    settings: Partial<ExtensionSettings>,
+  ): Promise<void> {
+    return MessageSender.sendToBackground("UPDATE_SETTINGS", { settings });
   }
 }
 
@@ -244,35 +262,41 @@ export class SyncMessages {
    * Trigger manual sync
    */
   static async syncSnippets(): Promise<void> {
-    return MessageSender.sendToBackground('SYNC_SNIPPETS');
+    return MessageSender.sendToBackground("SYNC_SNIPPETS");
   }
 
   /**
    * Trigger cloud authentication
    */
   static async authenticateCloud(): Promise<void> {
-    return MessageSender.sendToBackground('AUTHENTICATE_CLOUD');
+    return MessageSender.sendToBackground("AUTHENTICATE_CLOUD");
   }
 
   /**
    * Trigger cloud folder selection
    */
-  static async selectCloudFolder(provider: CloudProvider, scope: SnippetScope): Promise<{ folderId: string, folderName: string }> {
-    return MessageSender.sendToBackground('SELECT_CLOUD_FOLDER', { provider, scope });
+  static async selectCloudFolder(
+    provider: CloudProvider,
+    scope: SnippetScope,
+  ): Promise<{ folderId: string; folderName: string }> {
+    return MessageSender.sendToBackground("SELECT_CLOUD_FOLDER", {
+      provider,
+      scope,
+    });
   }
 
   /**
    * Trigger cloud disconnect
    */
   static async disconnectCloud(): Promise<void> {
-    return MessageSender.sendToBackground('DISCONNECT_CLOUD');
+    return MessageSender.sendToBackground("DISCONNECT_CLOUD");
   }
 
   /**
    * Get sync status information
    */
   static async getSyncStatus(): Promise<any> {
-    return MessageSender.sendToBackground('GET_SYNC_STATUS');
+    return MessageSender.sendToBackground("GET_SYNC_STATUS");
   }
 }
 

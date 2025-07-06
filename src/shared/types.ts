@@ -10,17 +10,24 @@ export interface TextSnippet {
   id: string;
   trigger: string;
   content: string;
-  contentType?: 'text' | 'html'; // Added contentType
+  contentType?: "text" | "html"; // Added contentType
   description?: string;
   scope?: SnippetScope; // Added scope
   variables?: SnippetVariable[];
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
+  lastModified?: Date; // Added lastModified
   isShared?: boolean;
   sharedBy?: string;
   isBuiltIn?: boolean;
+  isActive?: boolean; // Added isActive
 }
+
+/**
+ * Alias for TextSnippet for backwards compatibility
+ */
+export type Snippet = TextSnippet;
 
 /**
  * Variable definition for dynamic snippets
@@ -30,7 +37,7 @@ export interface SnippetVariable {
   placeholder: string;
   defaultValue?: string;
   required?: boolean;
-  type?: 'text' | 'number' | 'date' | 'choice';
+  type?: "text" | "number" | "date" | "choice";
   choices?: string[];
 }
 
@@ -48,12 +55,17 @@ export interface SyncStatus {
 /**
  * Supported cloud storage providers
  */
-export type CloudProvider = 'google-drive' | 'dropbox' | 'onedrive' | 'local';
+export type CloudProvider =
+  | "google-drive"
+  | "dropbox"
+  | "onedrive"
+  | "local"
+  | "local-filesystem";
 
 /**
  * Snippet scopes for multi-tier sync architecture
  */
-export type SnippetScope = 'personal' | 'department' | 'org';
+export type SnippetScope = "personal" | "department" | "team" | "org";
 
 /**
  * Scoped source configuration
@@ -64,7 +76,7 @@ export interface SyncedSource {
   folderId: string;
   displayName: string;
   // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
-  handleId?: string; 
+  handleId?: string;
   handleName?: string;
 }
 
@@ -86,6 +98,7 @@ export interface ScopedSource {
   provider: CloudProvider;
   name: string;
   displayName: string;
+  folderId?: string;
   lastSync?: Date;
   // For local-filesystem, store serializable parts of FileSystemDirectoryHandle
   handleId?: string;
@@ -107,62 +120,79 @@ export interface CloudCredentials {
  */
 export interface CloudAdapter {
   readonly provider: CloudProvider;
-  
+
   /**
    * Initialize the adapter with credentials
    */
   initialize(credentials: CloudCredentials): Promise<void>;
-  
+
   /**
    * Check if the adapter is authenticated and ready
    */
   isAuthenticated(): Promise<boolean>;
-  
+
   /**
    * Authenticate with the cloud provider
    */
   authenticate(): Promise<CloudCredentials>;
-  
+
   /**
    * Upload snippets to cloud storage
    */
   uploadSnippets(snippets: TextSnippet[]): Promise<void>;
-  
+
   /**
    * Download snippets from cloud storage
    */
   downloadSnippets(folderId: string): Promise<TextSnippet[]>;
-  
+
   /**
    * Sync local changes with remote storage
    */
   syncSnippets(localSnippets: TextSnippet[]): Promise<TextSnippet[]>;
-  
+
   /**
    * Delete snippets from cloud storage
    */
   deleteSnippets(snippetIds: string[]): Promise<void>;
-  
+
   /**
    * Get sync status
    */
   getSyncStatus(): Promise<SyncStatus>;
-  
+
   /**
    * Select a folder for storing snippets (optional for cloud providers)
    */
   selectFolder?(): Promise<{ folderId: string; folderName: string }>;
+
+  /**
+   * Get folders from cloud provider (optional, for Google Drive)
+   */
+  getFolders?(
+    parentId?: string,
+  ): Promise<
+    Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
+  >;
+
+  /**
+   * Create folder in cloud provider (optional, for Google Drive)
+   */
+  createFolder?(
+    folderName: string,
+    parentId?: string,
+  ): Promise<{ id: string; name: string }>;
 }
 
 /**
  * Extension storage keys
  */
 export interface StorageKeys {
-  SNIPPETS: 'snippets';
-  SETTINGS: 'settings';
-  SYNC_STATUS: 'syncStatus';
-  CLOUD_CREDENTIALS: 'cloudCredentials';
-  LAST_SYNC: 'lastSync';
+  SNIPPETS: "snippets";
+  SETTINGS: "settings";
+  SYNC_STATUS: "syncStatus";
+  CLOUD_CREDENTIALS: "cloudCredentials";
+  LAST_SYNC: "lastSync";
 }
 
 /**
@@ -180,6 +210,9 @@ export interface ExtensionSettings {
   triggerPrefix: string;
   excludePasswords: boolean;
   configuredSources: ConfiguredScopedSource[]; // New field
+  // Global toggle settings
+  globalToggleEnabled: boolean;
+  globalToggleShortcut: string;
   // Built-in test snippet settings
   testTrigger?: string;
   disableTestSnippet?: boolean;
@@ -189,21 +222,22 @@ export interface ExtensionSettings {
 /**
  * Message types for extension communication
  */
-export type MessageType = 
-  | 'GET_SNIPPETS'
-  | 'ADD_SNIPPET'
-  | 'UPDATE_SNIPPET'
-  | 'DELETE_SNIPPET'
-  | 'SYNC_SNIPPETS'
-  | 'GET_SETTINGS'
-  | 'UPDATE_SETTINGS'
-  | 'GET_SYNC_STATUS'
-  | 'TRIGGER_DETECTED'
-  | 'EXPAND_TEXT'
-  | 'VARIABLE_PROMPT'
-  | 'AUTHENTICATE_CLOUD'
-  | 'SELECT_CLOUD_FOLDER'
-  | 'DISCONNECT_CLOUD';
+export type MessageType =
+  | "GET_SNIPPETS"
+  | "ADD_SNIPPET"
+  | "UPDATE_SNIPPET"
+  | "DELETE_SNIPPET"
+  | "SYNC_SNIPPETS"
+  | "GET_SETTINGS"
+  | "UPDATE_SETTINGS"
+  | "SETTINGS_UPDATED"
+  | "GET_SYNC_STATUS"
+  | "TRIGGER_DETECTED"
+  | "EXPAND_TEXT"
+  | "VARIABLE_PROMPT"
+  | "AUTHENTICATE_CLOUD"
+  | "SELECT_CLOUD_FOLDER"
+  | "DISCONNECT_CLOUD";
 
 /**
  * Base message structure for extension communication
@@ -218,7 +252,7 @@ export interface BaseMessage {
  * Message for text expansion requests
  */
 export interface ExpandTextMessage extends BaseMessage {
-  type: 'EXPAND_TEXT';
+  type: "EXPAND_TEXT";
   trigger: string;
   snippet: TextSnippet;
   variables?: Record<string, string>;
@@ -228,7 +262,7 @@ export interface ExpandTextMessage extends BaseMessage {
  * Message for variable prompt requests
  */
 export interface VariablePromptMessage extends BaseMessage {
-  type: 'VARIABLE_PROMPT';
+  type: "VARIABLE_PROMPT";
   snippet: TextSnippet;
   variables: SnippetVariable[];
 }

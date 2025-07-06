@@ -3,14 +3,14 @@
  * Handles local and sync storage operations with type safety
  */
 
-import { STORAGE_KEYS, DEFAULT_SETTINGS } from './constants.js';
-import { IndexedDB } from './indexed-db.js';
-import type { 
-  TextSnippet, 
-  ExtensionSettings, 
-  SyncStatus, 
-  CloudCredentials 
-} from './types.js';
+import { STORAGE_KEYS, DEFAULT_SETTINGS } from "./constants.js";
+import { IndexedDB } from "./indexed-db.js";
+import type {
+  TextSnippet,
+  ExtensionSettings,
+  SyncStatus,
+  CloudCredentials,
+} from "./types.js";
 
 /**
  * Storage utility class for Chrome extension
@@ -27,7 +27,10 @@ export class ExtensionStorage {
         return snippets;
       }
     } catch (error) {
-      console.warn('Failed to load snippets from IndexedDB, falling back to chrome.storage.local:', error);
+      console.warn(
+        "Failed to load snippets from IndexedDB, falling back to chrome.storage.local:",
+        error,
+      );
     }
 
     // Fallback to chrome.storage.local
@@ -39,7 +42,10 @@ export class ExtensionStorage {
       try {
         await indexedDB.saveSnippets(localSnippets);
       } catch (error) {
-        console.error('Failed to save snippets to IndexedDB from chrome.storage.local:', error);
+        console.error(
+          "Failed to save snippets to IndexedDB from chrome.storage.local:",
+          error,
+        );
       }
     }
     return localSnippets;
@@ -49,14 +55,20 @@ export class ExtensionStorage {
    * Save snippets to storage
    */
   static async setSnippets(snippets: TextSnippet[]): Promise<void> {
-    console.log('📦 Updating storage with snippets:', snippets.length, 'total');
-    console.log('📋 Snippet list:', snippets.map(s => ({ trigger: s.trigger, content: s.content.substring(0, 30) + '...' })));
-    
+    console.log("📦 Updating storage with snippets:", snippets.length, "total");
+    console.log(
+      "📋 Snippet list:",
+      snippets.map((s) => ({
+        trigger: s.trigger,
+        content: s.content.substring(0, 30) + "...",
+      })),
+    );
+
     await chrome.storage.local.set({
-      [STORAGE_KEYS.SNIPPETS]: snippets
+      [STORAGE_KEYS.SNIPPETS]: snippets,
     });
-    
-    console.log('✅ Storage update completed');
+
+    console.log("✅ Storage update completed");
   }
 
   /**
@@ -71,12 +83,19 @@ export class ExtensionStorage {
   /**
    * Update an existing snippet
    */
-  static async updateSnippet(id: string, updates: Partial<TextSnippet>): Promise<void> {
+  static async updateSnippet(
+    id: string,
+    updates: Partial<TextSnippet>,
+  ): Promise<void> {
     const snippets = await this.getSnippets();
-    const index = snippets.findIndex(s => s.id === id);
-    
+    const index = snippets.findIndex((s) => s.id === id);
+
     if (index !== -1) {
-      snippets[index] = { ...snippets[index], ...updates, updatedAt: new Date() };
+      snippets[index] = {
+        ...snippets[index],
+        ...updates,
+        updatedAt: new Date(),
+      };
       await this.setSnippets(snippets);
     }
   }
@@ -86,16 +105,18 @@ export class ExtensionStorage {
    */
   static async deleteSnippet(id: string): Promise<void> {
     const snippets = await this.getSnippets();
-    const filtered = snippets.filter(s => s.id !== id);
+    const filtered = snippets.filter((s) => s.id !== id);
     await this.setSnippets(filtered);
   }
 
   /**
    * Find snippet by trigger
    */
-  static async findSnippetByTrigger(trigger: string): Promise<TextSnippet | null> {
+  static async findSnippetByTrigger(
+    trigger: string,
+  ): Promise<TextSnippet | null> {
     const snippets = await this.getSnippets();
-    return snippets.find(s => s.trigger === trigger) || null;
+    return snippets.find((s) => s.trigger === trigger) || null;
   }
 
   /**
@@ -110,12 +131,14 @@ export class ExtensionStorage {
   /**
    * Save extension settings
    */
-  static async setSettings(settings: Partial<ExtensionSettings>): Promise<void> {
+  static async setSettings(
+    settings: Partial<ExtensionSettings>,
+  ): Promise<void> {
     const currentSettings = await this.getSettings();
     const newSettings = { ...currentSettings, ...settings };
-    
+
     await chrome.storage.sync.set({
-      [STORAGE_KEYS.SETTINGS]: newSettings
+      [STORAGE_KEYS.SETTINGS]: newSettings,
     });
   }
 
@@ -132,7 +155,7 @@ export class ExtensionStorage {
    */
   static async setSyncStatus(status: SyncStatus): Promise<void> {
     await chrome.storage.local.set({
-      [STORAGE_KEYS.SYNC_STATUS]: status
+      [STORAGE_KEYS.SYNC_STATUS]: status,
     });
   }
 
@@ -140,16 +163,20 @@ export class ExtensionStorage {
    * Get cloud credentials
    */
   static async getCloudCredentials(): Promise<CloudCredentials | null> {
-    const result = await chrome.storage.local.get(STORAGE_KEYS.CLOUD_CREDENTIALS);
+    const result = await chrome.storage.local.get(
+      STORAGE_KEYS.CLOUD_CREDENTIALS,
+    );
     return result?.[STORAGE_KEYS.CLOUD_CREDENTIALS] || null;
   }
 
   /**
    * Save cloud credentials
    */
-  static async setCloudCredentials(credentials: CloudCredentials): Promise<void> {
+  static async setCloudCredentials(
+    credentials: CloudCredentials,
+  ): Promise<void> {
     await chrome.storage.local.set({
-      [STORAGE_KEYS.CLOUD_CREDENTIALS]: credentials
+      [STORAGE_KEYS.CLOUD_CREDENTIALS]: credentials,
     });
   }
 
@@ -174,7 +201,7 @@ export class ExtensionStorage {
    */
   static async setLastSync(date: Date): Promise<void> {
     await chrome.storage.local.set({
-      [STORAGE_KEYS.LAST_SYNC]: date.toISOString()
+      [STORAGE_KEYS.LAST_SYNC]: date.toISOString(),
     });
   }
 
@@ -192,10 +219,10 @@ export class ExtensionStorage {
   static async getStorageUsage(): Promise<{ local: number; sync: number }> {
     const localUsage = await chrome.storage.local.getBytesInUse();
     const syncUsage = await chrome.storage.sync.getBytesInUse();
-    
+
     return {
       local: localUsage,
-      sync: syncUsage
+      sync: syncUsage,
     };
   }
 
@@ -206,15 +233,15 @@ export class ExtensionStorage {
     const snippets = await this.getSnippets();
     const settings = await this.getSettings();
     const syncStatus = await this.getSyncStatus();
-    
+
     const exportData = {
       snippets,
       settings,
       syncStatus,
       exportedAt: new Date().toISOString(),
-      version: '1.0'
+      version: "1.0",
     };
-    
+
     return JSON.stringify(exportData, null, 2);
   }
 
@@ -224,20 +251,20 @@ export class ExtensionStorage {
   static async importData(jsonData: string): Promise<void> {
     try {
       const data = JSON.parse(jsonData);
-      
+
       if (data.snippets) {
         await this.setSnippets(data.snippets);
       }
-      
+
       if (data.settings) {
         await this.setSettings(data.settings);
       }
-      
+
       if (data.syncStatus) {
         await this.setSyncStatus(data.syncStatus);
       }
     } catch (error) {
-      throw new Error('Invalid backup data format');
+      throw new Error("Invalid backup data format");
     }
   }
 
@@ -245,7 +272,7 @@ export class ExtensionStorage {
    * Get scoped sources
    */
   static async getScopedSources(): Promise<any[]> {
-    const result = await chrome.storage.local.get('scopedSources');
+    const result = await chrome.storage.local.get("scopedSources");
     return result?.scopedSources || [];
   }
 
@@ -254,7 +281,7 @@ export class ExtensionStorage {
    */
   static async setScopedSources(sources: any[]): Promise<void> {
     await chrome.storage.local.set({
-      scopedSources: sources
+      scopedSources: sources,
     });
   }
 }

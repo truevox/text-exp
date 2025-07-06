@@ -3,45 +3,48 @@
  * Handles synchronization with Dropbox storage
  */
 
-import { BaseCloudAdapter } from './base-adapter.js';
-import type { CloudCredentials, TextSnippet } from '../../shared/types.js';
-import { SYNC_CONFIG, CLOUD_PROVIDERS } from '../../shared/constants.js';
+import { BaseCloudAdapter } from "./base-adapter.js";
+import type { CloudCredentials, TextSnippet } from "../../shared/types.js";
+import { SYNC_CONFIG, CLOUD_PROVIDERS } from "../../shared/constants.js";
 
 /**
  * Dropbox adapter for cloud synchronization
  */
 export class DropboxAdapter extends BaseCloudAdapter {
-  readonly provider = 'dropbox' as const;
-  
-  private static readonly API_BASE = 'https://api.dropboxapi.com/2';
-  private static readonly CONTENT_API = 'https://content.dropboxapi.com/2';
+  readonly provider = "dropbox" as const;
+
+  private static readonly API_BASE = "https://api.dropboxapi.com/2";
+  private static readonly CONTENT_API = "https://content.dropboxapi.com/2";
 
   /**
    * Authenticate with Dropbox
    */
   async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
-      chrome.identity.launchWebAuthFlow({
-        url: this.buildAuthUrl(),
-        interactive: true
-      }, (redirectUrl) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        
-        if (!redirectUrl) {
-          reject(new Error('Authentication cancelled'));
-          return;
-        }
-        
-        try {
-          const credentials = this.parseAuthResponse(redirectUrl);
-          resolve(credentials);
-        } catch (error) {
-          reject(error);
-        }
-      });
+      chrome.identity.launchWebAuthFlow(
+        {
+          url: this.buildAuthUrl(),
+          interactive: true,
+        },
+        (redirectUrl) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (!redirectUrl) {
+            reject(new Error("Authentication cancelled"));
+            return;
+          }
+
+          try {
+            const credentials = this.parseAuthResponse(redirectUrl);
+            resolve(credentials);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
     });
   }
 
@@ -51,27 +54,32 @@ export class DropboxAdapter extends BaseCloudAdapter {
   async uploadSnippets(snippets: TextSnippet[]): Promise<void> {
     const sanitizedSnippets = this.sanitizeSnippets(snippets);
     const data = JSON.stringify(sanitizedSnippets, null, 2);
-    
+
     await this.retryOperation(async () => {
-      const response = await fetch(`${DropboxAdapter.CONTENT_API}/files/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Content-Type': 'application/octet-stream',
-          'Dropbox-API-Arg': JSON.stringify({
-            path: `/${SYNC_CONFIG.FILE_NAME}`,
-            mode: 'overwrite',
-            autorename: false
-          })
+      const response = await fetch(
+        `${DropboxAdapter.CONTENT_API}/files/upload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.credentials?.accessToken}`,
+            "Content-Type": "application/octet-stream",
+            "Dropbox-API-Arg": JSON.stringify({
+              path: `/${SYNC_CONFIG.FILE_NAME}`,
+              mode: "overwrite",
+              autorename: false,
+            }),
+          },
+          body: data,
         },
-        body: data
-      });
-      
+      );
+
       if (!response.ok) {
         if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          await this.handleRateLimit(retryAfter ? parseInt(retryAfter) : undefined);
-          throw new Error('Rate limited');
+          const retryAfter = response.headers.get("Retry-After");
+          await this.handleRateLimit(
+            retryAfter ? parseInt(retryAfter) : undefined,
+          );
+          throw new Error("Rate limited");
         }
         throw new Error(`Upload failed: ${response.statusText}`);
       }
@@ -83,16 +91,19 @@ export class DropboxAdapter extends BaseCloudAdapter {
    */
   async downloadSnippets(): Promise<TextSnippet[]> {
     return this.retryOperation(async () => {
-      const response = await fetch(`${DropboxAdapter.CONTENT_API}/files/download`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Dropbox-API-Arg': JSON.stringify({
-            path: `/${SYNC_CONFIG.FILE_NAME}`
-          })
-        }
-      });
-      
+      const response = await fetch(
+        `${DropboxAdapter.CONTENT_API}/files/download`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.credentials?.accessToken}`,
+            "Dropbox-API-Arg": JSON.stringify({
+              path: `/${SYNC_CONFIG.FILE_NAME}`,
+            }),
+          },
+        },
+      );
+
       if (!response.ok) {
         if (response.status === 409) {
           // File not found - return empty array
@@ -100,18 +111,18 @@ export class DropboxAdapter extends BaseCloudAdapter {
         }
         throw new Error(`Download failed: ${response.statusText}`);
       }
-      
+
       const content = await response.text();
-      
+
       try {
         const snippets = JSON.parse(content) as TextSnippet[];
-        return snippets.map(snippet => ({
+        return snippets.map((snippet) => ({
           ...snippet,
           createdAt: new Date(snippet.createdAt),
-          updatedAt: new Date(snippet.updatedAt)
+          updatedAt: new Date(snippet.updatedAt),
         }));
       } catch (error) {
-        console.error('Failed to parse snippets file:', error);
+        console.error("Failed to parse snippets file:", error);
         return [];
       }
     });
@@ -124,9 +135,9 @@ export class DropboxAdapter extends BaseCloudAdapter {
     // For Dropbox, we re-upload the file without the deleted snippets
     const currentSnippets = await this.downloadSnippets();
     const filteredSnippets = currentSnippets.filter(
-      snippet => !snippetIds.includes(snippet.id)
+      (snippet) => !snippetIds.includes(snippet.id),
     );
-    
+
     await this.uploadSnippets(filteredSnippets);
   }
 
@@ -137,15 +148,18 @@ export class DropboxAdapter extends BaseCloudAdapter {
     if (!this.credentials?.accessToken) {
       return false;
     }
-    
+
     try {
-      const response = await fetch(`${DropboxAdapter.API_BASE}/users/get_current_account`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.credentials.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        `${DropboxAdapter.API_BASE}/users/get_current_account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.credentials.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
       return response.ok;
     } catch {
       return false;
@@ -157,13 +171,16 @@ export class DropboxAdapter extends BaseCloudAdapter {
    */
   protected async checkConnectivity(): Promise<boolean> {
     try {
-      const response = await fetch(`${DropboxAdapter.API_BASE}/users/get_current_account`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.credentials?.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        `${DropboxAdapter.API_BASE}/users/get_current_account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.credentials?.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
       return response.ok;
     } catch {
       return false;
@@ -191,11 +208,11 @@ export class DropboxAdapter extends BaseCloudAdapter {
    */
   private buildAuthUrl(): string {
     const params = new URLSearchParams({
-      client_id: process.env.DROPBOX_CLIENT_ID || '',
-      response_type: 'token',
-      redirect_uri: chrome.identity.getRedirectURL()
+      client_id: process.env.DROPBOX_CLIENT_ID || "",
+      response_type: "token",
+      redirect_uri: chrome.identity.getRedirectURL(),
     });
-    
+
     return `${CLOUD_PROVIDERS.dropbox.authUrl}?${params.toString()}`;
   }
 
@@ -206,18 +223,20 @@ export class DropboxAdapter extends BaseCloudAdapter {
     const url = new URL(redirectUrl);
     const fragment = url.hash.substring(1);
     const params = new URLSearchParams(fragment);
-    
-    const accessToken = params.get('access_token');
-    const expiresIn = params.get('expires_in');
-    
+
+    const accessToken = params.get("access_token");
+    const expiresIn = params.get("expires_in");
+
     if (!accessToken) {
-      throw new Error('No access token received');
+      throw new Error("No access token received");
     }
-    
+
     return {
       provider: this.provider,
       accessToken,
-      expiresAt: expiresIn ? new Date(Date.now() + parseInt(expiresIn) * 1000) : undefined
+      expiresAt: expiresIn
+        ? new Date(Date.now() + parseInt(expiresIn) * 1000)
+        : undefined,
     };
   }
 
@@ -225,24 +244,27 @@ export class DropboxAdapter extends BaseCloudAdapter {
    * Get file metadata from Dropbox
    */
   private async getFileMetadata(): Promise<any> {
-    const response = await fetch(`${DropboxAdapter.API_BASE}/files/get_metadata`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.credentials?.accessToken}`,
-        'Content-Type': 'application/json'
+    const response = await fetch(
+      `${DropboxAdapter.API_BASE}/files/get_metadata`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.credentials?.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          path: `/${SYNC_CONFIG.FILE_NAME}`,
+        }),
       },
-      body: JSON.stringify({
-        path: `/${SYNC_CONFIG.FILE_NAME}`
-      })
-    });
-    
+    );
+
     if (!response.ok) {
       if (response.status === 409) {
         return null; // File not found
       }
       throw new Error(`Failed to get file metadata: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 

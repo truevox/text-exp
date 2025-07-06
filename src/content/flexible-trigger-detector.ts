@@ -9,11 +9,11 @@ export interface Snippet {
 }
 
 export enum TriggerState {
-  IDLE = 'idle',
-  TYPING = 'typing', 
-  COMPLETE = 'complete',
-  AMBIGUOUS = 'ambiguous',
-  NO_MATCH = 'no_match'
+  IDLE = "idle",
+  TYPING = "typing",
+  COMPLETE = "complete",
+  AMBIGUOUS = "ambiguous",
+  NO_MATCH = "no_match",
 }
 
 export interface TriggerMatch {
@@ -28,23 +28,41 @@ export interface TriggerMatch {
 
 export interface TriggerDetectorOptions {
   maxTriggerLength?: number; // Default 10, configurable for performance
-  caseSensitive?: boolean;   // Default true
+  caseSensitive?: boolean; // Default true
 }
 
 export class FlexibleTriggerDetector {
   private snippets: Snippet[];
   private options: Required<TriggerDetectorOptions>;
-  private delimiters = new Set([' ', '\t', '\n', '.', ',', '!', '?', ';', ':', '(', ')', '[', ']', '{', '}']);
+  private delimiters = new Set([
+    " ",
+    "\t",
+    "\n",
+    ".",
+    ",",
+    "!",
+    "?",
+    ";",
+    ":",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+  ]);
 
   constructor(snippets: Snippet[], options: TriggerDetectorOptions = {}) {
     this.snippets = [...snippets];
     this.options = {
       maxTriggerLength: options.maxTriggerLength ?? 10,
-      caseSensitive: options.caseSensitive ?? true
+      caseSensitive: options.caseSensitive ?? true,
     };
-    
+
     // Filter out triggers that are too long
-    this.snippets = this.snippets.filter(s => s.trigger.length <= this.options.maxTriggerLength);
+    this.snippets = this.snippets.filter(
+      (s) => s.trigger.length <= this.options.maxTriggerLength,
+    );
   }
 
   processInput(input: string, cursorPosition?: number): TriggerMatch {
@@ -52,8 +70,8 @@ export class FlexibleTriggerDetector {
       return { isMatch: false, state: TriggerState.IDLE };
     }
 
-    const textToProcess = cursorPosition !== undefined ? 
-      input.substring(0, cursorPosition) : input;
+    const textToProcess =
+      cursorPosition !== undefined ? input.substring(0, cursorPosition) : input;
 
     // Scan input from right to left to find the most recent trigger
     for (let i = textToProcess.length - 1; i >= 0; i--) {
@@ -77,7 +95,10 @@ export class FlexibleTriggerDetector {
     return position === 0 || this.delimiters.has(input[position - 1]);
   }
 
-  private matchTriggersAtPosition(input: string, startPos: number): TriggerMatch {
+  private matchTriggersAtPosition(
+    input: string,
+    startPos: number,
+  ): TriggerMatch {
     const remainingLength = input.length - startPos;
     const maxLength = Math.min(remainingLength, this.options.maxTriggerLength);
 
@@ -86,13 +107,13 @@ export class FlexibleTriggerDetector {
       const trigger = snippet.trigger;
       if (trigger.length <= maxLength) {
         const candidate = input.substr(startPos, trigger.length);
-        const matches = this.options.caseSensitive ? 
-          candidate === trigger : 
-          candidate.toLowerCase() === trigger.toLowerCase();
+        const matches = this.options.caseSensitive
+          ? candidate === trigger
+          : candidate.toLowerCase() === trigger.toLowerCase();
 
         if (matches) {
           const endPos = startPos + trigger.length;
-          
+
           // Check if followed by delimiter or end of input
           if (endPos >= input.length || this.delimiters.has(input[endPos])) {
             return {
@@ -100,7 +121,7 @@ export class FlexibleTriggerDetector {
               trigger: trigger,
               content: snippet.content,
               matchEnd: endPos,
-              state: TriggerState.COMPLETE
+              state: TriggerState.COMPLETE,
             };
           }
         }
@@ -111,34 +132,34 @@ export class FlexibleTriggerDetector {
     const typedText = this.extractTypedText(input, startPos);
     if (typedText.length > 0) {
       const possibleMatches = this.findPossibleMatches(typedText);
-      
+
       if (possibleMatches.length > 0) {
         // Check if any match is exact
-        const exactMatch = possibleMatches.find(trigger => 
-          this.options.caseSensitive ? 
-            trigger === typedText : 
-            trigger.toLowerCase() === typedText.toLowerCase()
+        const exactMatch = possibleMatches.find((trigger) =>
+          this.options.caseSensitive
+            ? trigger === typedText
+            : trigger.toLowerCase() === typedText.toLowerCase(),
         );
 
         if (exactMatch) {
           return {
             isMatch: false,
             state: TriggerState.COMPLETE,
-            potentialTrigger: typedText
+            potentialTrigger: typedText,
           };
         } else if (possibleMatches.length === 1) {
           return {
             isMatch: false,
             state: TriggerState.TYPING,
             potentialTrigger: typedText,
-            possibleCompletions: possibleMatches
+            possibleCompletions: possibleMatches,
           };
         } else {
           return {
             isMatch: false,
             state: TriggerState.AMBIGUOUS,
             potentialTrigger: typedText,
-            possibleCompletions: possibleMatches
+            possibleCompletions: possibleMatches,
           };
         }
       }
@@ -157,12 +178,12 @@ export class FlexibleTriggerDetector {
 
   private findPossibleMatches(typedText: string): string[] {
     const matches: string[] = [];
-    
+
     for (const snippet of this.snippets) {
       const trigger = snippet.trigger;
-      const startsWithTyped = this.options.caseSensitive ?
-        trigger.startsWith(typedText) :
-        trigger.toLowerCase().startsWith(typedText.toLowerCase());
+      const startsWithTyped = this.options.caseSensitive
+        ? trigger.startsWith(typedText)
+        : trigger.toLowerCase().startsWith(typedText.toLowerCase());
 
       if (startsWithTyped) {
         matches.push(trigger);
@@ -174,7 +195,7 @@ export class FlexibleTriggerDetector {
 
   // Interface compatibility methods
   getPrefix(): string {
-    return ''; // No prefix in flexible system
+    return ""; // No prefix in flexible system
   }
 
   getLoadedSnippetsCount(): number {
@@ -190,7 +211,9 @@ export class FlexibleTriggerDetector {
   }
 
   updateSnippets(newSnippets: Snippet[]): void {
-    this.snippets = [...newSnippets].filter(s => s.trigger.length <= this.options.maxTriggerLength);
+    this.snippets = [...newSnippets].filter(
+      (s) => s.trigger.length <= this.options.maxTriggerLength,
+    );
   }
 
   // New methods for configuration
@@ -202,7 +225,9 @@ export class FlexibleTriggerDetector {
     this.options = { ...this.options, ...options };
     // Re-filter snippets if max length changed
     if (options.maxTriggerLength !== undefined) {
-      this.snippets = this.snippets.filter(s => s.trigger.length <= this.options.maxTriggerLength);
+      this.snippets = this.snippets.filter(
+        (s) => s.trigger.length <= this.options.maxTriggerLength,
+      );
     }
   }
 }

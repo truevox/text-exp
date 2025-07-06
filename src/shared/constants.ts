@@ -6,20 +6,21 @@
  * Extension configuration
  */
 export const EXTENSION_CONFIG = {
-  NAME: 'PuffPuffPaste',
-  VERSION: '0.5.0',
-  DESCRIPTION: 'Blow up your words! Expand text snippets with cloud synchronization',
+  NAME: "PuffPuffPaste",
+  VERSION: "0.5.0",
+  DESCRIPTION:
+    "Blow up your words! Expand text snippets with cloud synchronization",
 } as const;
 
 /**
  * Storage keys for Chrome extension storage
  */
 export const STORAGE_KEYS = {
-  SNIPPETS: 'snippets',
-  SETTINGS: 'settings',
-  SYNC_STATUS: 'syncStatus',
-  CLOUD_CREDENTIALS: 'cloudCredentials',
-  LAST_SYNC: 'lastSync',
+  SNIPPETS: "snippets",
+  SETTINGS: "settings",
+  SYNC_STATUS: "syncStatus",
+  CLOUD_CREDENTIALS: "cloudCredentials",
+  LAST_SYNC: "lastSync",
 } as const;
 
 /**
@@ -27,44 +28,53 @@ export const STORAGE_KEYS = {
  */
 export const DEFAULT_SETTINGS = {
   enabled: true,
-  cloudProvider: 'local' as const,
+  cloudProvider: "local" as const,
   autoSync: true,
   syncInterval: 30, // minutes
   showNotifications: true,
   triggerDelay: 100, // milliseconds
   caseSensitive: false,
   enableSharedSnippets: true,
-  triggerPrefix: ';',
+  triggerPrefix: ";",
   excludePasswords: true,
   configuredSources: [],
+  // Global toggle settings
+  globalToggleEnabled: true,
+  globalToggleShortcut: "Ctrl+Shift+T",
 };
 
 /**
  * Cloud provider configuration
  */
 export const CLOUD_PROVIDERS = {
-  'google-drive': {
-    name: 'Google Drive',
-    icon: 'google-drive.svg',
-    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    scopes: ['https://www.googleapis.com/auth/drive'],
+  "google-drive": {
+    name: "Google Drive",
+    icon: "google-drive.svg",
+    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    scopes: ["https://www.googleapis.com/auth/drive"],
   },
-  'dropbox': {
-    name: 'Dropbox',
-    icon: 'dropbox.svg',
-    authUrl: 'https://www.dropbox.com/oauth2/authorize',
-    scopes: ['files.content.write'],
+  dropbox: {
+    name: "Dropbox",
+    icon: "dropbox.svg",
+    authUrl: "https://www.dropbox.com/oauth2/authorize",
+    scopes: ["files.content.write"],
   },
-  'onedrive': {
-    name: 'OneDrive',
-    icon: 'onedrive.svg',
-    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-    scopes: ['Files.ReadWrite'],
+  onedrive: {
+    name: "OneDrive",
+    icon: "onedrive.svg",
+    authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    scopes: ["Files.ReadWrite"],
   },
-  'local': {
-    name: 'Local Storage',
-    icon: 'local.svg',
-    authUrl: '',
+  local: {
+    name: "Local Storage",
+    icon: "local.svg",
+    authUrl: "",
+    scopes: [],
+  },
+  "local-filesystem": {
+    name: "Local Filesystem",
+    icon: "local.svg",
+    authUrl: "",
     scopes: [],
   },
 } as const;
@@ -77,7 +87,7 @@ export const SYNC_CONFIG = {
   RETRY_DELAY: 1000, // milliseconds
   BATCH_SIZE: 50,
   TIMEOUT: 30000, // milliseconds
-  FILE_NAME: 'text-expander-snippets.json',
+  FILE_NAME: "text-expander-snippets.json",
 } as const;
 
 /**
@@ -105,41 +115,41 @@ export const EXPANSION_CONFIG = {
  * Error messages
  */
 export const ERROR_MESSAGES = {
-  AUTHENTICATION_FAILED: 'Failed to authenticate with cloud provider',
-  SYNC_FAILED: 'Failed to synchronize snippets',
-  STORAGE_QUOTA_EXCEEDED: 'Storage quota exceeded',
-  NETWORK_ERROR: 'Network connection error',
-  INVALID_SNIPPET: 'Invalid snippet format',
-  TRIGGER_EXISTS: 'Trigger already exists',
-  SNIPPET_NOT_FOUND: 'Snippet not found',
+  AUTHENTICATION_FAILED: "Failed to authenticate with cloud provider",
+  SYNC_FAILED: "Failed to synchronize snippets",
+  STORAGE_QUOTA_EXCEEDED: "Storage quota exceeded",
+  NETWORK_ERROR: "Network connection error",
+  INVALID_SNIPPET: "Invalid snippet format",
+  TRIGGER_EXISTS: "Trigger already exists",
+  SNIPPET_NOT_FOUND: "Snippet not found",
 } as const;
 
 /**
  * Success messages
  */
 export const SUCCESS_MESSAGES = {
-  SNIPPET_ADDED: 'Snippet added successfully',
-  SNIPPET_UPDATED: 'Snippet updated successfully',
-  SNIPPET_DELETED: 'Snippet deleted successfully',
-  SYNC_COMPLETED: 'Synchronization completed',
-  SETTINGS_SAVED: 'Settings saved successfully',
+  SNIPPET_ADDED: "Snippet added successfully",
+  SNIPPET_UPDATED: "Snippet updated successfully",
+  SNIPPET_DELETED: "Snippet deleted successfully",
+  SYNC_COMPLETED: "Synchronization completed",
+  SETTINGS_SAVED: "Settings saved successfully",
 } as const;
 
 /**
  * Chrome extension permissions
  */
 export const REQUIRED_PERMISSIONS = [
-  'storage',
-  'activeTab',
-  'identity',
-  'notifications',
+  "storage",
+  "activeTab",
+  "identity",
+  "notifications",
 ] as const;
 
 /**
  * Chrome extension host permissions
  */
 export const HOST_PERMISSIONS = [
-  'https://www.googleapis.com/*',
-  'https://api.dropboxapi.com/*',
-  'https://graph.microsoft.com/*',
+  "https://www.googleapis.com/*",
+  "https://api.dropboxapi.com/*",
+  "https://graph.microsoft.com/*",
 ] as const;

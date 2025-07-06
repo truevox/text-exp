@@ -20,9 +20,9 @@ export class TriggerCyclingUI {
    * Show the cycling UI with available options
    */
   show(
-    options: CyclingOption[], 
-    targetElement: HTMLElement, 
-    cursorPosition: { x: number; y: number }
+    options: CyclingOption[],
+    targetElement: HTMLElement,
+    cursorPosition: { x: number; y: number },
   ): void {
     this.options = options;
     this.currentIndex = 0;
@@ -46,9 +46,8 @@ export class TriggerCyclingUI {
    * Cycle to the previous option
    */
   cyclePrevious(): CyclingOption {
-    this.currentIndex = this.currentIndex === 0 ? 
-      this.options.length - 1 : 
-      this.currentIndex - 1;
+    this.currentIndex =
+      this.currentIndex === 0 ? this.options.length - 1 : this.currentIndex - 1;
     this.updateDisplay();
     return this.options[this.currentIndex];
   }
@@ -90,8 +89,8 @@ export class TriggerCyclingUI {
       this.hide();
     }
 
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'puffpuffpaste-cycling-ui';
+    this.overlay = document.createElement("div");
+    this.overlay.className = "puffpuffpaste-cycling-ui";
     this.overlay.style.cssText = `
       position: fixed;
       z-index: 999999;
@@ -137,18 +136,26 @@ export class TriggerCyclingUI {
       <div style="margin-bottom: 8px; color: #E0E0E0; font-size: 12px;">
         ${this.escapeHtml(this.truncateContent(current.content, 50))}
       </div>
-      ${nextOptions.length > 0 ? `
+      ${
+        nextOptions.length > 0
+          ? `
         <div style="border-top: 1px solid #444; padding-top: 6px; margin-top: 6px;">
           <div style="color: #BBB; font-size: 11px; margin-bottom: 4px;">
             Press Tab for more options:
           </div>
-          ${nextOptions.map(option => `
+          ${nextOptions
+            .map(
+              (option) => `
             <div style="color: #999; font-size: 11px; margin-left: 8px;">
               • ${this.escapeHtml(option.trigger)} → ${this.escapeHtml(this.truncateContent(option.content, 30))}
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
-      ` : ''}
+      `
+          : ""
+      }
       <div style="border-top: 1px solid #444; padding-top: 4px; margin-top: 6px; color: #888; font-size: 10px;">
         Tab to cycle • Any other key to expand
       </div>
@@ -181,14 +188,14 @@ export class TriggerCyclingUI {
     if (content.length <= maxLength) {
       return content;
     }
-    return content.substring(0, maxLength) + '...';
+    return content.substring(0, maxLength) + "...";
   }
 
   /**
    * Escape HTML for safe display
    */
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -208,41 +215,46 @@ export class TriggerCyclingUI {
   /**
    * Get cursor position within an element
    */
-  static getCursorPosition(element: HTMLElement): { x: number; y: number } | null {
-    if (element.tagName.toLowerCase() === 'input' || element.tagName.toLowerCase() === 'textarea') {
+  static getCursorPosition(
+    element: HTMLElement,
+  ): { x: number; y: number } | null {
+    if (
+      element.tagName.toLowerCase() === "input" ||
+      element.tagName.toLowerCase() === "textarea"
+    ) {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
       const rect = input.getBoundingClientRect();
-      
+
       // For input/textarea, approximate position based on text size and cursor
       const style = window.getComputedStyle(input);
       const fontSize = parseInt(style.fontSize, 10);
       const padding = parseInt(style.paddingLeft, 10);
-      
+
       // Simple approximation - for more accuracy, would need to measure text
       const charWidth = fontSize * 0.6; // Rough estimate
       const cursorPos = input.selectionStart || 0;
       const text = input.value.substring(0, cursorPos);
-      const lastLineStart = text.lastIndexOf('\n') + 1;
+      const lastLineStart = text.lastIndexOf("\n") + 1;
       const charsOnLine = text.length - lastLineStart;
-      
+
       return {
-        x: rect.left + padding + (charsOnLine * charWidth),
-        y: rect.top + fontSize + parseInt(style.paddingTop, 10)
+        x: rect.left + padding + charsOnLine * charWidth,
+        y: rect.top + fontSize + parseInt(style.paddingTop, 10),
       };
-    } else if (element.contentEditable === 'true') {
+    } else if (element.contentEditable === "true") {
       // For contenteditable, use selection range
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-        
+
         return {
           x: rect.left,
-          y: rect.top
+          y: rect.top,
         };
       }
     }
-    
+
     return null;
   }
 }

@@ -2,7 +2,7 @@
  * Type definitions for multi-format snippet system
  */
 
-import type { SnippetFormat } from '../utils/detectFormat.js';
+import type { SnippetFormat } from "../utils/detectFormat.js";
 
 /**
  * Variable definition for snippet placeholders
@@ -49,7 +49,7 @@ export interface SnippetDoc {
   /** All your metadata lines 1-3 (plus audit stuff) */
   meta: SnippetMeta;
   /** Everything *after* the metadata header — the actual snippet text */
-  body: string;  // raw snippet, unparsed
+  body: string; // raw snippet, unparsed
   /** Original on-disk format so we know how to write it back */
   format: "json" | "txt" | "md" | "html" | "tex";
 }
@@ -62,17 +62,17 @@ export interface FormatParser {
    * Parse content from string to SnippetDoc
    */
   parse(content: string, fileName?: string): SnippetDoc | SnippetDoc[];
-  
+
   /**
    * Serialize SnippetDoc to string content
    */
   serialize(doc: SnippetDoc | SnippetDoc[]): string;
-  
+
   /**
    * Validate content format
    */
   validate(content: string): { valid: boolean; errors: string[] };
-  
+
   /**
    * Get format identifier
    */
@@ -83,20 +83,20 @@ export interface FormatParser {
  * Options for parsing operations
  */
 export interface ParseOptions {
-  strict?: boolean;  // Strict validation
-  includeMetadata?: boolean;  // Include all metadata
-  sanitizeHtml?: boolean;  // Sanitize HTML content
-  preserveComments?: boolean;  // Preserve comments in content
+  strict?: boolean; // Strict validation
+  includeMetadata?: boolean; // Include all metadata
+  sanitizeHtml?: boolean; // Sanitize HTML content
+  preserveComments?: boolean; // Preserve comments in content
 }
 
 /**
  * Options for serialization operations
  */
 export interface SerializeOptions {
-  pretty?: boolean;  // Pretty print output
-  includeTimestamps?: boolean;  // Include creation/update timestamps
-  minifyHtml?: boolean;  // Minify HTML content
-  escapeSpecialChars?: boolean;  // Escape special characters
+  pretty?: boolean; // Pretty print output
+  includeTimestamps?: boolean; // Include creation/update timestamps
+  minifyHtml?: boolean; // Minify HTML content
+  escapeSpecialChars?: boolean; // Escape special characters
 }
 
 /**
@@ -107,10 +107,10 @@ export class FormatError extends Error {
     message: string,
     public format: SnippetFormat,
     public line?: number,
-    public column?: number
+    public column?: number,
   ) {
     super(message);
-    this.name = 'FormatError';
+    this.name = "FormatError";
   }
 }
 
@@ -137,7 +137,7 @@ export interface ImageReference {
   width?: number;
   height?: number;
   mimeType?: string;
-  size?: number;  // Size in bytes
-  cached?: boolean;  // Whether image is cached locally
-  cacheKey?: string;  // Cache identifier
+  size?: number; // Size in bytes
+  cached?: boolean; // Whether image is cached locally
+  cacheKey?: string; // Cache identifier
 }

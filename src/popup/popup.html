@@ -1,149 +1,225 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PuffPuffPaste</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div class="popup-container">
-    <!-- Header -->
-    <header class="popup-header">
-      <div class="header-content">
-        <div class="logo-section">
-          <picture>
-            <source srcset="../icons/logo.webp" type="image/webp">
-            <img src="../icons/logo.png" alt="PuffPuffPaste" class="logo">
-          </picture>
-          <div class="title-section">
-            <h1 class="app-title">PuffPuffPaste</h1>
-            <p class="app-tagline">Blow up your words!</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PuffPuffPaste</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup-container">
+      <!-- Header -->
+      <header class="popup-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <picture>
+              <source srcset="../icons/logo.webp" type="image/webp" />
+              <img src="../icons/logo.png" alt="PuffPuffPaste" class="logo" />
+            </picture>
+            <div class="title-section">
+              <h1 class="app-title">PuffPuffPaste</h1>
+              <p class="app-tagline">Blow up your words!</p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="syncButton" class="icon-button" title="Sync Now">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path
+                  d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                ></path>
+              </svg>
+            </button>
+            <button id="settingsButton" class="icon-button" title="Settings">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="m12 1 1.5 2.8L16.5 3l.7 3.2 3.2.7-.8 3L21 12l-1.4 1.5.8 3-3.2.7-.7 3.2-3.5-.8L12 23l-1.5-1.4-3.5.8-.7-3.2-3.2-.7.8-3L1 12l1.4-1.5-.8-3 3.2-.7.7-3.2L8.5 3 10 1.2z"
+                ></path>
+              </svg>
+            </button>
           </div>
         </div>
-        <div class="header-actions">
-          <button id="syncButton" class="icon-button" title="Sync Now">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
-          </button>
-          <button id="settingsButton" class="icon-button" title="Settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="m12 1 1.5 2.8L16.5 3l.7 3.2 3.2.7-.8 3L21 12l-1.4 1.5.8 3-3.2.7-.7 3.2-3.5-.8L12 23l-1.5-1.4-3.5.8-.7-3.2-3.2-.7.8-3L1 12l1.4-1.5-.8-3 3.2-.7.7-3.2L8.5 3 10 1.2z"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Search Bar -->
-      <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Search snippets..." class="search-input">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-      </div>
-    </header>
 
-    <!-- Sync Status -->
-    <div id="syncStatus" class="sync-status hidden">
-      <div class="sync-status-content">
-        <span class="sync-status-text"></span>
-        <button id="syncStatusClose" class="close-button">&times;</button>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <main class="popup-main">
-      <!-- Snippet List -->
-      <div class="snippet-list" id="snippetList">
-        <!-- Snippets will be populated by JavaScript -->
-      </div>
-
-      <!-- Empty State -->
-      <div id="emptyState" class="empty-state hidden">
-        <div class="empty-state-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14,2 14,8 20,8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10,9 9,9 8,9"></polyline>
+        <!-- Search Bar -->
+        <div class="search-container">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search snippets..."
+            class="search-input"
+          />
+          <svg
+            class="search-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
           </svg>
         </div>
-        <h3>No snippets yet</h3>
-        <p>Create your first text expansion snippet to get started using the Add Snippet button below.</p>
+      </header>
+
+      <!-- Sync Status -->
+      <div id="syncStatus" class="sync-status hidden">
+        <div class="sync-status-content">
+          <span class="sync-status-text"></span>
+          <button id="syncStatusClose" class="close-button">&times;</button>
+        </div>
       </div>
 
-      <!-- Loading State -->
-      <div id="loadingState" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading snippets...</p>
-      </div>
-    </main>
+      <!-- Main Content -->
+      <main class="popup-main">
+        <!-- Snippet List -->
+        <div class="snippet-list" id="snippetList">
+          <!-- Snippets will be populated by JavaScript -->
+        </div>
 
-    <!-- Footer Actions -->
-    <footer class="popup-footer">
-      <button id="addSnippetButton" class="primary-button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Snippet
-      </button>
-    </footer>
-  </div>
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-state-icon">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14,2 14,8 20,8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10,9 9,9 8,9"></polyline>
+            </svg>
+          </div>
+          <h3>No snippets yet</h3>
+          <p>
+            Create your first text expansion snippet to get started using the
+            Add Snippet button below.
+          </p>
+        </div>
 
-  <!-- Add/Edit Snippet Modal -->
-  <div id="snippetModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modalTitle">Add Snippet</h2>
-        <button id="modalClose" class="close-button">&times;</button>
-      </div>
-      
-      <form id="snippetForm" class="modal-body">
-        <div class="form-group">
-          <label for="triggerInput">Trigger</label>
-          <input type="text" id="triggerInput" required placeholder="e.g., ;hello">
-          <small class="form-help">Type this text to trigger expansion</small>
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading snippets...</p>
         </div>
-        
-        <div class="form-group">
-          <label for="contentTextarea">Content</label>
-          <textarea id="contentTextarea" required placeholder="Hello there! How are you?"></textarea>
-          <small class="form-help">Text to expand when trigger is typed</small>
+      </main>
+
+      <!-- Footer Actions -->
+      <footer class="popup-footer">
+        <button id="addSnippetButton" class="primary-button">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Snippet
+        </button>
+      </footer>
+    </div>
+
+    <!-- Add/Edit Snippet Modal -->
+    <div id="snippetModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Add Snippet</h2>
+          <button id="modalClose" class="close-button">&times;</button>
         </div>
-        
-        <div class="form-group">
-          <label for="descriptionInput">Description (optional)</label>
-          <input type="text" id="descriptionInput" placeholder="Friendly greeting">
+
+        <form id="snippetForm" class="modal-body">
+          <div class="form-group">
+            <label for="triggerInput">Trigger</label>
+            <input
+              type="text"
+              id="triggerInput"
+              required
+              placeholder="e.g., ;hello"
+            />
+            <small class="form-help">Type this text to trigger expansion</small>
+          </div>
+
+          <div class="form-group">
+            <label for="contentTextarea">Content</label>
+            <textarea
+              id="contentTextarea"
+              required
+              placeholder="Hello there! How are you?"
+            ></textarea>
+            <small class="form-help"
+              >Text to expand when trigger is typed</small
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="descriptionInput">Description (optional)</label>
+            <input
+              type="text"
+              id="descriptionInput"
+              placeholder="Friendly greeting"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="tagsInput">Tags (optional)</label>
+            <input type="text" id="tagsInput" placeholder="greeting, casual" />
+            <small class="form-help"
+              >Comma-separated tags for organization</small
+            >
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="sharedCheckbox" />
+              Share with team
+            </label>
+          </div>
+        </form>
+
+        <div class="modal-footer">
+          <button type="button" id="modalCancel" class="secondary-button">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="snippetForm"
+            id="modalSave"
+            class="primary-button"
+          >
+            Save
+          </button>
         </div>
-        
-        <div class="form-group">
-          <label for="tagsInput">Tags (optional)</label>
-          <input type="text" id="tagsInput" placeholder="greeting, casual">
-          <small class="form-help">Comma-separated tags for organization</small>
-        </div>
-        
-        <div class="form-group">
-          <label>
-            <input type="checkbox" id="sharedCheckbox">
-            Share with team
-          </label>
-        </div>
-      </form>
-      
-      <div class="modal-footer">
-        <button type="button" id="modalCancel" class="secondary-button">Cancel</button>
-        <button type="submit" form="snippetForm" id="modalSave" class="primary-button">Save</button>
       </div>
     </div>
-  </div>
 
-  <script type="module" src="popup.js"></script>
-</body>
+    <script type="module" src="popup.js"></script>
+  </body>
 </html>

@@ -232,7 +232,7 @@
 }
 
 .setting-checkbox:checked + .checkbox-custom::after {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -243,13 +243,15 @@
 }
 
 /* Status Badges */
-.setting-status, .setting-badge {
+.setting-status,
+.setting-badge {
   display: flex;
   align-items: center;
   margin-left: 16px;
 }
 
-.status-badge, .badge-text {
+.status-badge,
+.badge-text {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -430,7 +432,8 @@
   gap: 4px;
 }
 
-.last-sync-info, .sync-error-info {
+.last-sync-info,
+.sync-error-info {
   font-size: 12px;
   color: #64748b;
 }
@@ -843,8 +846,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -1039,4 +1046,137 @@
 
 .folder-item-button:hover {
   background: #e5e7eb;
+}
+
+/* Global Toggle Shortcut Settings */
+.shortcut-setting {
+  position: relative;
+}
+
+.shortcut-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.shortcut-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-family: "Roboto Mono", "Consolas", monospace;
+  font-size: 14px;
+  font-weight: 500;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.shortcut-input:not([readonly]) {
+  border-color: #2196f3;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.shortcut-input:focus {
+  outline: none;
+}
+
+.shortcut-edit-button {
+  padding: 12px 16px;
+  background: #f1f3f4;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  transition: all 0.2s ease;
+}
+
+.shortcut-edit-button:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.shortcut-edit-button .button-icon {
+  font-size: 16px;
+}
+
+.shortcut-help {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.shortcut-help p {
+  margin: 0 0 8px;
+  color: #0c4a6e;
+}
+
+.shortcut-help p:last-child {
+  margin-bottom: 0;
+}
+
+.shortcut-examples {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.example-shortcut {
+  padding: 4px 8px;
+  background: #0ea5e9;
+  color: white;
+  border-radius: 4px;
+  font-family: "Roboto Mono", "Consolas", monospace;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.info-box {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #0ea5e9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.info-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+}
+
+.info-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-text {
+  flex: 1;
+  color: #0c4a6e;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.info-text strong {
+  color: #0369a1;
+  font-weight: 600;
+}
+
+/* Status badge variations */
+.status-badge.disabled {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
