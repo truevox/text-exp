@@ -1,1 +1,23 @@
+# Auto-bump version before commit (prevents forgetting)
+# Detect if this is a feature or fix commit based on staged changes
+if git diff --cached --name-only | grep -E "\.(ts|js|tsx|jsx)$" | xargs git diff --cached | grep -E "^\+" | grep -qE "(feat|feature|new|add)" 2>/dev/null; then
+  echo "🔖 Auto-bumping feature version..."
+  npm run version:feature --silent
+elif git diff --cached --name-only | grep -E "\.(ts|js|tsx|jsx)$" | xargs git diff --cached | grep -E "^\+" | grep -qE "(fix|bug|patch)" 2>/dev/null; then
+  echo "🔖 Auto-bumping fix version..."
+  npm run version:fix --silent
+else
+  echo "🔖 Auto-bumping fix version (default)..."
+  npm run version:fix --silent
+fi
+
+# Add the updated version files to the commit
+git add package.json manifest.json src/utils/version.ts
+
+# Format any files that were auto-updated by version bumping
+npm run format --silent
+
+# Re-add any newly formatted files
+git add package.json manifest.json src/utils/version.ts
+
 npm run validate
