@@ -4,9 +4,7 @@
  */
 
 import { SettingsMessages } from "../../shared/messaging.js";
-import type {
-  ConfiguredScopedSource,
-} from "../../shared/types.js";
+import type { ConfiguredScopedSource } from "../../shared/types.js";
 import type { OptionsElements } from "../utils/dom-elements.js";
 
 export interface FolderItem {

@@ -13,6 +13,7 @@ import { TextReplacer } from "../../src/content/text-replacer";
 import { PlaceholderHandler } from "../../src/content/placeholder-handler";
 import { ExtensionStorage } from "../../src/shared/storage";
 import { TextSnippet } from "../../src/shared/types";
+import { isTextInput } from "../../src/content/utils/dom-utils";
 
 jest.mock("../../src/content/enhanced-trigger-detector");
 jest.mock("../../src/content/text-replacer");
@@ -206,9 +207,9 @@ describe("ContentScript", () => {
         mockPlaceholderHandler,
       );
 
-      expect(contentScript["isTextInput"](mockInput)).toBe(true);
-      expect(contentScript["isTextInput"](mockTextarea)).toBe(true);
-      expect(contentScript["isTextInput"](mockContentEditable)).toBe(true);
+      expect(isTextInput(mockInput)).toBe(true);
+      expect(isTextInput(mockTextarea)).toBe(true);
+      expect(isTextInput(mockContentEditable)).toBe(true);
     });
 
     test("should reject non-text input elements", async () => {
@@ -224,8 +225,8 @@ describe("ContentScript", () => {
         contentEditable: "false",
       } as HTMLElement;
 
-      expect(contentScript["isTextInput"](mockButton)).toBe(false);
-      expect(contentScript["isTextInput"](mockDiv)).toBe(false);
+      expect(isTextInput(mockButton)).toBe(false);
+      expect(isTextInput(mockDiv)).toBe(false);
     });
 
     test("should handle different input types correctly", async () => {
@@ -243,10 +244,10 @@ describe("ContentScript", () => {
         type: "password",
       } as HTMLElement;
 
-      expect(contentScript["isTextInput"](emailInput)).toBe(true);
-      expect(contentScript["isTextInput"](searchInput)).toBe(true);
-      expect(contentScript["isTextInput"](urlInput)).toBe(true);
-      expect(contentScript["isTextInput"](passwordInput)).toBe(false); // Security fix: password inputs should be excluded
+      expect(isTextInput(emailInput)).toBe(true);
+      expect(isTextInput(searchInput)).toBe(true);
+      expect(isTextInput(urlInput)).toBe(true);
+      expect(isTextInput(passwordInput)).toBe(false); // Security fix: password inputs should be excluded
     });
   });
 

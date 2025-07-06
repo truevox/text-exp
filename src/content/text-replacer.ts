@@ -6,6 +6,7 @@
 import type { ReplacementContext } from "../shared/types.js";
 import { ImageProcessor } from "../background/image-processor.js";
 import { sanitizeHtml } from "../shared/sanitizer.js";
+import { isContentEditable, getCursorPosition } from "./utils/dom-utils.js";
 
 /**
  * Handles text replacement in various input types
@@ -39,7 +40,7 @@ export class TextReplacer {
           originalSelectionStart: inputElement.selectionStart || 0,
           originalSelectionEnd: inputElement.selectionEnd || 0,
         };
-      } else if (this.isContentEditable(element)) {
+      } else if (isContentEditable(element)) {
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
@@ -59,7 +60,7 @@ export class TextReplacer {
           endOffset,
           newText,
         );
-      } else if (this.isContentEditable(element)) {
+      } else if (isContentEditable(element)) {
         this.replaceInContentEditable(element, startOffset, endOffset, newText);
       } else {
         console.warn("Unsupported element type for text replacement");
@@ -210,7 +211,7 @@ export class TextReplacer {
       // Set cursor after inserted text
       const newPosition = cursorPosition + text.length;
       input.setSelectionRange(newPosition, newPosition);
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -232,7 +233,7 @@ export class TextReplacer {
    * Insert HTML at cursor position
    */
   insertHtmlAtCursor(element: HTMLElement, html: string): void {
-    if (this.isContentEditable(element)) {
+    if (isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -308,7 +309,7 @@ export class TextReplacer {
       // Set cursor after replacement
       const newPosition = start + newText.length;
       input.setSelectionRange(newPosition, newPosition);
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -337,7 +338,7 @@ export class TextReplacer {
       const start = input.selectionStart || 0;
       const end = input.selectionEnd || 0;
       return input.value.substring(start, end);
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       const selection = window.getSelection();
       return selection ? selection.toString() : "";
     }
@@ -352,12 +353,6 @@ export class TextReplacer {
     return tagName === "input" || tagName === "textarea";
   }
 
-  /**
-   * Check if element is contenteditable
-   */
-  private isContentEditable(element: HTMLElement): boolean {
-    return element.contentEditable === "true";
-  }
 
   /**
    * Trigger input event to notify other scripts of changes
@@ -403,7 +398,7 @@ export class TextReplacer {
         originalSelectionStart,
         originalSelectionEnd,
       );
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       element.textContent = originalText;
       // Restore selection (this might be tricky for complex contenteditable)
       const range = document.createRange();
@@ -428,7 +423,7 @@ export class TextReplacer {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
       input.value = "";
       input.setSelectionRange(0, 0);
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       element.textContent = "";
       // Set cursor to beginning
       const range = document.createRange();
@@ -448,21 +443,7 @@ export class TextReplacer {
    * Get cursor position in element
    */
   getCursorPosition(element: HTMLElement): number {
-    if (this.isFormInput(element)) {
-      return (
-        (element as HTMLInputElement | HTMLTextAreaElement).selectionStart || 0
-      );
-    } else if (this.isContentEditable(element)) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const preCaretRange = range.cloneRange();
-        preCaretRange.selectNodeContents(element);
-        preCaretRange.setEnd(range.endContainer, range.endOffset);
-        return preCaretRange.toString().length;
-      }
-    }
-    return 0;
+    return getCursorPosition(element);
   }
 
   /**
@@ -472,7 +453,7 @@ export class TextReplacer {
     if (this.isFormInput(element)) {
       const input = element as HTMLInputElement | HTMLTextAreaElement;
       input.setSelectionRange(position, position);
-    } else if (this.isContentEditable(element)) {
+    } else if (isContentEditable(element)) {
       const range = document.createRange();
       const selection = window.getSelection();
 

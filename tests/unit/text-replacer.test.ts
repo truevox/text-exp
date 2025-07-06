@@ -6,6 +6,7 @@
 import { TextReplacer } from "../../src/content/text-replacer";
 import { ImageProcessor } from "../../src/background/image-processor";
 import { ReplacementContext } from "../../src/shared/types";
+import { isContentEditable } from "../../src/content/utils/dom-utils";
 
 // Mock DOM methods for testing
 const mockSetSelectionRange = jest.fn();
@@ -554,10 +555,8 @@ describe("TextReplacer", () => {
     });
 
     test("should identify contenteditable elements", () => {
-      const replacerAny = replacer as any;
-
-      expect(replacerAny.isContentEditable(mockContentEditable)).toBe(true);
-      expect(replacerAny.isContentEditable(mockInput)).toBe(false);
+      expect(isContentEditable(mockContentEditable)).toBe(true);
+      expect(isContentEditable(mockInput)).toBe(false);
     });
   });
 

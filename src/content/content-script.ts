@@ -20,6 +20,12 @@ import type {
 } from "../shared/types";
 import { ExtensionStorage } from "../shared/storage";
 import { TriggerCyclingUI, type CyclingOption } from "./trigger-cycling-ui";
+import {
+  isTextInput,
+  getElementText,
+  getCursorPosition,
+  isContentEditable,
+} from "./utils/dom-utils";
 
 /**
  * Main content script class
@@ -181,11 +187,11 @@ export class ContentScript {
     const target = event.target as HTMLElement;
 
     // Only process text inputs and contenteditable elements
-    if (!this.isTextInput(target)) return;
+    if (!isTextInput(target)) return;
 
     try {
-      const text = this.getElementText(target);
-      const cursorPosition = this.getCursorPosition(target);
+      const text = getElementText(target);
+      const cursorPosition = getCursorPosition(target);
 
       console.log("🔍 Input event:", {
         text,
@@ -226,7 +232,7 @@ export class ContentScript {
     }
 
     // Handle cycling state
-    if (this.isCycling && this.isTextInput(target)) {
+    if (this.isCycling && isTextInput(target)) {
       if (event.key === "Tab") {
         // Cycle to next option
         event.preventDefault();
@@ -243,10 +249,10 @@ export class ContentScript {
     // Check for expansion trigger (Tab or Space)
     if (
       (event.key === "Tab" || event.key === " ") &&
-      this.isTextInput(target)
+      isTextInput(target)
     ) {
-      const text = this.getElementText(target);
-      const cursorPosition = this.getCursorPosition(target);
+      const text = getElementText(target);
+      const cursorPosition = getCursorPosition(target);
 
       console.log("⌨️ Keydown trigger check:", {
         key: event.key,
@@ -274,7 +280,7 @@ export class ContentScript {
    */
   private handleFocusIn(event: Event): void {
     const target = event.target as HTMLElement;
-    if (this.isTextInput(target)) {
+    if (isTextInput(target)) {
       this.activeElement = target;
       // Load fresh snippets when focusing on a new element
       this.loadSnippets();
@@ -394,7 +400,7 @@ export class ContentScript {
     console.log("📍 Replacement context:", context);
 
     if (context) {
-      if (snippet.contentType === "html" && this.isContentEditable(element)) {
+      if (snippet.contentType === "html" && isContentEditable(element)) {
         this.textReplacer.insertHtmlAtCursor(element, snippet.content);
       } else {
         this.textReplacer.replaceText(context, snippet.content);
@@ -428,7 +434,7 @@ export class ContentScript {
         snippet.content,
         variables,
       );
-      if (snippet.contentType === "html" && this.isContentEditable(element)) {
+      if (snippet.contentType === "html" && isContentEditable(element)) {
         this.textReplacer.insertHtmlAtCursor(element, expandedContent);
       } else {
         this.textReplacer.replaceText(context, expandedContent);
@@ -448,7 +454,7 @@ export class ContentScript {
     try {
       const activeElement = document.activeElement as HTMLElement;
 
-      if (!this.isTextInput(activeElement)) {
+      if (!isTextInput(activeElement)) {
         return createErrorResponse("No active text input found");
       }
 
@@ -489,117 +495,6 @@ export class ContentScript {
   }
 
   /**
-   * Check if element is a text input
-   */
-  private isTextInput(element: HTMLElement): boolean {
-    if (!element) return false;
-
-    // Additional security checks for sensitive contexts
-    const autocomplete = (
-      element as HTMLInputElement
-    ).autocomplete?.toLowerCase();
-    if (
-      autocomplete &&
-      ["current-password", "new-password", "cc-number", "cc-csc"].includes(
-        autocomplete,
-      )
-    ) {
-      return false;
-    }
-
-    // Check for data-* attributes that might indicate sensitive fields
-    const dataset = (element as HTMLElement).dataset;
-    if (
-      dataset &&
-      (dataset.sensitive === "true" || dataset.password === "true")
-    ) {
-      return false;
-    }
-
-    const tagName = element.tagName.toLowerCase();
-
-    // Check for input elements
-    if (tagName === "input") {
-      const inputType = (element as HTMLInputElement).type.toLowerCase();
-
-      // Explicitly exclude sensitive input types for security
-      const excludedTypes = [
-        "password",
-        "hidden",
-        "file",
-        "submit",
-        "button",
-        "reset",
-        "image",
-        "checkbox",
-        "radio",
-      ];
-      if (excludedTypes.includes(inputType)) {
-        return false;
-      }
-
-      // Only allow safe text input types
-      const allowedTypes = [
-        "text",
-        "email",
-        "search",
-        "url",
-        "tel",
-        "textarea",
-      ];
-      return allowedTypes.includes(inputType);
-    }
-
-    // Check for textarea
-    if (tagName === "textarea") {
-      return true;
-    }
-
-    // Check for contenteditable
-    if (element.contentEditable === "true") {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Get text content from element
-   */
-  private getElementText(element: HTMLElement): string {
-    if (
-      element.tagName.toLowerCase() === "input" ||
-      element.tagName.toLowerCase() === "textarea"
-    ) {
-      return (element as HTMLInputElement | HTMLTextAreaElement).value;
-    } else if (element.contentEditable === "true") {
-      return element.textContent || "";
-    }
-    return "";
-  }
-
-  /**
-   * Get cursor position in element
-   */
-  private getCursorPosition(element: HTMLElement): number {
-    if (
-      element.tagName.toLowerCase() === "input" ||
-      element.tagName.toLowerCase() === "textarea"
-    ) {
-      return (
-        (element as HTMLInputElement | HTMLTextAreaElement).selectionStart || 0
-      );
-    } else if (element.contentEditable === "true") {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        return range.startOffset;
-      }
-    }
-    return 0;
-  }
-
-  /**
    * Create replacement context for text replacer
    */
   private createReplacementContext(
@@ -607,8 +502,8 @@ export class ContentScript {
     trigger: string,
     snippet: TextSnippet,
   ): ReplacementContext | null {
-    const text = this.getElementText(element);
-    const cursorPosition = this.getCursorPosition(element);
+    const text = getElementText(element);
+    const cursorPosition = getCursorPosition(element);
 
     // Find trigger position by looking backwards from cursor
     const beforeCursor = text.substring(0, cursorPosition);
@@ -869,13 +764,6 @@ export class ContentScript {
       console.log("✨ Expanding simple snippet");
       await this.expandText(snippet, element, result);
     }
-  }
-
-  /**
-   * Check if element is content editable
-   */
-  private isContentEditable(element: HTMLElement): boolean {
-    return element.contentEditable === "true" || element.contentEditable === "";
   }
 
   /**
