@@ -26,6 +26,8 @@ import {
   getCursorPosition,
   isContentEditable,
 } from "./utils/dom-utils";
+import { ContentEventHandler, type EventHandlerCallbacks } from "./event-handler";
+import { TestSnippetModal } from "./test-snippet-modal";
 
 /**
  * Main content script class
@@ -43,6 +45,7 @@ export class ContentScript {
   private currentCyclingTrigger = "";
   private currentCyclingOptions: CyclingOption[] = [];
   private settings: any = {};
+  private eventHandler: ContentEventHandler;
 
   constructor(
     triggerDetector?: EnhancedTriggerDetector,
@@ -56,6 +59,15 @@ export class ContentScript {
     this.textReplacer = textReplacer || new TextReplacer(this.imageProcessor);
     this.placeholderHandler = placeholderHandler || new PlaceholderHandler();
     this.cyclingUI = new TriggerCyclingUI();
+
+    // Initialize event handler with callbacks
+    this.eventHandler = new ContentEventHandler({
+      onTriggerDetected: this.handleTriggerDetected.bind(this),
+      onKeyEvent: this.handleKeyEvent.bind(this),
+      onElementFocus: this.handleElementFocus.bind(this),
+      onElementBlur: this.handleElementBlur.bind(this),
+      onDOMChange: this.handleDOMChange.bind(this),
+    });
 
     this.initialize();
   }
@@ -77,7 +89,7 @@ export class ContentScript {
       // Load snippets and update trigger detector
       await this.loadSnippets();
 
-      this.setupEventListeners();
+      this.eventHandler.setupEventListeners();
       this.setupMessageHandlers();
 
       console.log("✅ PuffPuffPaste content script initialized");
@@ -123,25 +135,6 @@ export class ContentScript {
     }
   }
 
-  /**
-   * Set up DOM event listeners
-   */
-  private setupEventListeners(): void {
-    // Listen for text input events
-    document.addEventListener("input", this.handleInput.bind(this), true);
-    document.addEventListener("keydown", this.handleKeyDown.bind(this), true);
-
-    // Listen for focus changes to track active element
-    document.addEventListener("focusin", this.handleFocusIn.bind(this), true);
-    document.addEventListener("focusout", this.handleFocusOut.bind(this), true);
-
-    // Handle dynamic content changes
-    const observer = new MutationObserver(this.handleDOMChanges.bind(this));
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-  }
 
   /**
    * Set up message handlers for communication with background script
@@ -179,26 +172,16 @@ export class ContentScript {
   }
 
   /**
-   * Handle text input events
+   * Handle trigger detection from event handler
    */
-  private async handleInput(event: Event): Promise<void> {
+  private async handleTriggerDetected(
+    text: string,
+    cursorPosition: number,
+    target: HTMLElement,
+  ): Promise<void> {
     if (!this.isEnabled) return;
-
-    const target = event.target as HTMLElement;
-
-    // Only process text inputs and contenteditable elements
-    if (!isTextInput(target)) return;
-
+    
     try {
-      const text = getElementText(target);
-      const cursorPosition = getCursorPosition(target);
-
-      console.log("🔍 Input event:", {
-        text,
-        cursorPosition,
-        textLength: text.length,
-      });
-
       const result = this.triggerDetector.processInput(text, cursorPosition);
 
       console.log("🎯 Trigger detection result:", result);
@@ -213,13 +196,9 @@ export class ContentScript {
   }
 
   /**
-   * Handle keydown events
+   * Handle key events from event handler
    */
-  private async handleKeyDown(event: KeyboardEvent): Promise<void> {
-    if (!this.isEnabled) return;
-
-    const target = event.target as HTMLElement;
-
+  private async handleKeyEvent(event: KeyboardEvent, target: HTMLElement): Promise<void> {
     // Handle Escape key - undo or hide cycling UI
     if (event.key === "Escape") {
       if (this.isCycling) {
@@ -247,10 +226,7 @@ export class ContentScript {
     }
 
     // Check for expansion trigger (Tab or Space)
-    if (
-      (event.key === "Tab" || event.key === " ") &&
-      isTextInput(target)
-    ) {
+    if ((event.key === "Tab" || event.key === " ") && isTextInput(target)) {
       const text = getElementText(target);
       const cursorPosition = getCursorPosition(target);
 
@@ -276,21 +252,18 @@ export class ContentScript {
   }
 
   /**
-   * Handle focus in events
+   * Handle element focus from event handler
    */
-  private handleFocusIn(event: Event): void {
-    const target = event.target as HTMLElement;
-    if (isTextInput(target)) {
-      this.activeElement = target;
-      // Load fresh snippets when focusing on a new element
-      this.loadSnippets();
-    }
+  private handleElementFocus(target: HTMLElement): void {
+    this.activeElement = target;
+    // Load fresh snippets when focusing on a new element
+    this.loadSnippets();
   }
 
   /**
-   * Handle focus out events
+   * Handle element blur from event handler
    */
-  private handleFocusOut(_event: Event): void {
+  private handleElementBlur(_target: HTMLElement): void {
     this.activeElement = null;
     // Reset the detector state
     this.triggerDetector.reset();
@@ -301,23 +274,12 @@ export class ContentScript {
   }
 
   /**
-   * Handle DOM changes (for dynamic content)
+   * Handle DOM changes from event handler
    */
-  private handleDOMChanges(mutations: MutationRecord[]): void {
-    // Re-initialize for newly added text inputs
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node as HTMLElement;
-          const textInputs = element.querySelectorAll(
-            'input[type="text"], textarea, [contenteditable="true"]',
-          );
-          textInputs.forEach(() => {
-            // New text inputs are automatically handled by event delegation
-          });
-        }
-      });
-    });
+  private handleDOMChange(): void {
+    // New text inputs are automatically handled by event delegation
+    // This callback can be used for additional processing if needed
+    console.log("🔄 DOM changed, new elements may be available");
   }
 
   /**
@@ -526,111 +488,9 @@ export class ContentScript {
    * Show test snippet customization modal
    */
   private async showTestSnippetCustomization(): Promise<void> {
-    return new Promise((resolve) => {
-      const modal = this.createTestCustomizationModal(resolve);
-      document.body.appendChild(modal);
-
-      // Focus the input field
-      const input = modal.querySelector("input") as HTMLInputElement;
-      if (input) {
-        input.focus();
-        input.select();
-      }
-    });
-  }
-
-  /**
-   * Create test snippet customization modal
-   */
-  private createTestCustomizationModal(onComplete: () => void): HTMLElement {
-    const overlay = document.createElement("div");
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
-
-    const modal = document.createElement("div");
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 400px;
-      max-width: 500px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    `;
-
-    modal.innerHTML = `
-      <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #333;">
-        🧪 Test Snippet Found!
-      </h2>
-      <p style="margin: 0 0 20px 0; color: #666; line-height: 1.4;">
-        PuffPuffPaste includes a built-in test snippet to verify basic functionality. 
-        You can customize or disable it:
-      </p>
-      
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 4px; font-weight: 500; color: #555;">
-          Trigger (current: ;htest):
-        </label>
-        <input type="text" id="customTrigger" value=";htest" 
-               style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
-      </div>
-      
-      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
-        <button id="disableBtn" style="padding: 8px 16px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 14px;">
-          Disable Test
-        </button>
-        <button id="saveBtn" style="padding: 8px 16px; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 4px; cursor: pointer; font-size: 14px;">
-          Save & Continue
-        </button>
-      </div>
-    `;
-
-    overlay.appendChild(modal);
-
-    // Handle buttons
-    const saveBtn = modal.querySelector("#saveBtn") as HTMLButtonElement;
-    const disableBtn = modal.querySelector("#disableBtn") as HTMLButtonElement;
-    const input = modal.querySelector("#customTrigger") as HTMLInputElement;
-
-    saveBtn.addEventListener("click", async () => {
-      const newTrigger = input.value.trim();
-      if (newTrigger && newTrigger !== ";htest") {
-        await ExtensionStorage.setSettings({ testTrigger: newTrigger });
-      }
-      await ExtensionStorage.setSettings({ hasSeenTestSnippet: true });
-      await this.loadSnippets(); // Reload with new trigger
-      document.body.removeChild(overlay);
-      onComplete();
-    });
-
-    disableBtn.addEventListener("click", async () => {
-      await ExtensionStorage.setSettings({
-        disableTestSnippet: true,
-        hasSeenTestSnippet: true,
-      });
-      await this.loadSnippets(); // Reload without test snippet
-      document.body.removeChild(overlay);
-      onComplete();
-    });
-
-    // Handle Enter key
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        saveBtn.click();
-      }
-    });
-
-    return overlay;
+    await TestSnippetModal.show();
+    // Reload snippets after modal interaction
+    await this.loadSnippets();
   }
 
   /**
@@ -771,6 +631,7 @@ export class ContentScript {
    */
   setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
+    this.eventHandler.setEnabled(enabled);
     console.log(`PuffPuffPaste ${enabled ? "enabled" : "disabled"}`);
   }
 }

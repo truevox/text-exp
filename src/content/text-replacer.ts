@@ -353,7 +353,6 @@ export class TextReplacer {
     return tagName === "input" || tagName === "textarea";
   }
 
-
   /**
    * Trigger input event to notify other scripts of changes
    */

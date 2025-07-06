@@ -273,10 +273,7 @@ describe("ContentScript", () => {
       });
       mockExtensionStorage.findSnippetByTrigger.mockResolvedValue(mockSnippet);
 
-      const inputEvent = new Event("input", { bubbles: true });
-      Object.defineProperty(inputEvent, "target", { value: mockInput });
-
-      await contentScript["handleInput"](inputEvent);
+      await contentScript["handleTriggerDetected"](";gb ", 4, mockInput);
 
       expect(mockTriggerDetector.processInput).toHaveBeenCalledWith(";gb ", 4);
       expect(mockExtensionStorage.findSnippetByTrigger).toHaveBeenCalledWith(
@@ -325,10 +322,7 @@ describe("ContentScript", () => {
       });
       mockPlaceholderHandler.replaceVariables.mockReturnValue("Hello World!");
 
-      const inputEvent = new Event("input", { bubbles: true });
-      Object.defineProperty(inputEvent, "target", { value: mockInput });
-
-      await contentScript["handleInput"](inputEvent);
+      await contentScript["handleTriggerDetected"](";gb ", 4, mockInput);
 
       expect(mockPlaceholderHandler.promptForVariables).toHaveBeenCalledWith(
         snippetWithVariables,
@@ -353,10 +347,7 @@ describe("ContentScript", () => {
         state: TriggerState.TYPING,
       });
 
-      const inputEvent = new Event("input", { bubbles: true });
-      Object.defineProperty(inputEvent, "target", { value: mockInput });
-
-      await contentScript["handleInput"](inputEvent);
+      await contentScript["handleTriggerDetected"](";gb ", 4, mockInput);
 
       expect(mockExtensionStorage.findSnippetByTrigger).not.toHaveBeenCalled();
       expect(mockTextReplacer.replaceText).not.toHaveBeenCalled();
@@ -400,10 +391,8 @@ describe("ContentScript", () => {
       contentScript.setEnabled(false);
 
       mockInput.value = ";gb";
-      const inputEvent = new Event("input", { bubbles: true });
-      Object.defineProperty(inputEvent, "target", { value: mockInput });
 
-      await contentScript["handleInput"](inputEvent);
+      await contentScript["handleTriggerDetected"](";gb ", 4, mockInput);
 
       expect(mockTriggerDetector.processInput).not.toHaveBeenCalled();
     });
@@ -426,12 +415,9 @@ describe("ContentScript", () => {
         throw new Error("Trigger detection failed");
       });
 
-      const inputEvent = new Event("input", { bubbles: true });
-      Object.defineProperty(inputEvent, "target", { value: mockInput });
-
       // Should not throw
       await expect(
-        _contentScript["handleInput"](inputEvent),
+        _contentScript["handleTriggerDetected"](";error ", 6, mockInput),
       ).resolves.toBeUndefined();
 
       expect(console.error).toHaveBeenCalledWith(

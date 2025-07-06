@@ -55,14 +55,7 @@ export function isTextInput(element: HTMLElement): boolean {
     }
 
     // Only allow safe text input types
-    const allowedTypes = [
-      "text",
-      "email",
-      "search",
-      "url",
-      "tel",
-      "textarea",
-    ];
+    const allowedTypes = ["text", "email", "search", "url", "tel", "textarea"];
     return allowedTypes.includes(inputType);
   }
 
@@ -128,7 +121,10 @@ export function isContentEditable(element: HTMLElement): boolean {
 /**
  * Set cursor position in element
  */
-export function setCursorPosition(element: HTMLElement, position: number): void {
+export function setCursorPosition(
+  element: HTMLElement,
+  position: number,
+): void {
   if (
     element.tagName.toLowerCase() === "input" ||
     element.tagName.toLowerCase() === "textarea"
@@ -142,8 +138,14 @@ export function setCursorPosition(element: HTMLElement, position: number): void 
       const range = document.createRange();
       const textNode = element.firstChild;
       if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        range.setStart(textNode, Math.min(position, textNode.textContent?.length || 0));
-        range.setEnd(textNode, Math.min(position, textNode.textContent?.length || 0));
+        range.setStart(
+          textNode,
+          Math.min(position, textNode.textContent?.length || 0),
+        );
+        range.setEnd(
+          textNode,
+          Math.min(position, textNode.textContent?.length || 0),
+        );
         selection.removeAllRanges();
         selection.addRange(range);
       }
