@@ -37,9 +37,11 @@ This creates a development build and provides Chrome extension loading instructi
 ### Daily Development
 
 1. **Start development mode:**
+
    ```bash
    npm run dev
    ```
+
    This watches for file changes and rebuilds automatically.
 
 2. **Load extension in Chrome:**
@@ -71,7 +73,7 @@ Following the TDD workflow from CLAUDE.md:
 # For new features
 npm run version:feature
 
-# For bug fixes  
+# For bug fixes
 npm run version:fix
 ```
 
@@ -132,28 +134,30 @@ Use these convenient imports in your code:
 
 ```typescript
 // Instead of: import { SomeType } from '../../../shared/types'
-import { SomeType } from '@/shared/types';
+import { SomeType } from "@/shared/types";
 
 // Instead of: import { StorageService } from '../shared/storage'
-import { StorageService } from '@/shared/storage';
+import { StorageService } from "@/shared/storage";
 
 // Other available aliases:
-import { BackgroundService } from '@/background/service-worker';
-import { ContentScript } from '@/content/content-script';
-import { PopupComponent } from '@/popup/popup';
-import { OptionsPage } from '@/options/options';
-import { SomeUtil } from '@/utils/version';
+import { BackgroundService } from "@/background/service-worker";
+import { ContentScript } from "@/content/content-script";
+import { PopupComponent } from "@/popup/popup";
+import { OptionsPage } from "@/options/options";
+import { SomeUtil } from "@/utils/version";
 ```
 
 ## Environment Configuration
 
 ### Development (.env.development)
+
 - Debug mode enabled
 - Source maps included
 - Hot reload active
 - Development API endpoints
 
 ### Production (.env.production)
+
 - Optimized builds
 - Minified code
 - Production API endpoints
@@ -183,17 +187,20 @@ Use `Ctrl+Shift+P` → "Tasks: Run Task":
 Following the TDD approach from CLAUDE.md:
 
 ### Unit Tests
+
 ```bash
 npm run test
 npm run test:watch  # Watch mode
 ```
 
 ### E2E Tests
+
 ```bash
 npm run test:e2e
 ```
 
 ### Integration Tests
+
 Tests for cloud adapters, sync manager, etc.
 
 ## Troubleshooting
@@ -247,6 +254,7 @@ VITE_CUSTOM_SETTING=value
 ```
 
 Access in code:
+
 ```typescript
 const setting = import.meta.env.VITE_CUSTOM_SETTING;
 ```
@@ -263,12 +271,14 @@ To add new entry points or modify the build:
 ## Performance Optimization
 
 ### Development
+
 - Source maps for debugging
 - Hot reload for fast iteration
 - Incremental compilation
 - Fast dependency pre-bundling
 
 ### Production
+
 - Code minification
 - Tree shaking
 - Asset optimization
@@ -277,13 +287,16 @@ To add new entry points or modify the build:
 ## Chrome Extension Specifics
 
 ### Manifest V3 Features
+
 - ES modules support
 - Service worker background scripts
 - Content scripts with proper loading
 - CSP-compliant builds
 
 ### Extension APIs
+
 All Chrome extension APIs are available:
+
 - `chrome.storage`
 - `chrome.runtime`
 - `chrome.tabs`
@@ -291,7 +304,9 @@ All Chrome extension APIs are available:
 - etc.
 
 ### Permissions
+
 Configure in `manifest.json`:
+
 - Required permissions
 - Optional permissions
 - Host permissions
@@ -299,19 +314,23 @@ Configure in `manifest.json`:
 ## Deployment
 
 ### Development Distribution
+
 ```bash
 npm run build:dev
 # Share the build/ directory
 ```
 
 ### Production Release
+
 ```bash
 npm run build
 # Upload build/ to Chrome Web Store
 ```
 
 ### Version Management
+
 Integrated with existing workflow:
+
 - Automatic version bumping
 - Manifest and package.json sync
 - Git-friendly commits
@@ -319,6 +338,7 @@ Integrated with existing workflow:
 ## Support and Contributing
 
 ### Getting Help
+
 1. Check this guide
 2. Run validation script
 3. Check BUILD.md for detailed configuration
@@ -326,6 +346,7 @@ Integrated with existing workflow:
 5. Check VS Code problems panel
 
 ### Contributing
+
 1. Follow TDD workflow from CLAUDE.md
 2. Use the build system consistently
 3. Update documentation for changes

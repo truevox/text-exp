@@ -10,14 +10,14 @@ This file configures **Claude Code** to follow a disciplined, **TDD‑first** w
 
 ## FYI
 
-* Use **CLAUDE‑TODO.md** as your personal todo file.
-* Use `/.claude/CGEM.md` to implement a sub‑agent named **Gemini** (via Gemini CLI).
+- Use **CLAUDE‑TODO.md** as your personal todo file.
+- Use `/.claude/CGEM.md` to implement a sub‑agent named **Gemini** (via Gemini CLI).
 
 ## ⚙️ Workflow & Best Practices
 
 ### 1. Planning Phase
 
-1. **Prompt Claude to “think hard.”** Generate an implementation plan *before* writing code.
+1. **Prompt Claude to “think hard.”** Generate an implementation plan _before_ writing code.
 2. List **testable increments** (e.g., "expand `;gb` → ‘Goodbye!’", "variable‑prompt modal appears", "Google Drive sync merges JSON").
 3. Keep **CLAUDE‑TODO.md** up to date with a structured implementation roadmap—mark items complete as you go.
 4. Update `.gitignore` to avoid committing secrets, build artefacts, `dist/`, etc.
@@ -37,53 +37,58 @@ For every feature:
 
 ### 📋 File‑Refactoring Guidelines
 
-* **Zero‑Loss Principle:** No information lost when reorganising and refactoring files/docs.
-* Verify before/after line counts when moving sections (e.g., completed tasks → TODONE).
-* Roll back via Git if content accidentally removed.
+- **Zero‑Loss Principle:** No information lost when reorganising and refactoring files/docs.
+- Verify before/after line counts when moving sections (e.g., completed tasks → TODONE).
+- Roll back via Git if content accidentally removed.
 
 ### 🤖 Gemini CLI Sub‑Agent Usage Guidelines
 
-* After you've read this file, see /CGEM.md for more information on using Gemini
+- After you've read this file, see /CGEM.md for more information on using Gemini
 
 #### When to Use Gemini CLI
 
-* Large‑scale analysis (files >1000 lines).
-* Bulk data tasks (e.g., diff hundreds of snippet records).
-* Research‑heavy work (UX patterns, Chrome extension best practices).
-* Analyzing entire codebases or large directories.
-* Comparing multiple large files.
-* Need to understand project-wide patterns or architecture.
-* Current context window is insufficient for the task.
-* Working with files totaling more than 100KB.
-* Verifying if specific features, patterns, or security measures are implemented.
-* Checking for the presence of certain coding patterns across the entire codebase.
-* Anything that nets a significant token saving.
+- Large‑scale analysis (files >1000 lines).
+- Bulk data tasks (e.g., diff hundreds of snippet records).
+- Research‑heavy work (UX patterns, Chrome extension best practices).
+- Analyzing entire codebases or large directories.
+- Comparing multiple large files.
+- Need to understand project-wide patterns or architecture.
+- Current context window is insufficient for the task.
+- Working with files totaling more than 100KB.
+- Verifying if specific features, patterns, or security measures are implemented.
+- Checking for the presence of certain coding patterns across the entire codebase.
+- Anything that nets a significant token saving.
 
 #### File and Directory Inclusion Syntax
 
 Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the gemini command:
 
 **Single file analysis:**
+
 ```bash
 gemini -p "@src/main.py Explain this file's purpose and structure"
 ```
 
 **Multiple files:**
+
 ```bash
 gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
 ```
 
 **Entire directory:**
+
 ```bash
 gemini -p "@src/ Summarize the architecture of this codebase"
 ```
 
 **Multiple directories:**
+
 ```bash
 gemini -p "@src/ @tests/ Analyze test coverage for the source code"
 ```
 
 **Current directory and subdirectories:**
+
 ```bash
 gemini -p "@./ Give me an overview of this entire project"
 # Or use --all_files flag:
@@ -93,21 +98,25 @@ gemini --all_files -p "Analyze the project structure and dependencies"
 #### Implementation Verification Examples
 
 **Check if a feature is implemented:**
+
 ```bash
 gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
 ```
 
 **Verify authentication implementation:**
+
 ```bash
 gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
 ```
 
 **Check for specific patterns:**
+
 ```bash
 gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
 ```
 
 **Verify error handling:**
+
 ```bash
 gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
 ```
@@ -123,10 +132,10 @@ gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoint
 
 After core logic works, ask Claude to provide screenshots or mock‑ups for:
 
-* **Onboarding OAuth flow**
-* Popup snippet search UI
-* Variable‑prompt modal
-* Image‑preview dialog
+- **Onboarding OAuth flow**
+- Popup snippet search UI
+- Variable‑prompt modal
+- Image‑preview dialog
   Iterate until polished.
 
 ### 4. Commit & GitHub Integration
@@ -137,43 +146,46 @@ Our commit messages follow a strict format to ensure clarity and consistency:
 **`:emoji: Category, TC: 00.0%`**
 
 **Format Breakdown:**
-*   **`:emoji:`**: An emoji that visually represents the change.
-*   **`Category`**: A single, capitalized word describing the change type (e.g., `Fix`, `Feat`, `Docs`, `Chore`).
-*   **`TC: 00.0%`**: The current test coverage percentage, which must be included.
+
+- **`:emoji:`**: An emoji that visually represents the change.
+- **`Category`**: A single, capitalized word describing the change type (e.g., `Fix`, `Feat`, `Docs`, `Chore`).
+- **`TC: 00.0%`**: The current test coverage percentage, which must be included.
 
 **Examples:**
-*   `🐛 Fix, TC: 93.4%`
-*   `✨ Feat, TC: 87.2%`
-*   `📝 Docs, TC: 99.1%`
+
+- `🐛 Fix, TC: 93.4%`
+- `✨ Feat, TC: 87.2%`
+- `📝 Docs, TC: 99.1%`
 
 To streamline this process, we use `gitmoji-cli`. A `commit-msg` hook is in place to enforce this format automatically. Commits with non-compliant messages will be rejected.
 
 **Recommended Workflow:**
+
 1.  Stage your changes (`git add .`).
 2.  Run `gitmoji -c` to open the interactive commit prompt.
 3.  Follow the prompts, ensuring your final message includes the category and test coverage (e.g., `Feat, TC: 88.0%`).
 
-* Use `gh` CLI for branches/PRs.
-* Keep commits small and focused; seperation of affairs.
-* Before making a commit, think about if anything new (or old) needs to be added to .gitignore. If so, add it.
-* **Vite** remains our bundler for the extension (Manifest V3 build target).
+- Use `gh` CLI for branches/PRs.
+- Keep commits small and focused; seperation of affairs.
+- Before making a commit, think about if anything new (or old) needs to be added to .gitignore. If so, add it.
+- **Vite** remains our bundler for the extension (Manifest V3 build target).
 
 ### 📦 Version Management
 
-* **Bump version with EVERY commit** (update `manifest.json` and `package.json`).
-* **Stay in `0.x.y` pre‑1.0 until launch approval** (keep breaking changes number at 0).
-* **Use 0.x.y format**: 0.1.0 → 0.2.0 (feature), 0.1.0 → 0.1.1 (fix).
-* **Version logged to console** on extension startup for debugging.
-* **Use npm scripts**: `npm run version:feature` or `npm run version:fix`.
-* Switch to SemVer MAJOR.MINOR.PATCH only after launch approval.
+- **Bump version with EVERY commit** (update `manifest.json` and `package.json`).
+- **Stay in `0.x.y` pre‑1.0 until launch approval** (keep breaking changes number at 0).
+- **Use 0.x.y format**: 0.1.0 → 0.2.0 (feature), 0.1.0 → 0.1.1 (fix).
+- **Version logged to console** on extension startup for debugging.
+- **Use npm scripts**: `npm run version:feature` or `npm run version:fix`.
+- Switch to SemVer MAJOR.MINOR.PATCH only after launch approval.
 
 ---
 
 ## 🧪 Testing & CI
 
-* Include unit (trigger parser), integration (Drive provider), and e2e (Playwright in Chrome extension context) tests.
-* Pre‑commit hooks run linter, formatter, tests.
-* GitHub Actions on `main` & `dev` branches build extension and run full test matrix.
+- Include unit (trigger parser), integration (Drive provider), and e2e (Playwright in Chrome extension context) tests.
+- Pre‑commit hooks run linter, formatter, tests.
+- GitHub Actions on `main` & `dev` branches build extension and run full test matrix.
 
 ---
 
@@ -181,20 +193,20 @@ To streamline this process, we use `gitmoji-cli`. A `commit-msg` hook is in plac
 
 Examples:
 
-* **/test\:trigger-expand** – run tests for text expansion logic.
-* **/test\:variable-modal** – ensure variable prompts render & collect input.
-* **/ui\:popup-preview** – render popup UI screenshot.
-* **/ci\:run-all** – full lint + test + build.
-* **/wakeup** – re‑read CLAUDE.md & CLAUDE‑TODO.md.
+- **/test\:trigger-expand** – run tests for text expansion logic.
+- **/test\:variable-modal** – ensure variable prompts render & collect input.
+- **/ui\:popup-preview** – render popup UI screenshot.
+- **/ci\:run-all** – full lint + test + build.
+- **/wakeup** – re‑read CLAUDE.md & CLAUDE‑TODO.md.
 
 ---
 
 ## 🤖 Agent Behaviour Notes
 
-* Follow **Think → Plan → Code → Commit**.
-* Use **sub‑agents** for large scopes.
-* Always start with failing tests.
-* Request peer review / second agent where useful.
+- Follow **Think → Plan → Code → Commit**.
+- Use **sub‑agents** for large scopes.
+- Always start with failing tests.
+- Request peer review / second agent where useful.
 
 ---
 
@@ -207,4 +219,3 @@ Examples:
 5. PR with focused, verified changes.
 
 Let’s build the PuffPuffPaste extension step‑by‑step—clean, and test‑driven!
-

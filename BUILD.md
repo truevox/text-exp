@@ -140,10 +140,10 @@ npm run validate
 The build system includes convenient path aliases:
 
 ```typescript
-import { SomeType } from '@/shared/types';
-import { StorageService } from '@/shared/storage';
-import { BackgroundService } from '@/background/service-worker';
-import { ContentScript } from '@/content/content-script';
+import { SomeType } from "@/shared/types";
+import { StorageService } from "@/shared/storage";
+import { BackgroundService } from "@/background/service-worker";
+import { ContentScript } from "@/content/content-script";
 ```
 
 ### Available Aliases

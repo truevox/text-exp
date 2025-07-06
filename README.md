@@ -6,14 +6,14 @@
 
 Key objectives include:
 
--   **Time Savings & Consistency:** Automate insertion of frequently used text (emails, greetings, signatures) to save time and maintain consistency.
--   **Collaboration:** Enable teams to share common snippet libraries via cloud storage so everyone uses up-to-date templates.
--   **Personalization:** Allow user-specific expansions and overrides for shared snippets.
--   **Dynamic Content:** Support placeholders that prompt the user for input at expansion time.
--   **Rich Text & Images:** Allow snippets to include formatted text and inline images.
--   **Seamless Sync & Offline Use:** Snippet data is synced from cloud providers but cached locally for instant, offline access.
--   **Maintainability & Flexibility:** The provider-agnostic **CloudAdapter** architecture makes it easy to support new cloud services.
--   **Non-intrusive UX:** The extension should feel lightweight and "just work" without interfering with normal typing.
+- **Time Savings & Consistency:** Automate insertion of frequently used text (emails, greetings, signatures) to save time and maintain consistency.
+- **Collaboration:** Enable teams to share common snippet libraries via cloud storage so everyone uses up-to-date templates.
+- **Personalization:** Allow user-specific expansions and overrides for shared snippets.
+- **Dynamic Content:** Support placeholders that prompt the user for input at expansion time.
+- **Rich Text & Images:** Allow snippets to include formatted text and inline images.
+- **Seamless Sync & Offline Use:** Snippet data is synced from cloud providers but cached locally for instant, offline access.
+- **Maintainability & Flexibility:** The provider-agnostic **CloudAdapter** architecture makes it easy to support new cloud services.
+- **Non-intrusive UX:** The extension should feel lightweight and "just work" without interfering with normal typing.
 
 ## Technical Architecture
 
@@ -26,21 +26,22 @@ At a high level, the extension consists of a **background script (service worker
 The **`CloudAdapter`** is a foundational JavaScript interface that abstracts away individual cloud provider SDKs. This pattern is the core of the extension's sync engine.
 
 It enables:
--   **Provider Isolation:** Keeps provider-specific code (e.g., Google Drive, Dropbox) in separate, pluggable modules.
--   **A Unified Sync Engine:** A single, robust sync mechanism can support dozens of cloud services.
--   **Easy Extensibility:** New cloud providers can be added without rewriting the core sync logic.
--   **Serverless Operation:** The entire sync process runs **entirely inside the browser**—no server, no proxy, no middleman.
--   **Maintainability & Testability:** The clean separation of concerns makes the codebase easy to maintain and test.
+
+- **Provider Isolation:** Keeps provider-specific code (e.g., Google Drive, Dropbox) in separate, pluggable modules.
+- **A Unified Sync Engine:** A single, robust sync mechanism can support dozens of cloud services.
+- **Easy Extensibility:** New cloud providers can be added without rewriting the core sync logic.
+- **Serverless Operation:** The entire sync process runs **entirely inside the browser**—no server, no proxy, no middleman.
+- **Maintainability & Testability:** The clean separation of concerns makes the codebase easy to maintain and test.
 
 ### Supported Folder Scopes ("Org Mode")
 
 The extension supports a three-tier sync model, allowing snippets to be sourced from multiple folders simultaneously. This is internally referred to as **"Org Mode."**
 
-| Scope | Description | Ownership/Control |
-| :--- | :--- | :--- |
-| `personal` | A folder selected by the user from their own cloud account. | User-chosen |
-| `department` | A shared folder assigned by a group or team admin. | Admin-chosen |
-| `org` | An organization-wide folder containing global snippets. | Globally managed |
+| Scope        | Description                                                 | Ownership/Control |
+| :----------- | :---------------------------------------------------------- | :---------------- |
+| `personal`   | A folder selected by the user from their own cloud account. | User-chosen       |
+| `department` | A shared folder assigned by a group or team admin.          | Admin-chosen      |
+| `org`        | An organization-wide folder containing global snippets.     | Globally managed  |
 
 Each scope corresponds to a separate cloud folder. The extension syncs them independently and merges the snippets into a single, unified set in-memory.
 
@@ -74,11 +75,12 @@ interface CloudAdapter {
 ```
 
 #### Responsibilities:
--   **Authentication:** `signIn()`, `isSignedIn()`, `getUserInfo()` handle the OAuth flow (using `chrome.identity.launchWebAuthFlow`) and credential storage.
--   **Folder Selection:** `selectFolder()` and `getSelectedFolderInfo()` allow users to pick a folder to sync from.
--   **Change Tracking:** `listFiles()`, `listChanges()`, and `getDeltaCursor()` power the efficient, delta-based sync, ensuring only new or modified files are downloaded.
--   **File Access:** `downloadFile()` and `getFileMetadata()` retrieve snippet file content and metadata.
--   **Upload Support (Optional):** `uploadFile()` is an optional method for future features that might allow editing snippets directly from the extension.
+
+- **Authentication:** `signIn()`, `isSignedIn()`, `getUserInfo()` handle the OAuth flow (using `chrome.identity.launchWebAuthFlow`) and credential storage.
+- **Folder Selection:** `selectFolder()` and `getSelectedFolderInfo()` allow users to pick a folder to sync from.
+- **Change Tracking:** `listFiles()`, `listChanges()`, and `getDeltaCursor()` power the efficient, delta-based sync, ensuring only new or modified files are downloaded.
+- **File Access:** `downloadFile()` and `getFileMetadata()` retrieve snippet file content and metadata.
+- **Upload Support (Optional):** `uploadFile()` is an optional method for future features that might allow editing snippets directly from the extension.
 
 ### `SyncedSource` Objects
 
@@ -86,10 +88,10 @@ Every folder connected to the extension is represented by a `SyncedSource` objec
 
 ```ts
 interface SyncedSource {
-  name: 'personal' | 'department' | 'org',
-  adapter: CloudAdapter,
-  folderId: string,
-  displayName: string
+  name: "personal" | "department" | "org";
+  adapter: CloudAdapter;
+  folderId: string;
+  displayName: string;
 }
 ```
 
@@ -99,28 +101,28 @@ All `SyncedSource`s are merged non-destructively into the active snippet set. In
 
 The extension stores all data locally and privately on the user's machine. **No servers, no telemetry.**
 
-| Data | Storage Location | Description |
-| :--- | :--- | :--- |
-| **Auth Tokens** | `chrome.storage.local` | Securely stored OAuth tokens, namespaced per provider. |
-| **Selected Folders** | `chrome.storage.sync` | The IDs of the user's chosen folders, synced across browsers. |
-| **Snippet Data** | IndexedDB / FileSystem API | The downloaded snippet content, cached for offline access. |
-| **Sync Cursors** | `localStorage` | The last sync checkpoint, namespaced per adapter and folder. |
+| Data                 | Storage Location           | Description                                                   |
+| :------------------- | :------------------------- | :------------------------------------------------------------ |
+| **Auth Tokens**      | `chrome.storage.local`     | Securely stored OAuth tokens, namespaced per provider.        |
+| **Selected Folders** | `chrome.storage.sync`      | The IDs of the user's chosen folders, synced across browsers. |
+| **Snippet Data**     | IndexedDB / FileSystem API | The downloaded snippet content, cached for offline access.    |
+| **Sync Cursors**     | `localStorage`             | The last sync checkpoint, namespaced per adapter and folder.  |
 
 ### Implementation Roadmap
 
 The `CloudAdapter` architecture makes it straightforward to add support for new cloud providers.
 
-*   [x] **Google Drive**
-*   [x] **Dropbox**
-*   [x] **OneDrive**
-*   [x] **Local File System** (via File System Access API)
+- [x] **Google Drive**
+- [x] **Dropbox**
+- [x] **OneDrive**
+- [x] **Local File System** (via File System Access API)
 
 A guide for "How to Add a New Adapter" will be added to the developer documentation.
 
 ### Offline and Privacy Guarantees
 
--   **Offline-First:** The extension is designed to work **100% offline** after the initial sync. Snippet expansion is instantaneous and does not rely on a network connection.
--   **Privacy by Design:** Snippet content **never leaves the user's device**. OAuth credentials are sent *only* to the official cloud provider endpoints for authentication and are never exposed to any third-party server.
+- **Offline-First:** The extension is designed to work **100% offline** after the initial sync. Snippet expansion is instantaneous and does not rely on a network connection.
+- **Privacy by Design:** Snippet content **never leaves the user's device**. OAuth credentials are sent _only_ to the official cloud provider endpoints for authentication and are never exposed to any third-party server.
 
 ## ASCII Sync Flow Diagram
 
@@ -156,3 +158,50 @@ A guide for "How to Add a New Adapter" will be added to the developer documentat
 │  • Handles dynamic placeholders and rich content            │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## 📄 Multi-Format Snippet Support
+
+PuffPuffPaste supports multiple file formats for storing and organizing your snippets, giving you the flexibility to choose the format that best suits your workflow:
+
+### Supported Formats
+
+| Format         | Extension | Use Case                         | Example         |
+| -------------- | --------- | -------------------------------- | --------------- |
+| **JSON**       | `.json`   | API integration, bulk imports    | `snippets.json` |
+| **Plain Text** | `.txt`    | Simple snippets, easy editing    | `greetings.txt` |
+| **Markdown**   | `.md`     | Documentation, formatted content | `templates.md`  |
+| **HTML**       | `.html`   | Email templates, rich content    | `emails.html`   |
+| **LaTeX**      | `.tex`    | Academic writing, formulas       | `formulas.tex`  |
+
+### Key Features
+
+- **🔄 Automatic Format Detection** - Detects format based on file extension and content
+- **📋 YAML Frontmatter** - Metadata support for all non-JSON formats
+- **🔀 Dynamic Variables** - Placeholder support: `{name}`, `{company:Default Inc}`
+- **🌐 Cloud Agnostic** - All formats work with any cloud provider
+- **⚡ Performance Optimized** - Efficient parsing and caching
+
+### Example: Markdown Snippet
+
+```markdown
+---
+id: "meeting-template"
+trigger: ";meeting"
+description: "Meeting invitation template"
+tags: ["email", "meetings"]
+variables: ["attendee", "date", "time"]
+---
+
+## Meeting Invitation
+
+Dear {attendee},
+
+You're invited to our meeting on **{date}** at **{time}**.
+
+Please confirm your attendance.
+
+Best regards,
+The Team
+```
+
+📖 **[View Complete Format Guide →](./FORMAT_GUIDE.md)**
