@@ -173,11 +173,11 @@ export class TxtParser implements FormatParser {
     // Note: isActive and priority properties don't exist in SnippetMeta interface
 
     // Include timestamps if requested
-    if (options.includeTimestamps) {
-      yamlMeta.createdAt = meta.createdAt;
-      yamlMeta.updatedAt = meta.updatedAt;
-      yamlMeta.createdBy = meta.createdBy;
-      yamlMeta.updatedBy = meta.updatedBy;
+    if (options?.includeTimestamps) {
+      yamlMeta.createdAt = meta.createdAt || new Date();
+      yamlMeta.updatedAt = meta.updatedAt || new Date();
+      yamlMeta.createdBy = meta.createdBy || "system";
+      yamlMeta.updatedBy = meta.updatedBy || "system";
     }
 
     // Serialize YAML frontmatter

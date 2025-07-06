@@ -30,11 +30,14 @@ export class MultiScopeSyncManager {
       for (const snippet of snippets) {
         const existing = snippetMap.get(snippet.trigger);
         const currentPriority = scopePriority[source.name] || 0;
-        const existingPriority =
-          existing && existing.scope ? scopePriority[existing.scope] || 0 : -1;
+        // Extract priority number from existing scope (e.g., "priority4" -> 4)
+        const existingPriority = existing && existing.scope 
+          ? parseInt(existing.scope.replace('priority', '')) || 0 
+          : -1;
 
         if (!existing || currentPriority > existingPriority) {
-          snippetMap.set(snippet.trigger, { ...snippet, scope: source.name });
+          const priorityName = `priority${currentPriority}`;
+          snippetMap.set(snippet.trigger, { ...snippet, scope: priorityName });
         }
       }
     }

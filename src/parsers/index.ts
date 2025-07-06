@@ -86,7 +86,7 @@ export class MultiFormatParser {
   serialize(
     docs: SnippetDoc | SnippetDoc[],
     format?: SnippetFormat,
-    _options: SerializeOptions = {},
+    options: SerializeOptions = {},
   ): string {
     const targetFormat =
       format || (Array.isArray(docs) ? docs[0]?.format : docs.format) || "json";
@@ -105,7 +105,7 @@ export class MultiFormatParser {
         docs = this.convertFormat(docs, format);
       }
 
-      return parser.serialize(docs);
+      return parser.serialize(docs, options);
     } catch (error) {
       throw new Error(
         `Failed to serialize ${targetFormat} content: ${error instanceof Error ? error.message : "Unknown error"}`,

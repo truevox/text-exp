@@ -66,7 +66,7 @@ export interface FormatParser {
   /**
    * Serialize SnippetDoc to string content
    */
-  serialize(doc: SnippetDoc | SnippetDoc[]): string;
+  serialize(doc: SnippetDoc | SnippetDoc[], options?: SerializeOptions): string;
 
   /**
    * Validate content format
