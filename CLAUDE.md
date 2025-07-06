@@ -159,11 +159,42 @@ Our commit messages follow a strict format to ensure clarity and consistency:
 
 To streamline this process, we use `gitmoji-cli`. A `commit-msg` hook is in place to enforce this format automatically. Commits with non-compliant messages will be rejected.
 
+**Commit Message Structure:**
+
+Commits should have a detailed body explaining the what, why, and how:
+
+```
+🐛 Fix, TC: 93.4%
+
+Brief summary of what was changed.
+
+## What Changed
+- Specific technical changes made
+- Files modified and their purpose
+- Functions/classes affected
+
+## Why This Change
+- Problem being solved
+- Root cause analysis
+- Impact on users/codebase
+
+## How It Works
+- Technical approach taken
+- Key implementation details
+- Any trade-offs made
+
+## Testing
+- Tests added/modified
+- Coverage improvement details
+- Validation steps taken
+```
+
 **Recommended Workflow:**
 
 1.  Stage your changes (`git add .`).
 2.  Run `gitmoji -c` to open the interactive commit prompt.
 3.  Follow the prompts, ensuring your final message includes the category and test coverage (e.g., `Feat, TC: 88.0%`).
+4.  **Include a detailed body** explaining what, why, and how as shown above.
 
 - Use `gh` CLI for branches/PRs.
 - Keep commits small and focused; seperation of affairs.
