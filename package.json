@@ -1,6 +1,6 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.16.2",
+  "version": "0.18.0",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
