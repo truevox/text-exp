@@ -1,5 +1,5 @@
-import { Plugin } from 'vite';
-import { WebSocketServer, WebSocket } from 'ws';
+import { Plugin } from "vite";
+import { WebSocketServer, WebSocket } from "ws";
 
 /**
  * Chrome Extension Hot Reload Plugin for Vite
@@ -7,30 +7,32 @@ import { WebSocketServer, WebSocket } from 'ws';
  */
 export function chromeExtensionHotReload(): Plugin {
   let wsServer: WebSocketServer;
-  
+
   return {
-    name: 'chrome-extension-hot-reload',
+    name: "chrome-extension-hot-reload",
     configureServer(server) {
       // Create WebSocket server for hot reload communication
       wsServer = new WebSocketServer({ port: 8080 });
-      
-      console.log('🔄 Chrome Extension Hot Reload WebSocket server started on port 8080');
-      
+
+      console.log(
+        "🔄 Chrome Extension Hot Reload WebSocket server started on port 8080",
+      );
+
       // Handle file changes
-      server.ws.on('file-change', () => {
+      server.ws.on("file-change", () => {
         if (wsServer) {
           wsServer.clients.forEach((client: WebSocket) => {
             if (client.readyState === client.OPEN) {
-              client.send(JSON.stringify({ type: 'reload' }));
+              client.send(JSON.stringify({ type: "reload" }));
             }
           });
         }
       });
     },
-    
+
     generateBundle() {
       // Inject hot reload script in development mode
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         const hotReloadScript = `
           // Chrome Extension Hot Reload Script
           (function() {
@@ -53,19 +55,19 @@ export function chromeExtensionHotReload(): Plugin {
             };
           })();
         `;
-        
+
         this.emitFile({
-          type: 'asset',
-          fileName: 'hot-reload.js',
-          source: hotReloadScript
+          type: "asset",
+          fileName: "hot-reload.js",
+          source: hotReloadScript,
         });
       }
     },
-    
+
     closeBundle() {
       if (wsServer) {
         wsServer.close();
       }
-    }
+    },
   };
 }

@@ -5,29 +5,28 @@
  * Validates the build system configuration without requiring full npm install
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
 
 const requiredFiles = [
-  'vite.config.ts',
-  'tsconfig.json',
-  'package.json',
-  'manifest.json',
-  '.env.development',
-  '.env.production',
-  'BUILD.md'
+  "vite.config.ts",
+  "tsconfig.json",
+  "package.json",
+  "manifest.json",
+  ".env.development",
+  ".env.production",
+  "BUILD.md",
 ];
 
 const requiredDirs = [
-  'src/background',
-  'src/content',
-  'src/popup',
-  'src/options',
-  'src/shared',
-  'src/utils',
-  'scripts',
-  'vite-plugins',
-  '.vscode'
+  "src/background",
+  "src/content",
+  "src/popup",
+  "src/options",
+  "src/shared",
+  "src/utils",
+  "scripts",
+  "vite-plugins",
+  ".vscode",
 ];
 
 function checkFile(filepath) {
@@ -52,18 +51,26 @@ function checkDir(dirpath) {
 
 function validatePackageJson() {
   try {
-    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+
     const requiredScripts = [
-      'dev', 'dev:extension', 'build', 'build:dev',
-      'test', 'lint', 'format', 'type-check',
-      'version:bump', 'version:feature', 'version:fix'
+      "dev",
+      "dev:extension",
+      "build",
+      "build:dev",
+      "test",
+      "lint",
+      "format",
+      "type-check",
+      "version:bump",
+      "version:feature",
+      "version:fix",
     ];
-    
-    console.log('\n📦 Package.json validation:');
+
+    console.log("\n📦 Package.json validation:");
     let allScriptsPresent = true;
-    
-    requiredScripts.forEach(script => {
+
+    requiredScripts.forEach((script) => {
       if (pkg.scripts && pkg.scripts[script]) {
         console.log(`✅ Script: ${script}`);
       } else {
@@ -71,14 +78,17 @@ function validatePackageJson() {
         allScriptsPresent = false;
       }
     });
-    
+
     const requiredDevDeps = [
-      'vite', 'typescript', '@types/chrome',
-      'vite-plugin-static-copy', 'fast-glob'
+      "vite",
+      "typescript",
+      "@types/chrome",
+      "vite-plugin-static-copy",
+      "fast-glob",
     ];
-    
+
     let allDepsPresent = true;
-    requiredDevDeps.forEach(dep => {
+    requiredDevDeps.forEach((dep) => {
       if (pkg.devDependencies && pkg.devDependencies[dep]) {
         console.log(`✅ Dependency: ${dep}`);
       } else {
@@ -86,7 +96,7 @@ function validatePackageJson() {
         allDepsPresent = false;
       }
     });
-    
+
     return allScriptsPresent && allDepsPresent;
   } catch (error) {
     console.log(`❌ Invalid package.json: ${error.message}`);
@@ -96,18 +106,23 @@ function validatePackageJson() {
 
 function validateTsConfig() {
   try {
-    const tsconfig = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8'));
-    
-    console.log('\n🔧 TypeScript configuration:');
-    
+    const tsconfig = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
+
+    console.log("\n🔧 TypeScript configuration:");
+
     const requiredPaths = [
-      '@/*', '@/shared/*', '@/utils/*', '@/background/*',
-      '@/content/*', '@/popup/*', '@/options/*'
+      "@/*",
+      "@/shared/*",
+      "@/utils/*",
+      "@/background/*",
+      "@/content/*",
+      "@/popup/*",
+      "@/options/*",
     ];
-    
+
     let allPathsPresent = true;
     if (tsconfig.compilerOptions && tsconfig.compilerOptions.paths) {
-      requiredPaths.forEach(pathAlias => {
+      requiredPaths.forEach((pathAlias) => {
         if (tsconfig.compilerOptions.paths[pathAlias]) {
           console.log(`✅ Path alias: ${pathAlias}`);
         } else {
@@ -116,10 +131,10 @@ function validateTsConfig() {
         }
       });
     } else {
-      console.log('❌ No path mapping configured');
+      console.log("❌ No path mapping configured");
       allPathsPresent = false;
     }
-    
+
     return allPathsPresent;
   } catch (error) {
     console.log(`❌ Invalid tsconfig.json: ${error.message}`);
@@ -129,18 +144,18 @@ function validateTsConfig() {
 
 function validateViteConfig() {
   try {
-    const viteConfig = fs.readFileSync('vite.config.ts', 'utf8');
-    
-    console.log('\n⚡ Vite configuration:');
-    
+    const viteConfig = fs.readFileSync("vite.config.ts", "utf8");
+
+    console.log("\n⚡ Vite configuration:");
+
     const requiredImports = [
-      'chromeExtensionHotReload',
-      'viteStaticCopy',
-      'chromeExtensionPlugin'
+      "chromeExtensionHotReload",
+      "viteStaticCopy",
+      "chromeExtensionPlugin",
     ];
-    
+
     let allImportsPresent = true;
-    requiredImports.forEach(importName => {
+    requiredImports.forEach((importName) => {
       if (viteConfig.includes(importName)) {
         console.log(`✅ Import: ${importName}`);
       } else {
@@ -148,16 +163,16 @@ function validateViteConfig() {
         allImportsPresent = false;
       }
     });
-    
+
     const requiredEntryPoints = [
-      'background/service-worker',
-      'content/content-script',
-      'popup/popup',
-      'options/options'
+      "background/service-worker",
+      "content/content-script",
+      "popup/popup",
+      "options/options",
     ];
-    
+
     let allEntryPointsPresent = true;
-    requiredEntryPoints.forEach(entry => {
+    requiredEntryPoints.forEach((entry) => {
       if (viteConfig.includes(entry)) {
         console.log(`✅ Entry point: ${entry}`);
       } else {
@@ -165,7 +180,7 @@ function validateViteConfig() {
         allEntryPointsPresent = false;
       }
     });
-    
+
     return allImportsPresent && allEntryPointsPresent;
   } catch (error) {
     console.log(`❌ Could not read vite.config.ts: ${error.message}`);
@@ -174,41 +189,47 @@ function validateViteConfig() {
 }
 
 function main() {
-  console.log('🔍 Validating Chrome Extension Build System Configuration');
-  console.log('='.repeat(60));
-  
-  console.log('\n📁 Required files:');
+  console.log("🔍 Validating Chrome Extension Build System Configuration");
+  console.log("=".repeat(60));
+
+  console.log("\n📁 Required files:");
   let allFilesPresent = true;
-  requiredFiles.forEach(file => {
+  requiredFiles.forEach((file) => {
     if (!checkFile(file)) {
       allFilesPresent = false;
     }
   });
-  
-  console.log('\n📂 Required directories:');
+
+  console.log("\n📂 Required directories:");
   let allDirsPresent = true;
-  requiredDirs.forEach(dir => {
+  requiredDirs.forEach((dir) => {
     if (!checkDir(dir)) {
       allDirsPresent = false;
     }
   });
-  
+
   const packageValid = validatePackageJson();
   const tsconfigValid = validateTsConfig();
   const viteConfigValid = validateViteConfig();
-  
-  console.log('\n' + '='.repeat(60));
-  
-  if (allFilesPresent && allDirsPresent && packageValid && tsconfigValid && viteConfigValid) {
-    console.log('🎉 Configuration validation PASSED!');
-    console.log('\n📋 Next steps:');
-    console.log('1. Run: npm install');
-    console.log('2. Run: npm run dev:extension');
-    console.log('3. Load extension in Chrome from build/ directory');
+
+  console.log("\n" + "=".repeat(60));
+
+  if (
+    allFilesPresent &&
+    allDirsPresent &&
+    packageValid &&
+    tsconfigValid &&
+    viteConfigValid
+  ) {
+    console.log("🎉 Configuration validation PASSED!");
+    console.log("\n📋 Next steps:");
+    console.log("1. Run: npm install");
+    console.log("2. Run: npm run dev:extension");
+    console.log("3. Load extension in Chrome from build/ directory");
     process.exit(0);
   } else {
-    console.log('❌ Configuration validation FAILED!');
-    console.log('\n🔧 Please fix the issues above before proceeding.');
+    console.log("❌ Configuration validation FAILED!");
+    console.log("\n🔧 Please fix the issues above before proceeding.");
     process.exit(1);
   }
 }

@@ -21,12 +21,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content/content-script.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content/content-script.js"],
       "run_at": "document_idle"
     }
   ],
@@ -49,13 +45,8 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "assets/*",
-        "scripts/*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["assets/*", "scripts/*"],
+      "matches": ["<all_urls>"]
     }
   ],
   "commands": {
@@ -69,8 +60,6 @@
   },
   "oauth2": {
     "client_id": "1037463573947-mjb7i96il5j0b2ul3ou7c1vld0b0q96a.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.file"
-    ]
+    "scopes": ["https://www.googleapis.com/auth/drive.file"]
   }
 }

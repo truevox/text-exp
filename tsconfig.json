@@ -3,7 +3,7 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "useDefineForClassFields": true,
-    
+
     "module": "ESNext",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
@@ -11,17 +11,17 @@
     "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    
+
     "noEmit": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": false,
     "importHelpers": true,
-    
+
     "allowJs": true,
     "checkJs": false,
-    
+
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -34,10 +34,10 @@
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": false,
-    
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -53,14 +53,14 @@
       "@/storage": ["src/shared/storage"],
       "@/messaging": ["src/shared/messaging"]
     },
-    
+
     "outDir": "./build",
-    
+
     "skipDefaultLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  
+
   "include": [
     "src/**/*",
     "src/**/*.ts",
@@ -72,7 +72,7 @@
     "vite.config.ts",
     "scripts/**/*"
   ],
-  
+
   "exclude": [
     "node_modules",
     "build",
@@ -82,15 +82,10 @@
     "**/*.min.js",
     "public/**/*"
   ],
-  
+
   "ts-node": {
     "esm": true
   },
-  
-  "types": [
-    "chrome",
-    "node",
-    "jest",
-    "vite/client"
-  ]
+
+  "types": ["chrome", "node", "jest", "vite/client"]
 }
