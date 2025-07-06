@@ -49,7 +49,14 @@ export class MultiScopeSyncManager {
       }
     }
 
-    return Array.from(snippetMap.values());
+    // Clean up internal tracking properties before returning
+    const cleanedSnippets = Array.from(snippetMap.values()).map((snippet) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _priorityLevel, ...cleanedSnippet } = snippet as any;
+      return cleanedSnippet;
+    });
+
+    return cleanedSnippets;
   }
 
   private async fetchFromSource(
