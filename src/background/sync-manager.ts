@@ -8,6 +8,9 @@ import { IndexedDB } from "../shared/indexed-db.js";
 import { getCloudAdapterFactory } from "./cloud-adapters/index.js";
 import { MultiScopeSyncManager } from "./multi-scope-sync-manager.js";
 import { notifyContentScriptsOfSnippetUpdate } from "./messaging-helpers.js";
+import { AuthenticationService } from "./services/auth-service.js";
+import { SyncStateManager } from "./services/sync-state.js";
+import { NotificationService } from "./services/notification-service.js";
 import type {
   CloudAdapter,
   CloudProvider,
@@ -28,12 +31,12 @@ export class SyncManager {
   private currentAdapter: CloudAdapter | null = null; // Primary adapter, e.g., for personal snippets
   private multiScopeSyncManager: MultiScopeSyncManager;
   private indexedDB: IndexedDB;
-  private syncInProgress = false;
-  private syncInterval: number | null = null;
+  private syncState: SyncStateManager;
 
   private constructor() {
     this.multiScopeSyncManager = new MultiScopeSyncManager();
     this.indexedDB = new IndexedDB();
+    this.syncState = new SyncStateManager();
   }
 
   /**
@@ -55,7 +58,7 @@ export class SyncManager {
 
     // Start auto-sync for cloud providers
     if (settings.autoSync && settings.cloudProvider !== "local") {
-      this.startAutoSync(settings.syncInterval);
+      this.syncState.startAutoSync(settings.syncInterval, () => this.syncNow());
     }
   }
 
@@ -68,10 +71,10 @@ export class SyncManager {
       this.currentAdapter = factory.createAdapter(provider);
 
       // Try to initialize with stored credentials
-      const credentials = await ExtensionStorage.getCloudCredentials();
-      if (credentials && credentials.provider === provider) {
-        await this.currentAdapter.initialize(credentials);
-      }
+      await AuthenticationService.initializeWithStoredCredentials(
+        this.currentAdapter,
+        provider,
+      );
     } catch (error) {
       console.error("Failed to set cloud provider:", error);
       throw error;
@@ -82,33 +85,21 @@ export class SyncManager {
    * Authenticate with the current cloud provider
    */
   async authenticate(): Promise<CloudCredentials> {
-    if (!this.currentAdapter) {
-      throw new Error("No cloud provider configured");
-    }
-
-    try {
-      const credentials = await this.currentAdapter.authenticate();
-      await this.currentAdapter.initialize(credentials);
-      await ExtensionStorage.setCloudCredentials(credentials);
-
-      return credentials;
-    } catch (error) {
-      console.error("Authentication failed:", error);
-      throw new Error(ERROR_MESSAGES.AUTHENTICATION_FAILED);
-    }
+    return AuthenticationService.authenticate(this.currentAdapter!);
   }
 
   /**
    * Check if currently authenticated
    */
   async isAuthenticated(): Promise<boolean> {
-    if (!this.currentAdapter) {
-      // If no current adapter, consider it not authenticated for now.
-      // In a multi-scope setup, we might check if any adapter is authenticated.
-      return false;
-    }
+    return AuthenticationService.isAuthenticated(this.currentAdapter);
+  }
 
-    return this.currentAdapter.isAuthenticated();
+  /**
+   * Disconnect from cloud provider
+   */
+  async disconnect(): Promise<void> {
+    await AuthenticationService.disconnect();
   }
 
   /**
@@ -191,11 +182,11 @@ export class SyncManager {
    * Perform manual sync
    */
   async syncNow(): Promise<void> {
-    if (this.syncInProgress) {
+    if (this.syncState.isSyncInProgress()) {
       throw new Error("Sync already in progress");
     }
 
-    this.syncInProgress = true;
+    this.syncState.setSyncInProgress(true);
     let finalSyncStatus: SyncStatus = {
       provider: this.currentAdapter?.provider || "local",
       lastSync: null,
@@ -279,7 +270,7 @@ export class SyncManager {
       console.log("📢 Notified content scripts of snippet update");
 
       // Notify success
-      await this.showNotification(SUCCESS_MESSAGES.SYNC_COMPLETED);
+      await NotificationService.showSyncSuccess(mergedSnippets.length);
 
       // Update last sync time
       await ExtensionStorage.setLastSync(new Date());
@@ -305,7 +296,7 @@ export class SyncManager {
       throw error;
     } finally {
       await ExtensionStorage.setSyncStatus(finalSyncStatus); // Set status once
-      this.syncInProgress = false;
+      this.syncState.setSyncInProgress(false);
     }
   }
 
@@ -329,27 +320,14 @@ export class SyncManager {
    * Start automatic synchronization
    */
   startAutoSync(intervalMinutes: number): void {
-    this.stopAutoSync();
-
-    const intervalMs = intervalMinutes * 60 * 1000;
-    this.syncInterval = setInterval(() => {
-      this.syncNow().catch((error) => {
-        console.error("Auto-sync failed:", error);
-      });
-    }, intervalMs) as unknown as number;
-
-    console.log(`Auto-sync started with ${intervalMinutes} minute interval`);
+    this.syncState.startAutoSync(intervalMinutes, () => this.syncNow());
   }
 
   /**
    * Stop automatic synchronization
    */
   stopAutoSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-      console.log("Auto-sync stopped");
-    }
+    this.syncState.stopAutoSync();
   }
 
   /**
@@ -414,7 +392,7 @@ export class SyncManager {
       const cloudSnippets = await this.currentAdapter.downloadSnippets("");
       await ExtensionStorage.setSnippets(cloudSnippets);
 
-      await this.showNotification("Snippets downloaded from cloud");
+      await NotificationService.showNotification("Snippets downloaded from cloud");
     } catch (error) {
       console.error("Force download failed:", error);
       throw error;
@@ -437,52 +415,9 @@ export class SyncManager {
       const localSnippets = await ExtensionStorage.getSnippets();
       await this.currentAdapter.uploadSnippets(localSnippets);
 
-      await this.showNotification("Snippets uploaded to cloud");
+      await NotificationService.showNotification("Snippets uploaded to cloud");
     } catch (error) {
       console.error("Force upload failed:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Clear cloud credentials and reset sync
-   */
-  async disconnect(): Promise<void> {
-    if (!this.currentAdapter) {
-      return;
-    }
-
-    const provider = this.currentAdapter.provider;
-    console.log(`🔌 Disconnecting from ${provider}...`);
-
-    try {
-      // Stop auto-sync
-      this.stopAutoSync();
-
-      // Clear credentials from storage
-      await ExtensionStorage.clearCloudCredentials();
-
-      // Clear scoped sources
-      await ExtensionStorage.setScopedSources([]);
-
-      // Reset sync status
-      await ExtensionStorage.setSyncStatus({
-        provider: provider,
-        lastSync: null,
-        isOnline: false,
-        hasChanges: false,
-        error: undefined,
-      });
-
-      // Clear current adapter
-      this.currentAdapter = null;
-
-      console.log(`✅ Successfully disconnected from ${provider}`);
-
-      // Reset to local storage
-      await this.setCloudProvider("local");
-    } catch (error) {
-      console.error(`❌ Failed to disconnect from ${provider}:`, error);
       throw error;
     }
   }
@@ -526,34 +461,10 @@ export class SyncManager {
   }
 
   /**
-   * Show notification to user
-   */
-  private async showNotification(message: string): Promise<void> {
-    try {
-      const settings = await ExtensionStorage.getSettings();
-
-      if (settings.showNotifications) {
-        if (chrome.notifications && chrome.notifications.create) {
-          chrome.notifications.create({
-            type: "basic",
-            iconUrl: "icons/icon-48.png",
-            title: "Text Expander",
-            message,
-          });
-        } else {
-          console.warn("chrome.notifications API not available.");
-        }
-      }
-    } catch (error) {
-      console.error("Failed to show notification:", error);
-    }
-  }
-
-  /**
    * Check if sync is currently in progress
    */
   isSyncInProgress(): boolean {
-    return this.syncInProgress;
+    return this.syncState.isSyncInProgress();
   }
 
   /**
@@ -564,76 +475,56 @@ export class SyncManager {
   }
 
   /**
-   * Get available Google Drive folders for folder picker
+   * Get available folders for current cloud provider
    */
-  async getGoogleDriveFolders(
+  async getCloudFolders(
     parentId?: string,
   ): Promise<
     Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
   > {
-    // Ensure Google Drive adapter is available
-    if (
-      !this.currentAdapter ||
-      this.currentAdapter.provider !== "google-drive"
-    ) {
-      console.log("🔧 Setting up Google Drive adapter...");
-      await this.setCloudProvider("google-drive");
+    if (!this.currentAdapter) {
+      throw new Error("No cloud provider configured");
     }
 
-    if (
-      !this.currentAdapter ||
-      this.currentAdapter.provider !== "google-drive"
-    ) {
-      throw new Error("Failed to initialize Google Drive adapter");
+    if (!this.currentAdapter.getFolders) {
+      throw new Error(
+        `Folder listing not supported for ${this.currentAdapter.provider} provider.`,
+      );
     }
 
     // Ensure authenticated
     if (!(await this.isAuthenticated())) {
-      console.log(
-        "🔐 Not authenticated with google-drive, authenticating first...",
-      );
       const credentials = await this.authenticate();
       await this.currentAdapter.initialize(credentials);
     }
 
-    // Get folders from Google Drive adapter without auto-selecting
-    return await this.currentAdapter.getFolders!(parentId);
+    return await this.currentAdapter.getFolders(parentId);
   }
 
   /**
-   * Create folder using Google Drive adapter
+   * Create folder using current cloud provider
    */
-  async createGoogleDriveFolder(
+  async createCloudFolder(
     folderName: string,
     parentId?: string,
   ): Promise<{ id: string; name: string }> {
-    // Ensure Google Drive adapter is available
-    if (
-      !this.currentAdapter ||
-      this.currentAdapter.provider !== "google-drive"
-    ) {
-      console.log("🔧 Setting up Google Drive adapter...");
-      await this.setCloudProvider("google-drive");
+    if (!this.currentAdapter) {
+      throw new Error("No cloud provider configured");
     }
 
-    if (
-      !this.currentAdapter ||
-      this.currentAdapter.provider !== "google-drive"
-    ) {
-      throw new Error("Failed to initialize Google Drive adapter");
+    if (!this.currentAdapter.createFolder) {
+      throw new Error(
+        `Folder creation not supported for ${this.currentAdapter.provider} provider.`,
+      );
     }
 
     // Ensure authenticated
     if (!(await this.isAuthenticated())) {
-      console.log(
-        "🔐 Not authenticated with google-drive, authenticating first...",
-      );
       const credentials = await this.authenticate();
       await this.currentAdapter.initialize(credentials);
     }
 
-    // Create folder using Google Drive adapter
-    return await this.currentAdapter.createFolder!(folderName, parentId);
+    return await this.currentAdapter.createFolder(folderName, parentId);
   }
 
   /**

@@ -268,15 +268,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case "GET_GOOGLE_DRIVE_FOLDERS": {
-          const folders = await syncManager.getGoogleDriveFolders(
-            message.parentId,
-          );
+          const folders = await syncManager.getCloudFolders(message.parentId);
           sendResponse({ success: true, data: folders });
           break;
         }
 
         case "CREATE_GOOGLE_DRIVE_FOLDER": {
-          const newFolder = await syncManager.createGoogleDriveFolder(
+          const newFolder = await syncManager.createCloudFolder(
             message.folderName,
             message.parentId,
           );
