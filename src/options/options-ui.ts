@@ -8,6 +8,7 @@ import { ExtensionStorage } from "../shared/storage.js";
 import { CLOUD_PROVIDERS } from "../shared/constants.js";
 import type { ExtensionSettings, TextSnippet } from "../shared/types.js";
 import type { OptionsElements } from "./utils/dom-elements.js";
+import { EventHandlerManager } from "./event-handler-manager.js";
 
 export type StatusType = "success" | "error" | "warning" | "info";
 
@@ -36,171 +37,16 @@ export interface UICallbacks {
 export class OptionsUI {
   private elements: OptionsElements;
   private callbacks: UICallbacks;
+  private eventHandlerManager: EventHandlerManager;
 
   constructor(elements: OptionsElements, callbacks: UICallbacks) {
     this.elements = elements;
     this.callbacks = callbacks;
-    this.setupEventListeners();
+    this.eventHandlerManager = new EventHandlerManager(elements, callbacks);
+    this.eventHandlerManager.setupEventListeners();
     this.updateVersion();
   }
 
-  /**
-   * Setup all event listeners
-   */
-  private setupEventListeners(): void {
-    // Initial Setup
-    this.elements.getStartedButton.addEventListener("click", () =>
-      this.callbacks.onGetStarted(),
-    );
-
-    // General settings
-    this.elements.enabledCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-    this.elements.caseSensitiveCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-    this.elements.notificationsCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-
-    this.elements.triggerDelaySlider.addEventListener("input", () => {
-      this.updateTriggerDelayValue();
-      this.callbacks.onSettingsChange();
-    });
-
-    // Global toggle settings
-    this.elements.globalToggleEnabledCheckbox.addEventListener("change", () => {
-      this.updateGlobalToggleStatus();
-      this.callbacks.onSettingsChange();
-    });
-
-    this.elements.editShortcutButton.addEventListener("click", () =>
-      this.callbacks.onEditShortcut(),
-    );
-
-    this.elements.globalToggleShortcut.addEventListener("keydown", (e) =>
-      this.handleShortcutCapture(e),
-    );
-
-    // Cloud settings
-    this.elements.cloudProviderSelect.addEventListener("change", () =>
-      this.callbacks.onProviderChange(),
-    );
-    this.elements.autoSyncCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-
-    this.elements.syncIntervalSlider.addEventListener("input", () => {
-      this.updateSyncIntervalValue();
-      this.callbacks.onSettingsChange();
-    });
-
-    // Scoped folder selection
-    this.elements.selectPersonalFolderButton.addEventListener("click", () =>
-      this.callbacks.onSelectFolder("personal"),
-    );
-    this.elements.selectDepartmentFolderButton.addEventListener("click", () =>
-      this.callbacks.onSelectFolder("department"),
-    );
-    this.elements.selectOrganizationFolderButton.addEventListener("click", () =>
-      this.callbacks.onSelectFolder("org"),
-    );
-
-    // Cloud actions
-    this.elements.connectButton.addEventListener("click", () =>
-      this.callbacks.onConnect(),
-    );
-    this.elements.syncNowButton.addEventListener("click", () =>
-      this.callbacks.onSyncNow(),
-    );
-    this.elements.forceUploadButton.addEventListener("click", () =>
-      this.callbacks.onForceUpload(),
-    );
-    this.elements.forceDownloadButton.addEventListener("click", () =>
-      this.callbacks.onForceDownload(),
-    );
-
-    // Collaboration
-    this.elements.sharedSnippetsCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-
-    // Data management
-    this.elements.cleanupStorageButton.addEventListener("click", () =>
-      this.callbacks.onCleanupStorage(),
-    );
-    this.elements.clearLocalButton.addEventListener("click", () =>
-      this.callbacks.onClearLocal(),
-    );
-    this.elements.resetAllButton.addEventListener("click", () =>
-      this.callbacks.onResetAll(),
-    );
-
-    // Advanced
-    this.elements.debugCheckbox.addEventListener("change", () =>
-      this.callbacks.onSettingsChange(),
-    );
-    this.elements.viewLogsButton.addEventListener("click", () =>
-      this.callbacks.onViewLogs(),
-    );
-
-    // Header actions
-    this.elements.exportButton.addEventListener("click", () =>
-      this.callbacks.onExport(),
-    );
-    this.elements.importButton.addEventListener("click", () =>
-      this.callbacks.onImport(),
-    );
-    this.elements.importFileInput.addEventListener("change", () =>
-      this.callbacks.onFileImport(),
-    );
-
-    // Status banner
-    this.elements.statusClose.addEventListener("click", () =>
-      this.hideStatus(),
-    );
-
-    // Footer links
-    this.elements.helpLink.addEventListener("click", (e) =>
-      this.handleExternalLink(e, "help"),
-    );
-    this.elements.feedbackLink.addEventListener("click", (e) =>
-      this.handleExternalLink(e, "feedback"),
-    );
-    this.elements.privacyLink.addEventListener("click", (e) =>
-      this.handleExternalLink(e, "privacy"),
-    );
-
-    // Folder Picker Modal
-    this.elements.closeFolderPickerButton.addEventListener("click", () =>
-      this.callbacks.onCloseFolderPicker(),
-    );
-    this.elements.cancelFolderPickerButton.addEventListener("click", () =>
-      this.callbacks.onCloseFolderPicker(),
-    );
-    this.elements.confirmFolderPickerButton.addEventListener("click", () =>
-      this.callbacks.onConfirmFolderSelection(),
-    );
-    this.elements.createFolderButton.addEventListener("click", () =>
-      this.callbacks.onCreateFolder(),
-    );
-
-    // Close modal on backdrop click
-    this.elements.folderPickerModal.addEventListener("click", (e) => {
-      if (e.target === this.elements.folderPickerModal) {
-        this.callbacks.onCloseFolderPicker();
-      }
-    });
-
-    // Handle window hash changes for anchor navigation
-    window.addEventListener("hashchange", () => this.handleAnchorNavigation());
-
-    // Handle initial hash on page load
-    if (window.location.hash) {
-      setTimeout(() => this.handleAnchorNavigation(), 100);
-    }
-  }
 
   /**
    * Show status message
@@ -212,16 +58,10 @@ export class OptionsUI {
 
     // Auto-hide success messages
     if (type === "success") {
-      setTimeout(() => this.hideStatus(), 3000);
+      setTimeout(() => this.elements.statusBanner.classList.add("hidden"), 3000);
     }
   }
 
-  /**
-   * Hide status message
-   */
-  hideStatus(): void {
-    this.elements.statusBanner.classList.add("hidden");
-  }
 
   /**
    * Update UI elements with settings values
@@ -236,7 +76,10 @@ export class OptionsUI {
       this.elements.notificationsCheckbox.checked = settings.showNotifications;
     if (this.elements.triggerDelaySlider)
       this.elements.triggerDelaySlider.value = settings.triggerDelay.toString();
-    this.updateTriggerDelayValue();
+    // Update trigger delay display
+    if (this.elements.triggerDelayValue) {
+      this.elements.triggerDelayValue.textContent = `${settings.triggerDelay}ms`;
+    }
 
     // Global toggle settings
     if (this.elements.globalToggleEnabledCheckbox)
@@ -244,7 +87,14 @@ export class OptionsUI {
         settings.globalToggleEnabled;
     if (this.elements.globalToggleShortcut)
       this.elements.globalToggleShortcut.value = settings.globalToggleShortcut;
-    this.updateGlobalToggleStatus();
+    // Update global toggle status display
+    if (this.elements.globalToggleStatus) {
+      const statusBadge = this.elements.globalToggleStatus.querySelector(".status-badge");
+      if (statusBadge) {
+        statusBadge.textContent = settings.globalToggleEnabled ? "Active" : "Disabled";
+        statusBadge.className = `status-badge ${settings.globalToggleEnabled ? "enabled" : "disabled"}`;
+      }
+    }
 
     // Cloud settings
     if (this.elements.cloudProviderSelect)
@@ -253,7 +103,10 @@ export class OptionsUI {
       this.elements.autoSyncCheckbox.checked = settings.autoSync;
     if (this.elements.syncIntervalSlider)
       this.elements.syncIntervalSlider.value = settings.syncInterval.toString();
-    this.updateSyncIntervalValue();
+    // Update sync interval display
+    if (this.elements.syncIntervalValue) {
+      this.elements.syncIntervalValue.textContent = `${settings.syncInterval} minutes`;
+    }
 
     // Collaboration
     if (this.elements.sharedSnippetsCheckbox)
@@ -515,35 +368,6 @@ export class OptionsUI {
     }
   }
 
-  /**
-   * Update trigger delay display value
-   */
-  private updateTriggerDelayValue(): void {
-    const value = parseInt(this.elements.triggerDelaySlider.value);
-    this.elements.triggerDelayValue.textContent = `${value}ms`;
-  }
-
-  /**
-   * Update sync interval display value
-   */
-  private updateSyncIntervalValue(): void {
-    const value = parseInt(this.elements.syncIntervalSlider.value);
-    this.elements.syncIntervalValue.textContent = `${value} minutes`;
-  }
-
-  /**
-   * Update global toggle status display
-   */
-  private updateGlobalToggleStatus(): void {
-    const isEnabled = this.elements.globalToggleEnabledCheckbox.checked;
-    const statusBadge =
-      this.elements.globalToggleStatus.querySelector(".status-badge");
-
-    if (statusBadge) {
-      statusBadge.textContent = isEnabled ? "Active" : "Disabled";
-      statusBadge.className = `status-badge ${isEnabled ? "enabled" : "disabled"}`;
-    }
-  }
 
   /**
    * Update version display
@@ -553,73 +377,6 @@ export class OptionsUI {
     this.elements.versionNumber.textContent = manifest.version;
   }
 
-  /**
-   * Handle shortcut capture
-   */
-  private handleShortcutCapture(e: KeyboardEvent): void {
-    e.preventDefault();
-
-    const keys: string[] = [];
-    if (e.ctrlKey) keys.push("Ctrl");
-    if (e.altKey) keys.push("Alt");
-    if (e.shiftKey) keys.push("Shift");
-    if (e.metaKey) keys.push("Meta");
-
-    if (e.key && !["Control", "Alt", "Shift", "Meta"].includes(e.key)) {
-      keys.push(e.key.toUpperCase());
-    }
-
-    if (keys.length > 1) {
-      this.elements.globalToggleShortcut.value = keys.join("+");
-    }
-  }
-
-  /**
-   * Handle external link clicks
-   */
-  private handleExternalLink(
-    e: Event,
-    type: "help" | "feedback" | "privacy",
-  ): void {
-    e.preventDefault();
-
-    const urls = {
-      help: "https://github.com/puffpuffpaste/extension/wiki",
-      feedback: "https://github.com/puffpuffpaste/extension/issues",
-      privacy:
-        "https://github.com/puffpuffpaste/extension/blob/main/PRIVACY.md",
-    };
-
-    chrome.tabs.create({ url: urls[type] });
-  }
-
-  /**
-   * Handle anchor navigation
-   */
-  private handleAnchorNavigation(): void {
-    const hash = window.location.hash;
-    if (hash) {
-      const targetId = hash.substring(1); // Remove the # symbol
-      const targetElement = document.getElementById(targetId);
-      if (targetElement) {
-        // Scroll to the element with smooth behavior
-        targetElement.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-          inline: "nearest",
-        });
-
-        // Add a highlight effect to draw attention
-        targetElement.style.transition = "background-color 0.5s ease";
-        targetElement.style.backgroundColor = "#e3f2fd";
-
-        // Remove the highlight after 2 seconds
-        setTimeout(() => {
-          targetElement.style.backgroundColor = "";
-        }, 2000);
-      }
-    }
-  }
 
   /**
    * Format bytes to human readable string

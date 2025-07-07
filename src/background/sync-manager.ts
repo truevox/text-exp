@@ -392,7 +392,9 @@ export class SyncManager {
       const cloudSnippets = await this.currentAdapter.downloadSnippets("");
       await ExtensionStorage.setSnippets(cloudSnippets);
 
-      await NotificationService.showNotification("Snippets downloaded from cloud");
+      await NotificationService.showNotification(
+        "Snippets downloaded from cloud",
+      );
     } catch (error) {
       console.error("Force download failed:", error);
       throw error;
