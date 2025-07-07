@@ -105,9 +105,8 @@ export class ContentTriggerProcessor {
     if (snippet.variables && snippet.variables.length > 0) {
       console.log("📝 Snippet has variables, showing prompt");
       try {
-        const variableValues = await this.placeholderHandler.promptForVariables(
-          snippet,
-        );
+        const variableValues =
+          await this.placeholderHandler.promptForVariables(snippet);
         await this.expandWithVariables(
           snippet,
           variableValues,
@@ -257,7 +256,9 @@ export class ContentTriggerProcessor {
     // Immediately show the first option
     if (options.length > 0) {
       const firstOption = options[0];
-      const snippet = await this.snippetManager.findSnippetByTrigger(firstOption.trigger);
+      const snippet = await this.snippetManager.findSnippetByTrigger(
+        firstOption.trigger,
+      );
       if (snippet) {
         const context = this.createReplacementContext(
           element,
@@ -279,9 +280,11 @@ export class ContentTriggerProcessor {
 
     const nextOption = this.cyclingUI.cycleNext();
     const activeElement = document.activeElement as HTMLElement;
-    
+
     if (activeElement && nextOption) {
-      const snippet = await this.snippetManager.findSnippetByTrigger(nextOption.trigger);
+      const snippet = await this.snippetManager.findSnippetByTrigger(
+        nextOption.trigger,
+      );
       if (snippet) {
         const context = this.createReplacementContext(
           activeElement,
@@ -304,7 +307,9 @@ export class ContentTriggerProcessor {
     const selectedOption = this.cyclingUI.getCurrentOption();
 
     if (selectedOption) {
-      const snippet = await this.snippetManager.findSnippetByTrigger(selectedOption.trigger);
+      const snippet = await this.snippetManager.findSnippetByTrigger(
+        selectedOption.trigger,
+      );
       if (snippet) {
         // Expand the selected snippet properly (with variables if needed)
         await this.expandSnippet(snippet, element, {});
