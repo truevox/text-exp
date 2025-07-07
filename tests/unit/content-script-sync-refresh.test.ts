@@ -207,13 +207,16 @@ describe("Content Script Sync Refresh", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Create content script instance which will register the message listener
-      const contentScript = new ContentScript();
+      // Mock the snippet manager service
+      const {
+        ContentSnippetManager,
+      } = require("../../src/content/services/snippet-manager");
       const mockLoadSnippets = jest.fn();
-      jest
-        .spyOn(contentScript as any, "loadSnippets")
-        .mockImplementation(mockLoadSnippets);
+      ContentSnippetManager.prototype.loadSnippets = mockLoadSnippets;
 
-      // Wait for async initialization (loadSnippets called once during init)
+      const contentScript = new ContentScript();
+
+      // Wait for async initialization
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Reset mock to only track calls from message handling
@@ -247,13 +250,16 @@ describe("Content Script Sync Refresh", () => {
       // Wait for any previous setup to complete
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      const contentScript = new ContentScript();
+      // Mock the snippet manager service
+      const {
+        ContentSnippetManager,
+      } = require("../../src/content/services/snippet-manager");
       const mockLoadSnippets = jest.fn();
-      jest
-        .spyOn(contentScript as any, "loadSnippets")
-        .mockImplementation(mockLoadSnippets);
+      ContentSnippetManager.prototype.loadSnippets = mockLoadSnippets;
 
-      // Wait for async initialization (loadSnippets called once during init)
+      const contentScript = new ContentScript();
+
+      // Wait for async initialization
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Reset mock to only track calls from message handling
@@ -309,11 +315,14 @@ describe("Content Script Sync Refresh", () => {
       const { ContentScript } = await import(
         "../../src/content/content-script.js"
       );
-      const contentScript = new ContentScript();
+      // Mock the snippet manager service
+      const {
+        ContentSnippetManager,
+      } = require("../../src/content/services/snippet-manager");
       const mockLoadSnippets = jest.fn();
-      jest
-        .spyOn(contentScript as any, "loadSnippets")
-        .mockImplementation(mockLoadSnippets);
+      ContentSnippetManager.prototype.loadSnippets = mockLoadSnippets;
+
+      const contentScript = new ContentScript();
 
       // Wait for content script initialization
       await new Promise((resolve) => setTimeout(resolve, 100));

@@ -30,7 +30,9 @@ export class TestSnippetModal {
   /**
    * Create test snippet customization modal
    */
-  private static createTestCustomizationModal(onComplete: () => void): HTMLElement {
+  private static createTestCustomizationModal(
+    onComplete: () => void,
+  ): HTMLElement {
     const overlay = document.createElement("div");
     overlay.style.cssText = `
       position: fixed;

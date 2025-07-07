@@ -3,13 +3,21 @@
  * Manages all DOM event listeners and event delegation
  */
 
-import { isTextInput, getElementText, getCursorPosition } from "./utils/dom-utils";
+import {
+  isTextInput,
+  getElementText,
+  getCursorPosition,
+} from "./utils/dom-utils";
 
 /**
  * Event handler callbacks interface
  */
 export interface EventHandlerCallbacks {
-  onTriggerDetected: (text: string, cursorPosition: number, target: HTMLElement) => Promise<void>;
+  onTriggerDetected: (
+    text: string,
+    cursorPosition: number,
+    target: HTMLElement,
+  ) => Promise<void>;
   onKeyEvent: (event: KeyboardEvent, target: HTMLElement) => Promise<void>;
   onElementFocus: (target: HTMLElement) => void;
   onElementBlur: (target: HTMLElement) => void;
