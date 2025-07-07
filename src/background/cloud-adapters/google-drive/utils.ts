@@ -13,14 +13,13 @@ export class GoogleDriveUtils {
   /**
    * Check network connectivity to Google Drive
    */
-  static async checkConnectivity(credentials: CloudCredentials): Promise<boolean> {
+  static async checkConnectivity(
+    credentials: CloudCredentials,
+  ): Promise<boolean> {
     try {
-      const response = await fetch(
-        `${this.DRIVE_API}/about?fields=user`,
-        {
-          headers: GoogleDriveAuthService.getAuthHeaders(credentials),
-        },
-      );
+      const response = await fetch(`${this.DRIVE_API}/about?fields=user`, {
+        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      });
       return response.ok;
     } catch (error) {
       console.error("Google Drive connectivity check failed:", error);
@@ -37,12 +36,9 @@ export class GoogleDriveUtils {
     picture?: string;
   }> {
     try {
-      const response = await fetch(
-        `${this.DRIVE_API}/about?fields=user`,
-        {
-          headers: GoogleDriveAuthService.getAuthHeaders(credentials),
-        },
-      );
+      const response = await fetch(`${this.DRIVE_API}/about?fields=user`, {
+        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to get user info: ${response.statusText}`);
@@ -86,7 +82,9 @@ export class GoogleDriveUtils {
       return {
         limit: quota.limit ? parseInt(quota.limit) : undefined,
         usage: quota.usage ? parseInt(quota.usage) : undefined,
-        usageInDrive: quota.usageInDrive ? parseInt(quota.usageInDrive) : undefined,
+        usageInDrive: quota.usageInDrive
+          ? parseInt(quota.usageInDrive)
+          : undefined,
       };
     } catch (error) {
       console.error("Failed to get storage quota:", error);
@@ -109,7 +107,7 @@ export class GoogleDriveUtils {
         return await operation();
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt === maxRetries) {
           throw lastError;
         }
@@ -120,7 +118,9 @@ export class GoogleDriveUtils {
         }
 
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`🔄 Retrying operation after ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+        console.log(
+          `🔄 Retrying operation after ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`,
+        );
         await this.sleep(delay);
       }
     }
@@ -133,7 +133,7 @@ export class GoogleDriveUtils {
    */
   private static isRetryableError(error: Error): boolean {
     const message = error.message.toLowerCase();
-    
+
     // Rate limiting errors
     if (message.includes("429") || message.includes("quota")) {
       return true;
@@ -145,7 +145,11 @@ export class GoogleDriveUtils {
     }
 
     // Temporary server errors
-    if (message.includes("500") || message.includes("502") || message.includes("503")) {
+    if (
+      message.includes("500") ||
+      message.includes("502") ||
+      message.includes("503")
+    ) {
       return true;
     }
 
@@ -156,16 +160,16 @@ export class GoogleDriveUtils {
    * Sleep for specified milliseconds
    */
   private static sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Sanitize snippets by removing sensitive data
    */
   static sanitizeSnippets<T extends Record<string, any>>(snippets: T[]): T[] {
-    return snippets.map(snippet => {
+    return snippets.map((snippet) => {
       const sanitized = { ...snippet };
-      
+
       // Remove potential sensitive fields
       delete sanitized.password;
       delete sanitized.secret;

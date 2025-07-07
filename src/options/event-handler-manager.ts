@@ -260,7 +260,8 @@ export class EventHandlerManager {
    */
   private updateGlobalToggleStatus(): void {
     const isEnabled = this.elements.globalToggleEnabledCheckbox.checked;
-    const statusBadge = this.elements.globalToggleStatus.querySelector(".status-badge");
+    const statusBadge =
+      this.elements.globalToggleStatus.querySelector(".status-badge");
 
     if (statusBadge) {
       statusBadge.textContent = isEnabled ? "Active" : "Disabled";
@@ -314,11 +315,12 @@ export class EventHandlerManager {
    */
   private handleExternalLink(e: Event, type: string): void {
     e.preventDefault();
-    
+
     const urls = {
       help: "https://github.com/marvinbentley/puffpuffpaste/wiki",
       feedback: "https://github.com/marvinbentley/puffpuffpaste/issues",
-      privacy: "https://github.com/marvinbentley/puffpuffpaste/blob/main/PRIVACY.md"
+      privacy:
+        "https://github.com/marvinbentley/puffpuffpaste/blob/main/PRIVACY.md",
     };
 
     const url = urls[type as keyof typeof urls];

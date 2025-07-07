@@ -91,14 +91,11 @@ export class GoogleDriveFolderService {
       metadata.parents = [parentId];
     }
 
-    const response = await fetch(
-      `${this.DRIVE_API}/files?fields=id,name`,
-      {
-        method: "POST",
-        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
-        body: JSON.stringify(metadata),
-      },
-    );
+    const response = await fetch(`${this.DRIVE_API}/files?fields=id,name`, {
+      method: "POST",
+      headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      body: JSON.stringify(metadata),
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to create folder: ${response.statusText}`);

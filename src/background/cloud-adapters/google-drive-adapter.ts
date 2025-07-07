@@ -58,12 +58,12 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         this.credentials!,
         folderId,
       );
-      
+
       // Cache the file ID for future operations
       if (result.fileId) {
         this.fileId = result.fileId;
       }
-      
+
       return result.snippets;
     });
   }
@@ -193,11 +193,6 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     return GoogleDriveUtils.checkConnectivity(this.credentials);
   }
 
-
-
-
-
-
   /**
    * Create a new folder in Google Drive
    */
@@ -209,6 +204,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       throw new Error("Not authenticated");
     }
 
-    return GoogleDriveFolderService.createFolder(this.credentials, name, parentId);
+    return GoogleDriveFolderService.createFolder(
+      this.credentials,
+      name,
+      parentId,
+    );
   }
 }

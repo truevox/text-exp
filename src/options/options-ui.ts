@@ -47,7 +47,6 @@ export class OptionsUI {
     this.updateVersion();
   }
 
-
   /**
    * Show status message
    */
@@ -58,10 +57,12 @@ export class OptionsUI {
 
     // Auto-hide success messages
     if (type === "success") {
-      setTimeout(() => this.elements.statusBanner.classList.add("hidden"), 3000);
+      setTimeout(
+        () => this.elements.statusBanner.classList.add("hidden"),
+        3000,
+      );
     }
   }
-
 
   /**
    * Update UI elements with settings values
@@ -89,9 +90,12 @@ export class OptionsUI {
       this.elements.globalToggleShortcut.value = settings.globalToggleShortcut;
     // Update global toggle status display
     if (this.elements.globalToggleStatus) {
-      const statusBadge = this.elements.globalToggleStatus.querySelector(".status-badge");
+      const statusBadge =
+        this.elements.globalToggleStatus.querySelector(".status-badge");
       if (statusBadge) {
-        statusBadge.textContent = settings.globalToggleEnabled ? "Active" : "Disabled";
+        statusBadge.textContent = settings.globalToggleEnabled
+          ? "Active"
+          : "Disabled";
         statusBadge.className = `status-badge ${settings.globalToggleEnabled ? "enabled" : "disabled"}`;
       }
     }
@@ -368,7 +372,6 @@ export class OptionsUI {
     }
   }
 
-
   /**
    * Update version display
    */
@@ -376,7 +379,6 @@ export class OptionsUI {
     const manifest = chrome.runtime.getManifest();
     this.elements.versionNumber.textContent = manifest.version;
   }
-
 
   /**
    * Format bytes to human readable string

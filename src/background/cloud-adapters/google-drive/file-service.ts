@@ -75,10 +75,7 @@ export class GoogleDriveFileService {
       "metadata",
       new Blob([JSON.stringify(metadata)], { type: "application/json" }),
     );
-    form.append(
-      "file",
-      new Blob([content], { type: "application/json" }),
-    );
+    form.append("file", new Blob([content], { type: "application/json" }));
 
     const response = await fetch(
       `${this.UPLOAD_API}/files?uploadType=multipart&fields=id`,
@@ -200,7 +197,9 @@ export class GoogleDriveFileService {
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to download file content: ${response.statusText}`);
+      throw new Error(
+        `Failed to download file content: ${response.statusText}`,
+      );
     }
 
     return response.text();

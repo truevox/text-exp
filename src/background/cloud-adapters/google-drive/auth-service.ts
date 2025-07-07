@@ -163,7 +163,9 @@ export class GoogleDriveAuthService {
   /**
    * Check if credentials are valid by testing API access
    */
-  static async validateCredentials(credentials: CloudCredentials): Promise<boolean> {
+  static async validateCredentials(
+    credentials: CloudCredentials,
+  ): Promise<boolean> {
     try {
       const response = await fetch(
         "https://www.googleapis.com/drive/v3/about?fields=user",
