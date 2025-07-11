@@ -26,9 +26,9 @@
 
 **Next**: Continue with Phase 2 - Options Page Redesign
 
-### 📋 **Phase 2: Options Page Redesign** - **🚨 CRITICAL BUG FIX REQUIRED**
+### 📋 **Phase 2: Options Page Redesign** - **� FINAL DEBUGGING - SETTINGS PERSISTENCE**
 
-**Status**: Nearly complete but BLOCKED by critical folder picker bug
+**Status**: Nearly complete - folder picker fixed, debugging settings persistence
 
 #### 🎨 **Options Page Simplification** - **✅ COMPLETED**
 
@@ -37,16 +37,20 @@
 - [x] **Add red "Delete all data" button** - Single button for local data + settings reset
 - [x] **Add instruction webpage link** - Link to help documentation
 
-#### ⚙️ **Options Logic Refactoring** - **🚨 CRITICAL BUG**
+#### ⚙️ **Options Logic Refactoring** - **� FINAL DEBUGGING REQUIRED**
 
 - [x] **Refactor options.ts** - Remove complex settings, focus on Google Drive auth + folder management
-- [ ] **🚨 FIX FOLDER PICKER MODAL** - **URGENT** - Modal stuck on "Loading folders..." indefinitely
-  - **Issue**: openFolderPicker() method only shows modal but doesn't load folders
-  - **Impact**: Users cannot select folders, making options page unusable
-  - **File**: src/options/options.ts lines 336-340
-  - **Status**: BLOCKING Phase 2 completion
-- [ ] **Implement dynamic folder picker system** - Multiple pickers that appear as previous ones are filled
-- [ ] **Add priority assignment logic** - Automatically assign priority levels to selected folders
+- [x] **✅ FIXED FOLDER PICKER MODAL** - **COMPLETED** - Modal now loads folders and allows selection
+  - **Solution**: Added comprehensive folder loading logic with navigation and breadcrumbs
+  - **Result**: Users can browse, navigate, and select Google Drive folders successfully
+  - **Status**: Folder picker fully functional
+- [x] **Implement dynamic folder picker system** - Multiple pickers that appear as previous ones are filled
+- [ ] **🔧 DEBUG SETTINGS PERSISTENCE** - **FINAL ISSUE** - Selected folders not saving to storage
+  - **Issue**: Folder selection works but settings don't persist for sync manager
+  - **Evidence**: Sync manager shows `scoped sources: []` instead of selected folder
+  - **Debug Added**: Console logging in `saveFolderPickerSettings()` and `confirmFolderSelection()`
+  - **Status**: Actively debugging - need to verify settings save correctly
+- [x] **Add priority assignment logic** - Automatically assign priority levels to selected folders
 
 ### 📋 **Phase 3: Popup Modifications** - **MEDIUM PRIORITY**
 
@@ -89,18 +93,19 @@
 
 ---
 
-### 🎯 Current Project Status - v0.40.2
+### 🎯 Current Project Status - v0.41.0
 
-**🚨 CRITICAL BUG**: Options page folder picker broken - requires immediate fix
+**� FINAL DEBUG**: Phase 2 nearly complete - folder picker fixed, debugging settings persistence
 
-- **Version**: v0.40.2
+- **Version**: v0.41.0
 - **Test Success**: 536/536 tests passing (100% success rate) - **ALL TESTS PASSING**
 - **Cloud Providers**: All 3 major providers fully tested (Google Drive, Dropbox, OneDrive)
 - **Code Quality**: 0 TypeScript errors, minimal ESLint warnings (clean codebase)
 - **Features**: Complete multi-format support, global toggle, cloud sync, browser automation, usage tracking
 - **Architecture**: Clean service-oriented design with proper separation of concerns, new usage tracking services
 - **Documentation**: Complete with README.md + FORMAT_GUIDE.md
-- **🚨 BLOCKING ISSUE**: Folder picker modal stuck on "Loading folders..." - users cannot select Google Drive folders
+- **✅ FOLDER PICKER FIXED**: Modal loads folders, users can navigate and select successfully
+- **🔧 DEBUGGING**: Settings persistence - selected folders not saving properly for sync manager
 
 **📖 See [CLAUDE-TODONE.md](./CLAUDE-TODONE.md) for complete list of all accomplished work.**
 
@@ -111,7 +116,7 @@
 **Goal**: Achieve 100% test success rate for true production readiness ✅
 
 - [x] **Fixed all test failures** - All issues resolved
-  - **Status**: All 501/501 tests now passing (100% success rate)
+  - **Status**: All 536/536 tests now passing (100% success rate) 
   - **Achievement**: Exceeded target with robust test coverage
   - **Quality**: Zero TypeScript errors, clean builds
 
@@ -120,6 +125,12 @@
   - **Reduced**: content-script.ts from 646 to 250 lines (61% reduction)
   - **Architecture**: Clean service-oriented design with dependency injection
   - **Maintained**: 100% test success rate throughout refactoring
+
+- [x] **Folder Picker Implementation** - Comprehensive folder selection system
+  - **Fixed**: Modal loading (was stuck on "Loading folders...")
+  - **Added**: Full folder navigation with breadcrumbs
+  - **Features**: Folder creation, selection, priority assignment
+  - **Status**: Complete folder selection workflow functional
 
 ---
 
@@ -489,5 +500,5 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 _Last updated: 2025-07-11_  
 _Project: PuffPuffPaste - Collaborative Text Expander_  
-_Current Version: 0.40.2_  
-_Status: Phase 2 Nearly Complete - BLOCKED by Critical Folder Picker Bug_
+_Current Version: 0.41.0_  
+_Status: Phase 2 Nearly Complete - Final Settings Persistence Debug_

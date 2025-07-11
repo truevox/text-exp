@@ -21,7 +21,12 @@ class OptionsApp {
 
   // Folder picker state
   private selectedFolder: { id: string; name: string } | null = null;
-  private availableFolders: Array<{ id: string; name: string; parentId?: string; isFolder: boolean }> = [];
+  private availableFolders: Array<{
+    id: string;
+    name: string;
+    parentId?: string;
+    isFolder: boolean;
+  }> = [];
   private currentParentId: string = "root";
   private breadcrumbPath: Array<{ id: string; name: string }> = [];
 
@@ -74,14 +79,26 @@ class OptionsApp {
     // Modal elements
     this.elements.folderPickerModal =
       document.getElementById("folderPickerModal")!;
-    this.elements.folderBreadcrumb = document.getElementById("folderBreadcrumb")!;
-    this.elements.folderPickerLoading = document.getElementById("folderPickerLoading")!;
-    this.elements.folderPickerError = document.getElementById("folderPickerError")!;
-    this.elements.folderPickerList = document.getElementById("folderPickerList")!;
-    this.elements.closeFolderPickerButton = document.getElementById("closeFolderPickerButton")!;
-    this.elements.createFolderButton = document.getElementById("createFolderButton")!;
-    this.elements.cancelFolderPickerButton = document.getElementById("cancelFolderPickerButton")!;
-    this.elements.confirmFolderPickerButton = document.getElementById("confirmFolderPickerButton")!;
+    this.elements.folderBreadcrumb =
+      document.getElementById("folderBreadcrumb")!;
+    this.elements.folderPickerLoading = document.getElementById(
+      "folderPickerLoading",
+    )!;
+    this.elements.folderPickerError =
+      document.getElementById("folderPickerError")!;
+    this.elements.folderPickerList =
+      document.getElementById("folderPickerList")!;
+    this.elements.closeFolderPickerButton = document.getElementById(
+      "closeFolderPickerButton",
+    )!;
+    this.elements.createFolderButton =
+      document.getElementById("createFolderButton")!;
+    this.elements.cancelFolderPickerButton = document.getElementById(
+      "cancelFolderPickerButton",
+    )!;
+    this.elements.confirmFolderPickerButton = document.getElementById(
+      "confirmFolderPickerButton",
+    )!;
     this.elements.confirmationModal =
       document.getElementById("confirmationModal")!;
     this.elements.confirmationTitle =
@@ -176,7 +193,10 @@ class OptionsApp {
 
     // Close modal on Escape key
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !this.elements.folderPickerModal.classList.contains("hidden")) {
+      if (
+        e.key === "Escape" &&
+        !this.elements.folderPickerModal.classList.contains("hidden")
+      ) {
         this.closeFolderPicker();
       }
     });
@@ -377,7 +397,7 @@ class OptionsApp {
   private async openFolderPicker(priority: number): Promise<void> {
     try {
       this.currentPickerIndex = priority;
-      
+
       // Reset folder picker state
       this.selectedFolder = null;
       this.availableFolders = [];
@@ -390,14 +410,15 @@ class OptionsApp {
       this.updateBreadcrumb();
 
       // Disable confirm button initially
-      (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled = true;
+      (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled =
+        true;
 
       // Load Google Drive folders
       await this.loadGoogleDriveFolders();
     } catch (error) {
       console.error("Failed to open folder picker:", error);
       this.showFolderPickerError(
-        `Failed to load folders: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load folders: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -420,7 +441,7 @@ class OptionsApp {
       }
     } catch (error) {
       throw new Error(
-        `Failed to load Google Drive folders: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load Google Drive folders: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -453,7 +474,7 @@ class OptionsApp {
             </button>
           </div>
         </div>
-      `
+      `,
         )
         .join("");
 
@@ -508,7 +529,10 @@ class OptionsApp {
   /**
    * Navigate to a specific folder
    */
-  private async navigateToFolder(folderId: string, folderName: string): Promise<void> {
+  private async navigateToFolder(
+    folderId: string,
+    folderName: string,
+  ): Promise<void> {
     try {
       // Update state
       this.currentParentId = folderId;
@@ -523,7 +547,7 @@ class OptionsApp {
     } catch (error) {
       console.error("Failed to navigate to folder:", error);
       this.showFolderPickerError(
-        `Failed to open folder: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to open folder: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -532,6 +556,8 @@ class OptionsApp {
    * Select a folder item
    */
   private selectFolderItem(element: HTMLElement): void {
+    console.log("selectFolderItem called with element:", element);
+    
     // Remove previous selection
     this.elements.folderPickerList
       .querySelectorAll(".folder-item")
@@ -541,13 +567,21 @@ class OptionsApp {
     element.classList.add("selected");
 
     // Store selected folder
+    const folderId = element.getAttribute("data-folder-id");
+    const folderName = element.getAttribute("data-folder-name");
+    
+    console.log("Selecting folder:", { id: folderId, name: folderName });
+    
     this.selectedFolder = {
-      id: element.getAttribute("data-folder-id")!,
-      name: element.getAttribute("data-folder-name")!,
+      id: folderId!,
+      name: folderName!,
     };
 
+    console.log("selectedFolder set to:", this.selectedFolder);
+
     // Enable confirm button
-    (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled = false;
+    (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled =
+      false;
   }
 
   /**
@@ -582,7 +616,9 @@ class OptionsApp {
   private async navigateToBreadcrumbFolder(folderId: string): Promise<void> {
     try {
       // Find the index of this folder in breadcrumb
-      const index = this.breadcrumbPath.findIndex((item) => item.id === folderId);
+      const index = this.breadcrumbPath.findIndex(
+        (item) => item.id === folderId,
+      );
       if (index === -1) return;
 
       // Update state
@@ -598,7 +634,7 @@ class OptionsApp {
     } catch (error) {
       console.error("Failed to navigate to breadcrumb folder:", error);
       this.showFolderPickerError(
-        `Failed to navigate: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to navigate: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -773,7 +809,8 @@ class OptionsApp {
     this.elements.folderPickerModal.classList.add("hidden");
     this.selectedFolder = null;
     this.availableFolders = [];
-    (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled = true;
+    (this.elements.confirmFolderPickerButton as HTMLButtonElement).disabled =
+      true;
 
     // Reset modal state
     this.hideFolderPickerError();
@@ -785,7 +822,11 @@ class OptionsApp {
    * Confirm folder selection and update folder picker
    */
   private async confirmFolderSelection(): Promise<void> {
+    console.log("confirmFolderSelection called, selectedFolder:", this.selectedFolder);
+    
     if (!this.selectedFolder) {
+      console.error("No folder selected");
+      this.showStatus("Please select a folder first", "warning");
       return;
     }
 
@@ -793,35 +834,70 @@ class OptionsApp {
       const picker = this.folderPickers[this.currentPickerIndex - 1];
       if (!picker) {
         console.error("Invalid folder picker index:", this.currentPickerIndex);
+        this.showStatus("Invalid folder picker", "error");
         return;
       }
 
+      // Ask for custom display name
+      const customDisplayName = prompt(
+        `Enter a display name for this folder:`,
+        this.selectedFolder.name
+      );
+      const finalDisplayName = customDisplayName || this.selectedFolder.name;
+
+      // Determine scope based on picker priority
+      let scope: "personal" | "department" | "org";
+      switch (picker.priority) {
+        case 1:
+          scope = "personal";
+          break;
+        case 2:
+          scope = "department";
+          break;
+        case 3:
+          scope = "org";
+          break;
+        default:
+          scope = "personal";
+      }
+
       // Update the folder picker display
-      picker.folderName.textContent = this.selectedFolder.name;
+      picker.folderName.textContent = finalDisplayName;
       picker.folderId.textContent = this.selectedFolder.id;
-      
+
       // Update the configured source
       picker.source = {
         provider: "google-drive",
-        scope: "personal", // This should be determined based on picker priority
+        scope: scope,
         folderId: this.selectedFolder.id,
-        displayName: this.selectedFolder.name,
+        displayName: finalDisplayName,
       };
+
+      console.log("Updated picker source:", picker.source);
+      console.log("All folder pickers:", this.folderPickers);
+
+      // Save settings with the updated folder
+      await this.saveFolderPickerSettings();
 
       // Close modal and show success
       this.closeFolderPicker();
       this.showStatus(
-        `Folder selected: ${this.selectedFolder.name}`,
-        "success"
+        `Folder configured: ${finalDisplayName}`,
+        "success",
       );
 
-      // Save settings with the updated folder
-      await this.saveFolderPickerSettings();
+      // Add another folder picker if needed (up to 3 total)
+      if (this.folderPickers.length < 3) {
+        this.addFolderPicker(
+          null,
+          this.folderPickers.length + 1
+        );
+      }
     } catch (error) {
       console.error("Failed to confirm folder selection:", error);
       this.showStatus(
         `Failed to save folder selection: ${error instanceof Error ? error.message : String(error)}`,
-        "error"
+        "error",
       );
     }
   }
@@ -832,8 +908,10 @@ class OptionsApp {
   private async saveFolderPickerSettings(): Promise<void> {
     try {
       const configuredSources = this.folderPickers
-        .filter(picker => picker.source !== null)
-        .map(picker => picker.source!);
+        .filter((picker) => picker.source !== null)
+        .map((picker) => picker.source!);
+
+      console.log("Saving configured sources:", configuredSources);
 
       await SettingsMessages.updateSettings({
         configuredSources: configuredSources,
@@ -841,6 +919,19 @@ class OptionsApp {
 
       // Update local settings
       this.settings.configuredSources = configuredSources;
+      
+      // ALSO save as scoped sources for sync manager
+      const scopedSources = configuredSources.map((source) => ({
+        name: source.scope,
+        folderId: source.folderId,
+        displayName: source.displayName,
+        provider: source.provider,
+      }));
+      
+      console.log("Also saving scoped sources for sync manager:", scopedSources);
+      await ExtensionStorage.setScopedSources(scopedSources);
+      
+      console.log("Settings saved successfully, configuredSources:", configuredSources);
     } catch (error) {
       console.error("Failed to save folder picker settings:", error);
       throw error;
@@ -853,7 +944,7 @@ class OptionsApp {
   private async handleCreateFolder(): Promise<void> {
     const folderName = prompt(
       "Enter a name for the new folder:",
-      "PuffPuffPaste Snippets"
+      "PuffPuffPaste Snippets",
     );
     if (!folderName) {
       return;
@@ -879,7 +970,7 @@ class OptionsApp {
     } catch (error) {
       console.error("Failed to create folder:", error);
       this.showFolderPickerError(
-        `Failed to create folder: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to create folder: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

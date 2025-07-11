@@ -3,8 +3,8 @@
  * DO NOT EDIT MANUALLY - This file is updated by scripts/sync-version.js
  */
 
-export const VERSION = "0.41.0";
-export const BUILD_TIME = "2025-07-11T03:47:41.290Z";
+export const VERSION = "0.42.0";
+export const BUILD_TIME = "2025-07-11T12:07:08.919Z";
 
 export function logVersion(): void {
   console.log(`🚀 PuffPuffPaste v${VERSION}`);
