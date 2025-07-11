@@ -557,7 +557,7 @@ class OptionsApp {
    */
   private selectFolderItem(element: HTMLElement): void {
     console.log("selectFolderItem called with element:", element);
-    
+
     // Remove previous selection
     this.elements.folderPickerList
       .querySelectorAll(".folder-item")
@@ -569,9 +569,9 @@ class OptionsApp {
     // Store selected folder
     const folderId = element.getAttribute("data-folder-id");
     const folderName = element.getAttribute("data-folder-name");
-    
+
     console.log("Selecting folder:", { id: folderId, name: folderName });
-    
+
     this.selectedFolder = {
       id: folderId!,
       name: folderName!,
@@ -822,8 +822,11 @@ class OptionsApp {
    * Confirm folder selection and update folder picker
    */
   private async confirmFolderSelection(): Promise<void> {
-    console.log("confirmFolderSelection called, selectedFolder:", this.selectedFolder);
-    
+    console.log(
+      "confirmFolderSelection called, selectedFolder:",
+      this.selectedFolder,
+    );
+
     if (!this.selectedFolder) {
       console.error("No folder selected");
       this.showStatus("Please select a folder first", "warning");
@@ -841,7 +844,7 @@ class OptionsApp {
       // Ask for custom display name
       const customDisplayName = prompt(
         `Enter a display name for this folder:`,
-        this.selectedFolder.name
+        this.selectedFolder.name,
       );
       const finalDisplayName = customDisplayName || this.selectedFolder.name;
 
@@ -881,17 +884,11 @@ class OptionsApp {
 
       // Close modal and show success
       this.closeFolderPicker();
-      this.showStatus(
-        `Folder configured: ${finalDisplayName}`,
-        "success",
-      );
+      this.showStatus(`Folder configured: ${finalDisplayName}`, "success");
 
       // Add another folder picker if needed (up to 3 total)
       if (this.folderPickers.length < 3) {
-        this.addFolderPicker(
-          null,
-          this.folderPickers.length + 1
-        );
+        this.addFolderPicker(null, this.folderPickers.length + 1);
       }
     } catch (error) {
       console.error("Failed to confirm folder selection:", error);
@@ -919,7 +916,7 @@ class OptionsApp {
 
       // Update local settings
       this.settings.configuredSources = configuredSources;
-      
+
       // ALSO save as scoped sources for sync manager
       const scopedSources = configuredSources.map((source) => ({
         name: source.scope,
@@ -927,11 +924,17 @@ class OptionsApp {
         displayName: source.displayName,
         provider: source.provider,
       }));
-      
-      console.log("Also saving scoped sources for sync manager:", scopedSources);
+
+      console.log(
+        "Also saving scoped sources for sync manager:",
+        scopedSources,
+      );
       await ExtensionStorage.setScopedSources(scopedSources);
-      
-      console.log("Settings saved successfully, configuredSources:", configuredSources);
+
+      console.log(
+        "Settings saved successfully, configuredSources:",
+        configuredSources,
+      );
     } catch (error) {
       console.error("Failed to save folder picker settings:", error);
       throw error;

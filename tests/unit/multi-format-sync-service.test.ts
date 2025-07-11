@@ -199,7 +199,16 @@ Working content`),
       expect(service["isSnippetFile"]("document.docx")).toBe(false);
       expect(service["isSnippetFile"]("image.png")).toBe(false);
       expect(service["isSnippetFile"]("video.mp4")).toBe(false);
-      expect(service["isSnippetFile"]("random-file")).toBe(false);
+      expect(service["isSnippetFile"]("executable.exe")).toBe(false);
+      expect(service["isSnippetFile"]("thumbs.db")).toBe(false);
+      expect(service["isSnippetFile"](".ds_store")).toBe(false);
+    });
+
+    it("should allow files without extensions (blacklist approach)", () => {
+      expect(service["isSnippetFile"]("random-file")).toBe(true);
+      expect(service["isSnippetFile"]("my-snippets")).toBe(true);
+      expect(service["isSnippetFile"]("notes")).toBe(true);
+      expect(service["isSnippetFile"]("README")).toBe(true);
     });
   });
 
@@ -216,16 +225,16 @@ Working content`),
     });
   });
 
-  describe("getSupportedFormats", () => {
-    it("should return all supported file formats", () => {
-      const formats = service.getSupportedFormats();
+  describe("getCommonTextFormats", () => {
+    it("should return common text-based file formats", () => {
+      const formats = service.getCommonTextFormats();
 
       expect(formats).toContain(".json");
       expect(formats).toContain(".txt");
       expect(formats).toContain(".md");
       expect(formats).toContain(".html");
       expect(formats).toContain(".tex");
-      expect(formats).toHaveLength(5);
+      expect(formats.length).toBeGreaterThan(5); // More formats now supported
     });
   });
 });

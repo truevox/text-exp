@@ -33,7 +33,23 @@ interface FileDiscoveryAdapter extends CloudAdapter {
  * Service that handles multi-format snippet synchronization
  */
 export class MultiFormatSyncService {
-  private supportedExtensions = [".json", ".txt", ".md", ".html", ".tex"];
+  // Common text-based file extensions (for informational purposes)
+  private commonTextExtensions = [
+    ".json",
+    ".txt",
+    ".md",
+    ".html",
+    ".tex",
+    ".js",
+    ".ts",
+    ".css",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".ini",
+    ".cfg",
+    ".conf",
+  ];
 
   /**
    * Enhanced snippet download that supports multiple formats
@@ -142,24 +158,88 @@ export class MultiFormatSyncService {
   }
 
   /**
-   * Check if a file is a supported snippet file
+   * Check if a file is a snippet file based on blacklist approach
    */
   private isSnippetFile(fileName: string): boolean {
     const lowerName = fileName.toLowerCase();
 
-    // Support files with supported extensions
-    const hasValidExtension = this.supportedExtensions.some((ext) =>
-      lowerName.endsWith(ext),
-    );
+    // Blacklist system and temporary files
+    const blacklistedFiles = [
+      ".ds_store",
+      "thumbs.db",
+      "desktop.ini",
+      ".git",
+      ".gitignore",
+      ".tmp",
+      ".temp",
+      ".log",
+      ".cache",
+      ".lock",
+      ".pid",
+      ".swp",
+      ".swo",
+      "~$", // Office temp files
+      ".crdownload", // Chrome download temp files
+      ".part", // Partial downloads
+    ];
 
-    // Also support files with snippet-related names
-    const hasSnippetName =
-      lowerName.includes("snippet") ||
-      lowerName.includes("expand") ||
-      lowerName.includes("template") ||
-      lowerName === "snippets.json"; // Legacy support
+    // Blacklist certain extensions
+    const blacklistedExtensions = [
+      ".exe",
+      ".dll",
+      ".so",
+      ".dylib", // Executables
+      ".zip",
+      ".rar",
+      ".7z",
+      ".gz",
+      ".tar", // Archives
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".svg",
+      ".ico", // Images
+      ".mp3",
+      ".wav",
+      ".mp4",
+      ".avi",
+      ".mov",
+      ".mkv", // Media
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx", // Documents
+      ".db",
+      ".sqlite",
+      ".mdb", // Databases
+      ".bin",
+      ".dat",
+      ".dump",
+      ".img",
+      ".iso", // Binary files
+    ];
 
-    return hasValidExtension || hasSnippetName;
+    // Check if file matches blacklisted patterns
+    for (const pattern of blacklistedFiles) {
+      if (lowerName.includes(pattern)) {
+        return false;
+      }
+    }
+
+    // Check if file has blacklisted extension
+    for (const ext of blacklistedExtensions) {
+      if (lowerName.endsWith(ext)) {
+        return false;
+      }
+    }
+
+    // If not blacklisted, consider it a potential snippet file
+    return true;
   }
 
   /**
@@ -197,10 +277,11 @@ export class MultiFormatSyncService {
   }
 
   /**
-   * Get supported file formats
+   * Get common text-based file formats (for informational purposes)
+   * Note: With blacklist approach, we accept most text files
    */
-  getSupportedFormats(): string[] {
-    return [...this.supportedExtensions];
+  getCommonTextFormats(): string[] {
+    return [...this.commonTextExtensions];
   }
 
   /**
