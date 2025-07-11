@@ -25,44 +25,19 @@
             </div>
           </div>
           <div class="header-actions">
-            <button id="exportButton" class="secondary-button">
-              Export Data
-            </button>
-            <button id="importButton" class="secondary-button">
-              Import Data
-            </button>
+            <a
+              href="https://docs.puffpuffpaste.com/setup"
+              target="_blank"
+              class="help-link"
+            >
+              📖 Setup Guide
+            </a>
           </div>
         </div>
       </header>
 
       <!-- Main Content -->
       <main class="main-content">
-        <!-- Initial Setup / Get Started Section -->
-        <section class="settings-section" id="initial-setup-section">
-          <h2 class="section-title">🚀 Get Started with PuffPuffPaste!</h2>
-          <div class="settings-content">
-            <p class="setting-description">
-              Welcome! To unlock the full power of collaborative text expansion,
-              let's set up your snippet storage. You can choose between:
-            </p>
-            <ul>
-              <li>
-                <strong>Local Folder Sync:</strong> Keep your snippets in a
-                folder on your computer.
-              </li>
-              <li>
-                <strong>Cloud Sync:</strong> Synchronize snippets across devices
-                using Google Drive, Dropbox, or OneDrive.
-              </li>
-            </ul>
-            <div class="setting-item">
-              <button id="getStartedButton" class="primary-button">
-                Configure Snippet Storage
-              </button>
-            </div>
-          </div>
-        </section>
-
         <!-- Status Banner -->
         <div id="statusBanner" class="status-banner hidden">
           <div class="status-content">
@@ -71,838 +46,189 @@
           </div>
         </div>
 
-        <!-- Settings Sections -->
-        <div class="settings-grid enhanced">
-          <!-- Quick Start Card -->
-          <section class="settings-section featured-card">
-            <div class="section-header">
-              <div class="section-icon">🚀</div>
-              <div class="section-title-group">
-                <h2 class="section-title">Quick Setup</h2>
-                <p class="section-subtitle">Get up and running in minutes</p>
-              </div>
+        <!-- Google Drive Authentication -->
+        <section class="settings-section auth-section">
+          <div class="section-header">
+            <div class="section-icon">🔐</div>
+            <div class="section-title-group">
+              <h2 class="section-title">Google Drive Authentication</h2>
+              <p class="section-subtitle">
+                Connect your Google Drive to sync snippets
+              </p>
             </div>
-            <div class="settings-content">
-              <div class="quick-setup-steps">
-                <div class="setup-step completed" id="setupStep1">
-                  <div class="step-number">1</div>
-                  <div class="step-content">
-                    <div class="step-title">Extension Installed</div>
-                    <div class="step-description">
-                      PuffPuffPaste is ready to go!
-                    </div>
-                  </div>
-                  <div class="step-status">✓</div>
-                </div>
-                <div class="setup-step" id="setupStep2">
-                  <div class="step-number">2</div>
-                  <div class="step-content">
-                    <div class="step-title">Connect Cloud Storage</div>
-                    <div class="step-description">
-                      Sync your snippets across devices
-                    </div>
-                  </div>
-                  <div class="step-action">
-                    <button
-                      class="setup-button"
-                      onclick="document.getElementById('cloudProviderSelect').scrollIntoView({behavior: 'smooth'})"
-                    >
-                      Setup Now
-                    </button>
-                  </div>
-                </div>
-                <div class="setup-step" id="setupStep3">
-                  <div class="step-number">3</div>
-                  <div class="step-content">
-                    <div class="step-title">Create Your First Snippet</div>
-                    <div class="step-description">
-                      Add a snippet to start expanding text
-                    </div>
-                  </div>
-                  <div class="step-action">
-                    <button
-                      class="setup-button"
-                      onclick="window.open(chrome.runtime.getURL('popup/popup.html'))"
-                    >
-                      Open Popup
-                    </button>
-                  </div>
-                </div>
+          </div>
+          <div class="settings-content">
+            <div class="auth-status" id="authStatus">
+              <div class="auth-disconnected">
+                <p>Not connected to Google Drive</p>
+                <button id="connectGoogleDriveButton" class="primary-button">
+                  Connect Google Drive
+                </button>
               </div>
-            </div>
-          </section>
-
-          <!-- General Settings -->
-          <section class="settings-section">
-            <div class="section-header">
-              <div class="section-icon">⚙️</div>
-              <div class="section-title-group">
-                <h2 class="section-title">General Settings</h2>
-                <p class="section-subtitle">Core text expansion preferences</p>
-              </div>
-            </div>
-            <div class="settings-content">
-              <div class="setting-item enhanced">
-                <div class="setting-main">
-                  <label class="setting-label enhanced">
-                    <input
-                      type="checkbox"
-                      id="enabledCheckbox"
-                      class="setting-checkbox"
-                    />
-                    <span class="checkbox-custom"></span>
-                    <span class="setting-title">Enable Text Expansion</span>
-                  </label>
-                  <p class="setting-description">
-                    Turn text expansion on or off globally
-                  </p>
-                </div>
-                <div class="setting-status" id="expansionStatus">
-                  <span class="status-badge enabled">Active</span>
-                </div>
-              </div>
-
-              <div class="setting-item enhanced">
-                <div class="setting-main">
-                  <label class="setting-label enhanced">
-                    <input
-                      type="checkbox"
-                      id="caseSensitiveCheckbox"
-                      class="setting-checkbox"
-                    />
-                    <span class="checkbox-custom"></span>
-                    <span class="setting-title">Case Sensitive Triggers</span>
-                  </label>
-                  <p class="setting-description">
-                    Make trigger matching case sensitive (e.g., "hello" ≠
-                    "Hello")
-                  </p>
-                </div>
-              </div>
-
-              <div class="setting-item enhanced">
-                <div class="setting-main">
-                  <label class="setting-label enhanced">
-                    <input
-                      type="checkbox"
-                      id="notificationsCheckbox"
-                      class="setting-checkbox"
-                    />
-                    <span class="checkbox-custom"></span>
-                    <span class="setting-title">Show Notifications</span>
-                  </label>
-                  <p class="setting-description">
-                    Display notifications for sync events and updates
-                  </p>
-                </div>
-              </div>
-
-              <div class="setting-item enhanced range-setting">
-                <div class="setting-main">
-                  <label
-                    class="setting-label enhanced"
-                    for="triggerDelaySlider"
-                  >
-                    <span class="setting-title">Trigger Delay</span>
-                    <span class="setting-value enhanced" id="triggerDelayValue"
-                      >100ms</span
-                    >
-                  </label>
-                  <input
-                    type="range"
-                    id="triggerDelaySlider"
-                    class="setting-slider enhanced"
-                    min="0"
-                    max="1000"
-                    step="50"
-                    value="100"
-                  />
-                  <p class="setting-description">
-                    Milliseconds to wait before triggering expansion
-                  </p>
-                </div>
-                <div class="range-markers">
-                  <span class="range-marker" style="left: 0%">0ms</span>
-                  <span class="range-marker" style="left: 50%">500ms</span>
-                  <span class="range-marker" style="left: 100%">1000ms</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Global Toggle Settings -->
-          <section class="settings-section">
-            <div class="section-header">
-              <div class="section-icon">⌨️</div>
-              <div class="section-title-group">
-                <h2 class="section-title">Global Toggle</h2>
-                <p class="section-subtitle">
-                  Keyboard shortcut to enable/disable text expansion
-                </p>
-              </div>
-            </div>
-            <div class="settings-content">
-              <div class="setting-item enhanced">
-                <div class="setting-main">
-                  <label class="setting-label enhanced">
-                    <input
-                      type="checkbox"
-                      id="globalToggleEnabledCheckbox"
-                      class="setting-checkbox"
-                    />
-                    <span class="checkbox-custom"></span>
-                    <span class="setting-title">Enable Global Toggle</span>
-                  </label>
-                  <p class="setting-description">
-                    Allow using keyboard shortcut to toggle text expansion
-                    on/off
-                  </p>
-                </div>
-                <div class="setting-status" id="globalToggleStatus">
-                  <span class="status-badge enabled">Active</span>
-                </div>
-              </div>
-
-              <div class="setting-item enhanced shortcut-setting">
-                <div class="setting-main">
-                  <label
-                    class="setting-label enhanced"
-                    for="globalToggleShortcut"
-                  >
-                    <span class="setting-title">Keyboard Shortcut</span>
-                  </label>
-                  <div class="shortcut-input-group">
-                    <input
-                      type="text"
-                      id="globalToggleShortcut"
-                      class="setting-input shortcut-input"
-                      value="Ctrl+Shift+T"
-                      readonly
-                    />
-                    <button
-                      id="editShortcutButton"
-                      class="shortcut-edit-button"
-                    >
-                      <span class="button-icon">✏️</span>
-                      <span class="button-text">Edit</span>
-                    </button>
-                  </div>
-                  <p class="setting-description">
-                    Press the shortcut to quickly toggle text expansion on any
-                    page
-                  </p>
-                  <div
-                    class="shortcut-help"
-                    id="shortcutHelp"
-                    style="display: none"
-                  >
-                    <p>
-                      Click in the input field and press your desired key
-                      combination.
-                    </p>
-                    <p>
-                      <strong>Supported modifiers:</strong> Ctrl, Alt, Shift,
-                      Meta (⌘/Windows key)
-                    </p>
-                    <div class="shortcut-examples">
-                      <span class="example-shortcut">Ctrl+Shift+T</span>
-                      <span class="example-shortcut">Alt+T</span>
-                      <span class="example-shortcut">Ctrl+Alt+E</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="setting-item enhanced info-box">
-                <div class="info-content">
-                  <div class="info-icon">💡</div>
-                  <div class="info-text">
-                    <strong>Quick Toggle:</strong> Use your configured shortcut
-                    to instantly enable or disable text expansion without
-                    opening the extension popup. Perfect for presentations or
-                    sensitive input fields.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Local Filesystem Sources -->
-          <section class="settings-section" id="local-folder-sources">
-            <h2 class="section-title">Local Folder Sources</h2>
-            <div class="settings-content">
-              <div class="setting-item">
-                <div class="scoped-sources-info">
-                  <p class="setting-description">
-                    Set up local folders for your snippet sources. You can
-                    configure three levels:
-                    <strong>Personal</strong> (highest priority),
-                    <strong>Team</strong>, and
-                    <strong>Organization</strong> (lowest priority). When the
-                    same trigger exists in multiple sources, the higher priority
-                    source takes precedence.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Cloud Sync Settings -->
-          <section
-            class="settings-section priority-section"
-            id="cloud-sync-section"
-          >
-            <div class="section-header">
-              <div class="section-icon">☁️</div>
-              <div class="section-title-group">
-                <h2 class="section-title">Cloud Synchronization</h2>
-                <p class="section-subtitle">
-                  Sync snippets across all your devices
-                </p>
-              </div>
-            </div>
-            <div class="settings-content">
-              <!-- Provider Selection -->
-              <div class="setting-item enhanced provider-selection">
-                <div class="setting-main">
-                  <label
-                    class="setting-label enhanced"
-                    for="cloudProviderSelect"
-                  >
-                    <span class="setting-title">Cloud Provider</span>
-                  </label>
-                  <div class="provider-selector">
-                    <select
-                      id="cloudProviderSelect"
-                      class="setting-select enhanced"
-                    >
-                      <option value="local">Local Storage Only</option>
-                      <option value="google-drive">Google Drive</option>
-                      <option value="dropbox">Dropbox</option>
-                      <option value="onedrive">OneDrive</option>
-                    </select>
-                    <div class="provider-icons">
-                      <span class="provider-icon" data-provider="local"
-                        >💾</span
-                      >
-                      <span class="provider-icon" data-provider="google-drive"
-                        >🔵</span
-                      >
-                      <span class="provider-icon" data-provider="dropbox"
-                        >🟦</span
-                      >
-                      <span class="provider-icon" data-provider="onedrive"
-                        >🔷</span
-                      >
-                    </div>
-                  </div>
-                  <p class="setting-description">
-                    Choose your preferred storage platform
-                  </p>
-                </div>
-              </div>
-
-              <!-- Connection Status -->
-              <div class="setting-item enhanced">
-                <div class="cloud-status enhanced" id="cloudStatus">
-                  <div class="status-indicator-section">
-                    <div
-                      class="status-indicator offline"
-                      id="statusIndicator"
-                    ></div>
-                    <div class="status-pulse" id="statusPulse"></div>
-                  </div>
-                  <div class="status-info enhanced">
-                    <div class="status-primary">
-                      <span class="status-title" id="statusTitle"
-                        >Not Connected</span
-                      >
-                      <span class="connection-badge" id="connectionBadge"
-                        >Offline</span
-                      >
-                    </div>
-                    <span class="status-details" id="statusDetails"
-                      >Select a cloud provider to get started</span
-                    >
-                    <div class="status-metadata">
-                      <span class="last-sync-info" id="lastSyncInfo"></span>
-                      <span class="sync-error-info" id="syncErrorInfo"></span>
-                    </div>
-                  </div>
-                  <div class="status-actions">
-                    <button id="connectButton" class="primary-button enhanced">
-                      <span class="button-icon">🔗</span>
-                      <span class="button-text">Connect</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Sync Settings -->
-              <div class="setting-group">
-                <div class="group-title">Sync Preferences</div>
-
-                <div class="setting-item enhanced">
-                  <div class="setting-main">
-                    <label class="setting-label enhanced">
-                      <input
-                        type="checkbox"
-                        id="autoSyncCheckbox"
-                        class="setting-checkbox"
-                      />
-                      <span class="checkbox-custom"></span>
-                      <span class="setting-title">Automatic Sync</span>
-                    </label>
-                    <p class="setting-description">
-                      Automatically sync changes with cloud storage
-                    </p>
-                  </div>
-                  <div class="setting-badge" id="autoSyncBadge">
-                    <span class="badge-text">Manual</span>
-                  </div>
-                </div>
-
-                <div class="setting-item enhanced range-setting">
-                  <div class="setting-main">
-                    <label
-                      class="setting-label enhanced"
-                      for="syncIntervalSlider"
-                    >
-                      <span class="setting-title">Sync Interval</span>
-                      <span
-                        class="setting-value enhanced"
-                        id="syncIntervalValue"
-                        >30 minutes</span
-                      >
-                    </label>
-                    <input
-                      type="range"
-                      id="syncIntervalSlider"
-                      class="setting-slider enhanced"
-                      min="5"
-                      max="120"
-                      step="5"
-                      value="30"
-                    />
-                    <p class="setting-description">
-                      How often to sync with cloud storage
-                    </p>
-                  </div>
-                  <div class="range-markers">
-                    <span class="range-marker" style="left: 0%">5min</span>
-                    <span class="range-marker" style="left: 50%">60min</span>
-                    <span class="range-marker" style="left: 100%">2h</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Folder Configuration -->
-              <div class="setting-group">
-                <div class="group-title">Snippet Folders</div>
-                <div class="group-description">
-                  Configure folders for different snippet scopes. Personal
-                  snippets have highest priority.
-                </div>
-
-                <div class="folder-config-list">
-                  <div class="folder-config-item personal">
-                    <div class="folder-info">
-                      <div class="folder-icon">👤</div>
-                      <div class="folder-details">
-                        <div class="folder-title">Personal Snippets</div>
-                        <div class="folder-description">
-                          Your private snippets (highest priority)
-                        </div>
-                        <div class="folder-path" id="personalFolderPath">
-                          No folder selected
-                        </div>
-                      </div>
-                    </div>
-                    <div class="folder-actions">
-                      <input
-                        type="text"
-                        id="personalFolderIdInput"
-                        class="folder-input"
-                        placeholder="Folder ID"
-                      />
-                      <button
-                        id="selectPersonalFolderButton"
-                        class="folder-button"
-                      >
-                        <span class="button-icon">📁</span>
-                        <span class="button-text">Select</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="folder-config-item department">
-                    <div class="folder-info">
-                      <div class="folder-icon">👥</div>
-                      <div class="folder-details">
-                        <div class="folder-title">Department Snippets</div>
-                        <div class="folder-description">
-                          Team-wide snippets (medium priority)
-                        </div>
-                        <div class="folder-path" id="departmentFolderPath">
-                          No folder selected
-                        </div>
-                      </div>
-                    </div>
-                    <div class="folder-actions">
-                      <input
-                        type="text"
-                        id="departmentFolderIdInput"
-                        class="folder-input"
-                        placeholder="Folder ID"
-                      />
-                      <button
-                        id="selectDepartmentFolderButton"
-                        class="folder-button"
-                      >
-                        <span class="button-icon">📁</span>
-                        <span class="button-text">Select</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="folder-config-item organization">
-                    <div class="folder-info">
-                      <div class="folder-icon">🏢</div>
-                      <div class="folder-details">
-                        <div class="folder-title">Organization Snippets</div>
-                        <div class="folder-description">
-                          Company-wide snippets (lowest priority)
-                        </div>
-                        <div class="folder-path" id="organizationFolderPath">
-                          No folder selected
-                        </div>
-                      </div>
-                    </div>
-                    <div class="folder-actions">
-                      <input
-                        type="text"
-                        id="organizationFolderIdInput"
-                        class="folder-input"
-                        placeholder="Folder ID"
-                      />
-                      <button
-                        id="selectOrganizationFolderButton"
-                        class="folder-button"
-                      >
-                        <span class="button-icon">📁</span>
-                        <span class="button-text">Select</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Sync Actions -->
-              <div class="setting-group">
-                <div class="group-title">Manual Sync Actions</div>
-                <div class="sync-actions enhanced">
-                  <button id="syncNowButton" class="action-button primary">
-                    <span class="button-icon">🔄</span>
-                    <span class="button-text">Sync Now</span>
-                    <span class="button-description"
-                      >Merge local and cloud</span
-                    >
-                  </button>
-                  <button
-                    id="forceUploadButton"
-                    class="action-button secondary"
-                  >
-                    <span class="button-icon">⬆️</span>
-                    <span class="button-text">Force Upload</span>
-                    <span class="button-description">Overwrite cloud</span>
-                  </button>
-                  <button
-                    id="forceDownloadButton"
-                    class="action-button secondary"
-                  >
-                    <span class="button-icon">⬇️</span>
-                    <span class="button-text">Force Download</span>
-                    <span class="button-description">Overwrite local</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Collaboration Settings -->
-          <section class="settings-section">
-            <h2 class="section-title">Collaboration</h2>
-            <div class="settings-content">
-              <div class="setting-item">
-                <label class="setting-label">
-                  <input
-                    type="checkbox"
-                    id="sharedSnippetsCheckbox"
-                    class="setting-checkbox"
-                  />
-                  <span class="setting-title">Enable Shared Snippets</span>
-                </label>
-                <p class="setting-description">
-                  Allow sharing snippets with team members via shared folders
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Data Management -->
-          <section class="settings-section">
-            <h2 class="section-title">Data Management</h2>
-            <div class="settings-content">
-              <div class="setting-item">
-                <div class="data-stats" id="dataStats">
-                  <div class="stat-item">
-                    <span class="stat-label">Total Snippets</span>
-                    <span class="stat-value" id="totalSnippets">0</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">Storage Used</span>
-                    <span class="stat-value" id="storageUsed">0 KB</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">Last Sync</span>
-                    <span class="stat-value" id="lastSync">Never</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <div class="data-actions">
-                  <button id="cleanupStorageButton" class="secondary-button">
-                    Clean Up Invalid Sources
-                  </button>
-                  <button id="clearLocalButton" class="danger-button">
-                    Clear Local Data
-                  </button>
-                  <button id="resetAllButton" class="danger-button">
-                    Reset All Settings
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Synced Snippets -->
-          <section class="settings-section">
-            <h2 class="section-title">Synced Snippets</h2>
-            <div class="settings-content">
-              <div id="syncedSnippetsList" class="synced-snippets-list">
-                <!-- Snippets will be dynamically loaded here -->
-                <p class="setting-description">Loading snippets...</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Advanced Settings -->
-          <section class="settings-section">
-            <h2 class="section-title">Advanced</h2>
-            <div class="settings-content">
-              <div class="setting-item">
-                <label class="setting-label" for="debugCheckbox">
-                  <input
-                    type="checkbox"
-                    id="debugCheckbox"
-                    class="setting-checkbox"
-                  />
-                  <span class="setting-title">Debug Mode</span>
-                </label>
-                <p class="setting-description">
-                  Enable detailed logging for troubleshooting
-                </p>
-              </div>
-
-              <div class="setting-item">
-                <button id="viewLogsButton" class="secondary-button">
-                  View Logs
+              <div class="auth-connected hidden">
+                <p>✅ Connected to Google Drive</p>
+                <p class="auth-email" id="authEmail"></p>
+                <button
+                  id="disconnectGoogleDriveButton"
+                  class="secondary-button"
+                >
+                  Disconnect
                 </button>
               </div>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
+
+        <!-- Dynamic Folder Pickers -->
+        <section class="settings-section folders-section">
+          <div class="section-header">
+            <div class="section-icon">📁</div>
+            <div class="section-title-group">
+              <h2 class="section-title">Snippet Folders</h2>
+              <p class="section-subtitle">
+                Select Google Drive folders for your snippets (ordered by
+                priority)
+              </p>
+            </div>
+          </div>
+          <div class="settings-content">
+            <div class="folder-pickers" id="folderPickers">
+              <!-- Dynamic folder pickers will be added here -->
+            </div>
+            <div
+              class="folder-picker-template hidden"
+              id="folderPickerTemplate"
+            >
+              <div class="folder-picker-item" data-priority="1">
+                <div class="folder-picker-header">
+                  <span class="folder-priority">Priority 1</span>
+                  <button class="folder-remove-btn" title="Remove this folder">
+                    ×
+                  </button>
+                </div>
+                <div class="folder-picker-content">
+                  <div class="folder-display">
+                    <span class="folder-name">Select a folder...</span>
+                    <span class="folder-id"></span>
+                  </div>
+                  <button class="folder-select-btn">Select Folder</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sync Status -->
+        <section class="settings-section sync-section">
+          <div class="section-header">
+            <div class="section-icon">🔄</div>
+            <div class="section-title-group">
+              <h2 class="section-title">Sync Status</h2>
+              <p class="section-subtitle">Current synchronization status</p>
+            </div>
+          </div>
+          <div class="settings-content">
+            <div class="sync-status" id="syncStatus">
+              <div class="sync-info">
+                <p class="sync-last-update">
+                  Last sync: <span id="lastSyncTime">Never</span>
+                </p>
+                <p class="sync-snippet-count">
+                  Total snippets: <span id="snippetCount">0</span>
+                </p>
+              </div>
+              <div class="sync-actions">
+                <button id="syncNowButton" class="primary-button">
+                  Sync Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Danger Zone -->
+        <section class="settings-section danger-section">
+          <div class="section-header">
+            <div class="section-icon">⚠️</div>
+            <div class="section-title-group">
+              <h2 class="section-title">Danger Zone</h2>
+              <p class="section-subtitle">Irreversible actions</p>
+            </div>
+          </div>
+          <div class="settings-content">
+            <div class="danger-actions">
+              <button id="deleteAllDataButton" class="danger-button">
+                Delete All Data
+              </button>
+              <p class="danger-warning">
+                This will permanently delete all local snippets and reset all
+                settings. Your Google Drive files will not be affected.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
-
-      <!-- Footer -->
-      <footer class="footer">
-        <div class="footer-content">
-          <div class="footer-info">
-            <p>PuffPuffPaste v<span id="versionNumber">0.11.0</span></p>
-            <p>Made with ❤️ for productivity</p>
-          </div>
-          <div class="footer-links">
-            <a href="#" id="helpLink">Help & Support</a>
-            <a href="#" id="feedbackLink">Send Feedback</a>
-            <a href="#" id="privacyLink">Privacy Policy</a>
-          </div>
-        </div>
-      </footer>
     </div>
 
-    <!-- Hidden file input for import -->
-    <input
-      type="file"
-      id="importFileInput"
-      accept=".json"
-      style="display: none"
-    />
-
-    <!-- Enhanced Folder Picker Modal -->
-    <div id="folderPickerModal" class="modal" style="display: none">
-      <div class="modal-content enhanced-folder-picker">
+    <!-- Folder Picker Modal -->
+    <div id="folderPickerModal" class="modal hidden">
+      <div class="modal-content">
         <div class="modal-header">
-          <div class="modal-title-section">
-            <h3>Select Google Drive Folder</h3>
-            <p class="modal-subtitle">Choose where to store your snippets</p>
-          </div>
-          <button id="closeFolderPickerButton" class="modal-close">
+          <h3>Select Google Drive Folder</h3>
+          <button class="modal-close" id="closeFolderPickerButton">
             &times;
           </button>
         </div>
         <div class="modal-body">
-          <!-- Navigation Section -->
-          <div class="folder-navigation">
-            <div class="folder-breadcrumb" id="folderBreadcrumb">
-              <span class="breadcrumb-item active" data-folder-id="root">
-                <span class="breadcrumb-icon">🏠</span>
-                <span class="breadcrumb-text">My Drive</span>
-              </span>
-            </div>
-            <div class="folder-actions">
-              <button
-                id="createFolderButton"
-                class="action-button create-folder"
-              >
-                <span class="button-icon">➕</span>
-                <span class="button-text">New Folder</span>
-              </button>
-              <button
-                id="refreshFoldersButton"
-                class="action-button refresh-folders"
-              >
-                <span class="button-icon">🔄</span>
-                <span class="button-text">Refresh</span>
-              </button>
-            </div>
+          <div class="folder-breadcrumb" id="folderBreadcrumb"></div>
+          <div class="folder-picker-loading" id="folderPickerLoading">
+            <div class="spinner"></div>
+            <p>Loading folders...</p>
           </div>
-
-          <!-- Current Selection Preview -->
-          <div
-            class="selection-preview"
-            id="selectionPreview"
-            style="display: none"
-          >
-            <div class="preview-header">
-              <span class="preview-icon">📁</span>
-              <div class="preview-info">
-                <div class="preview-title" id="previewTitle"></div>
-                <div class="preview-path" id="previewPath"></div>
-              </div>
-              <div class="preview-badge">Selected</div>
-            </div>
-          </div>
-
-          <!-- Loading State -->
-          <div id="folderPickerLoading" class="loading-state">
-            <div class="loading-spinner">
-              <div class="spinner-circle"></div>
-            </div>
-            <span class="loading-text">Loading folders...</span>
-          </div>
-
-          <!-- Folder List -->
-          <div
-            id="folderPickerList"
-            class="folder-list enhanced"
-            style="display: none"
-          >
-            <!-- Folders will be dynamically loaded here -->
-          </div>
-
-          <!-- Error State -->
-          <div id="folderPickerError" class="error-state" style="display: none">
-            <div class="error-icon">⚠️</div>
-            <div class="error-content">
-              <div class="error-title">Unable to load folders</div>
-              <div class="error-message"></div>
-              <button class="retry-button" onclick="location.reload()">
-                Try Again
-              </button>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div id="folderPickerEmpty" class="empty-state" style="display: none">
-            <div class="empty-icon">📂</div>
-            <div class="empty-content">
-              <div class="empty-title">No folders found</div>
-              <div class="empty-message">
-                This location doesn't contain any folders. You can create a new
-                one above.
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer enhanced">
-          <div class="footer-info">
-            <small class="selected-folder-info" id="selectedFolderInfo"
-              >No folder selected</small
-            >
-          </div>
-          <div class="footer-actions">
-            <button id="cancelFolderPickerButton" class="secondary-button">
-              Cancel
-            </button>
-            <button
-              id="confirmFolderPickerButton"
-              class="primary-button enhanced"
-              disabled
-            >
-              <span class="button-icon">✓</span>
-              <span class="button-text">Select Folder</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Create Folder Modal -->
-    <div id="createFolderModal" class="modal" style="display: none">
-      <div class="modal-content compact">
-        <div class="modal-header">
-          <h3>Create New Folder</h3>
-          <button id="closeCreateFolderButton" class="modal-close">
-            &times;
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="input-group">
-            <label for="newFolderName" class="input-label">Folder Name</label>
-            <input
-              type="text"
-              id="newFolderName"
-              class="input-field"
-              placeholder="Enter folder name"
-              maxlength="100"
-            />
-            <div class="input-help">
-              Choose a descriptive name for your snippet folder
-            </div>
-          </div>
+          <div class="folder-picker-error hidden" id="folderPickerError"></div>
+          <div class="folder-picker-list" id="folderPickerList"></div>
         </div>
         <div class="modal-footer">
-          <button id="cancelCreateFolderButton" class="secondary-button">
+          <button id="createFolderButton" class="secondary-button">
+            Create New Folder
+          </button>
+          <button id="cancelFolderPickerButton" class="secondary-button">
             Cancel
           </button>
-          <button id="confirmCreateFolderButton" class="primary-button">
-            Create Folder
+          <button
+            id="confirmFolderPickerButton"
+            class="primary-button"
+            disabled
+          >
+            Select Folder
           </button>
         </div>
       </div>
     </div>
 
-    <script type="module" src="options.js"></script>
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="confirmationTitle">Confirm Action</h3>
+          <button class="modal-close" id="closeConfirmationButton">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmationMessage">Are you sure you want to continue?</p>
+        </div>
+        <div class="modal-footer">
+          <button id="cancelConfirmationButton" class="secondary-button">
+            Cancel
+          </button>
+          <button id="confirmConfirmationButton" class="danger-button">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="options.js"></script>
   </body>
 </html>

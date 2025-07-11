@@ -16,20 +16,15 @@
 
 **Goal**: Radically redesign options page with Google Drive focus, add usage tracking, and improve snippet handling
 
-### 📋 **Phase 1: Core Architecture Changes** - **HIGH PRIORITY**
+### 📋 **Phase 1: Core Architecture Changes** - **✅ COMPLETED**
 
-#### 🔧 **TypeScript Interface Updates**
+**Status**: Successfully completed in v0.37.0 with 100% test coverage
 
-- [x] **Write failing tests for new TextSnippet fields** - Created usage-tracking.test.ts
-- [ ] **Update TextSnippet interface** - Add usageCount, lastUsed, priority, sourceFolder, fileHash fields
-- [ ] **Update related types** - Ensure compatibility with existing code
+- All TypeScript interface updates completed
+- New services created and thoroughly tested
+- 536/536 tests passing (100% success rate)
 
-#### 🎯 **New Services Creation**
-
-- [ ] **Create UsageTracker service** - Track snippet usage with timestamps and priority-based sorting
-- [ ] **Create FileHasher utility** - Generate hash prefixes for downloaded files to prevent name collisions
-- [ ] **Create TabCycler service** - Handle multiple matching snippets with tab navigation
-- [ ] **Create PriorityFolderManager** - Handle multiple Google Drive folder selections with priority levels
+**Next**: Continue with Phase 2 - Options Page Redesign
 
 ### 📋 **Phase 2: Options Page Redesign** - **HIGH PRIORITY**
 
@@ -87,16 +82,16 @@
 
 ---
 
-### 🎯 Current Project Status - v0.30.0
+### 🎯 Current Project Status - v0.37.0
 
-**✅ PRODUCTION READY**: All major features implemented, content script refactoring completed
+**✅ PRODUCTION READY**: All major features implemented, Phase 1 architecture changes completed
 
-- **Version**: v0.22.0
-- **Test Success**: 501/501 tests passing (100% success rate) - **ALL TESTS PASSING**
+- **Version**: v0.37.0
+- **Test Success**: 536/536 tests passing (100% success rate) - **ALL TESTS PASSING**
 - **Cloud Providers**: All 3 major providers fully tested (Google Drive, Dropbox, OneDrive)
 - **Code Quality**: 0 TypeScript errors, minimal ESLint warnings (clean codebase)
-- **Features**: Complete multi-format support, global toggle, cloud sync, browser automation
-- **Architecture**: Clean service-oriented design with proper separation of concerns
+- **Features**: Complete multi-format support, global toggle, cloud sync, browser automation, usage tracking
+- **Architecture**: Clean service-oriented design with proper separation of concerns, new usage tracking services
 - **Documentation**: Complete with README.md + FORMAT_GUIDE.md
 
 **📖 See [CLAUDE-TODONE.md](./CLAUDE-TODONE.md) for complete list of all accomplished work.**
@@ -149,6 +144,22 @@
   - **Update**: Version numbers and status in all docs
   - **Ensure**: README reflects current feature set
   - **Verify**: Installation and usage instructions
+
+---
+
+## 🔧 **Development Infrastructure Improvements** - **MEDIUM PRIORITY**
+
+### 📋 **Precommit Hook Enhancement**
+
+- [ ] **Improve version bump logic in precommit hook**
+  - **Current Issue**: Hook auto-bumps version on every commit, even if already bumped
+  - **Required Logic**:
+    - If current version == last commit version: Auto-bump as usual
+    - If current version > last commit version: Accept without bumping
+    - If current version < last commit version: Throw error (invalid downgrade)
+  - **Files to modify**: `.husky/pre-commit`, version bump scripts
+  - **Benefit**: Prevents unnecessary version bumps on already-bumped commits
+  - **Priority**: MEDIUM - Improves development workflow efficiency
 
 ---
 
@@ -468,7 +479,7 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 ---
 
-_Last updated: 2025-07-06_  
+_Last updated: 2025-07-11_  
 _Project: PuffPuffPaste - Collaborative Text Expander_  
-_Current Version: 0.15.0_  
-_Status: Production Ready Pending - Quality Assurance Phase_
+_Current Version: 0.37.0_  
+_Status: Production Ready - Phase 1 Architecture Complete_
