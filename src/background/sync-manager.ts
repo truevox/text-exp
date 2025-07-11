@@ -71,11 +71,12 @@ export class SyncManager {
       this.currentAdapter = factory.createAdapter(provider);
 
       // Try to initialize with stored credentials
-      const initialized = await AuthenticationService.initializeWithStoredCredentials(
-        this.currentAdapter,
-        provider,
-      );
-      
+      const initialized =
+        await AuthenticationService.initializeWithStoredCredentials(
+          this.currentAdapter,
+          provider,
+        );
+
       if (!initialized) {
         console.log(`📝 No stored credentials found for ${provider} provider`);
       }

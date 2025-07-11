@@ -145,6 +145,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: true, data: credentials });
           break;
         }
+        
+        case "AUTHENTICATE_GOOGLE_DRIVE": {
+          await syncManager.setCloudProvider("google-drive");
+          const credentials = await syncManager.authenticate();
+          sendResponse({ success: true, data: credentials });
+          break;
+        }
 
         case "SELECT_CLOUD_FOLDER": {
           const selectedFolder = await syncManager.selectFolder(
@@ -263,6 +270,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case "DISCONNECT_CLOUD":
+          await syncManager.disconnect();
+          sendResponse({ success: true });
+          break;
+          
+        case "DISCONNECT_GOOGLE_DRIVE":
           await syncManager.disconnect();
           sendResponse({ success: true });
           break;
