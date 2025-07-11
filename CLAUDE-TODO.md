@@ -26,18 +26,25 @@
 
 **Next**: Continue with Phase 2 - Options Page Redesign
 
-### 📋 **Phase 2: Options Page Redesign** - **HIGH PRIORITY**
+### 📋 **Phase 2: Options Page Redesign** - **🚨 CRITICAL BUG FIX REQUIRED**
 
-#### 🎨 **Options Page Simplification**
+**Status**: Nearly complete but BLOCKED by critical folder picker bug
 
-- [ ] **Backup existing options.html** - Create backup before major changes
-- [ ] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only
-- [ ] **Add red "Delete all data" button** - Single button for local data + settings reset
-- [ ] **Add instruction webpage link** - Link to help documentation
+#### 🎨 **Options Page Simplification** - **✅ COMPLETED**
 
-#### ⚙️ **Options Logic Refactoring**
+- [x] **Backup existing options.html** - Create backup before major changes
+- [x] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only  
+- [x] **Add red "Delete all data" button** - Single button for local data + settings reset
+- [x] **Add instruction webpage link** - Link to help documentation
 
-- [ ] **Refactor options.ts** - Remove complex settings, focus on Google Drive auth + folder management
+#### ⚙️ **Options Logic Refactoring** - **🚨 CRITICAL BUG**
+
+- [x] **Refactor options.ts** - Remove complex settings, focus on Google Drive auth + folder management
+- [ ] **🚨 FIX FOLDER PICKER MODAL** - **URGENT** - Modal stuck on "Loading folders..." indefinitely
+  - **Issue**: openFolderPicker() method only shows modal but doesn't load folders
+  - **Impact**: Users cannot select folders, making options page unusable
+  - **File**: src/options/options.ts lines 336-340
+  - **Status**: BLOCKING Phase 2 completion
 - [ ] **Implement dynamic folder picker system** - Multiple pickers that appear as previous ones are filled
 - [ ] **Add priority assignment logic** - Automatically assign priority levels to selected folders
 
@@ -82,17 +89,18 @@
 
 ---
 
-### 🎯 Current Project Status - v0.37.0
+### 🎯 Current Project Status - v0.40.2
 
-**✅ PRODUCTION READY**: All major features implemented, Phase 1 architecture changes completed
+**🚨 CRITICAL BUG**: Options page folder picker broken - requires immediate fix
 
-- **Version**: v0.37.0
+- **Version**: v0.40.2
 - **Test Success**: 536/536 tests passing (100% success rate) - **ALL TESTS PASSING**
 - **Cloud Providers**: All 3 major providers fully tested (Google Drive, Dropbox, OneDrive)
 - **Code Quality**: 0 TypeScript errors, minimal ESLint warnings (clean codebase)
 - **Features**: Complete multi-format support, global toggle, cloud sync, browser automation, usage tracking
 - **Architecture**: Clean service-oriented design with proper separation of concerns, new usage tracking services
 - **Documentation**: Complete with README.md + FORMAT_GUIDE.md
+- **🚨 BLOCKING ISSUE**: Folder picker modal stuck on "Loading folders..." - users cannot select Google Drive folders
 
 **📖 See [CLAUDE-TODONE.md](./CLAUDE-TODONE.md) for complete list of all accomplished work.**
 
@@ -481,5 +489,5 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 _Last updated: 2025-07-11_  
 _Project: PuffPuffPaste - Collaborative Text Expander_  
-_Current Version: 0.37.0_  
-_Status: Production Ready - Phase 1 Architecture Complete_
+_Current Version: 0.40.2_  
+_Status: Phase 2 Nearly Complete - BLOCKED by Critical Folder Picker Bug_
