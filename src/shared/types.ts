@@ -22,6 +22,12 @@ export interface TextSnippet {
   sharedBy?: string;
   isBuiltIn?: boolean;
   isActive?: boolean; // Added isActive
+  // Usage tracking fields
+  usageCount?: number; // Number of times this snippet has been used
+  lastUsed?: Date; // When this snippet was last used
+  priority?: number; // Priority level from folder hierarchy (1 = highest)
+  sourceFolder?: string; // ID of the folder this snippet came from
+  fileHash?: string; // Hash prefix to prevent name collisions
 }
 
 /**

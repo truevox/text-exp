@@ -12,7 +12,82 @@
 
 ---
 
-### 🎯 Current Project Status - v0.22.0
+## 🚀 **NEW MAJOR FEATURE: Options Page Redesign & Usage Tracking** - **IN PROGRESS**
+
+**Goal**: Radically redesign options page with Google Drive focus, add usage tracking, and improve snippet handling
+
+### 📋 **Phase 1: Core Architecture Changes** - **HIGH PRIORITY**
+
+#### 🔧 **TypeScript Interface Updates**
+
+- [x] **Write failing tests for new TextSnippet fields** - Created usage-tracking.test.ts
+- [ ] **Update TextSnippet interface** - Add usageCount, lastUsed, priority, sourceFolder, fileHash fields
+- [ ] **Update related types** - Ensure compatibility with existing code
+
+#### 🎯 **New Services Creation**
+
+- [ ] **Create UsageTracker service** - Track snippet usage with timestamps and priority-based sorting
+- [ ] **Create FileHasher utility** - Generate hash prefixes for downloaded files to prevent name collisions
+- [ ] **Create TabCycler service** - Handle multiple matching snippets with tab navigation
+- [ ] **Create PriorityFolderManager** - Handle multiple Google Drive folder selections with priority levels
+
+### 📋 **Phase 2: Options Page Redesign** - **HIGH PRIORITY**
+
+#### 🎨 **Options Page Simplification**
+
+- [ ] **Backup existing options.html** - Create backup before major changes
+- [ ] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only
+- [ ] **Add red "Delete all data" button** - Single button for local data + settings reset
+- [ ] **Add instruction webpage link** - Link to help documentation
+
+#### ⚙️ **Options Logic Refactoring**
+
+- [ ] **Refactor options.ts** - Remove complex settings, focus on Google Drive auth + folder management
+- [ ] **Implement dynamic folder picker system** - Multiple pickers that appear as previous ones are filled
+- [ ] **Add priority assignment logic** - Automatically assign priority levels to selected folders
+
+### 📋 **Phase 3: Popup Modifications** - **MEDIUM PRIORITY**
+
+#### 🔄 **Global Toggle Migration**
+
+- [ ] **Update popup.html** - Add global toggle switch in header area with visual indicator
+- [ ] **Modify popup.ts** - Add global toggle event handling, remove options page dependencies
+- [ ] **Update popup.css** - Style global toggle switch and layout updates
+
+### 📋 **Phase 4: Enhanced Snippet Handling** - **HIGH PRIORITY**
+
+#### 🔄 **Cyclic Tabbing System**
+
+- [ ] **Update enhanced-trigger-detector.ts** - Support multiple matches and integrate with TabCycler
+- [ ] **Implement priority-based sorting** - Sort by folder priority, then usage count
+- [ ] **Add tab navigation between matches** - Allow cycling through matching snippets
+
+#### 📊 **Usage Tracking Implementation**
+
+- [ ] **Update storage.ts and indexed-db.ts** - Add usage tracking fields and priority-based queries
+- [ ] **Create usage statistics storage** - Store usage data locally and sync to Google Drive
+- [ ] **Create UsageSyncManager** - Sync usage stats to Google Drive in innocuous location
+
+### 📋 **Phase 5: Testing Updates** - **MEDIUM PRIORITY**
+
+#### 🧪 **Test Coverage Maintenance**
+
+- [ ] **Update options.test.ts** - Modify for new simplified options structure
+- [ ] **Update popup UI integration tests** - Add global toggle functionality testing
+- [ ] **Create usage tracking tests** - Comprehensive test coverage for new features
+- [ ] **Update existing tests** - Ensure compatibility with new architecture
+
+### 📋 **Phase 6: UI/UX Polish** - **LOW PRIORITY**
+
+#### 🎨 **Styling Updates**
+
+- [ ] **Update options.css** - Simplified layout and dynamic folder picker styling
+- [ ] **Polish folder picker UI** - Smooth animations and clear visual hierarchy
+- [ ] **Add loading states** - For folder loading and authentication processes
+
+---
+
+### 🎯 Current Project Status - v0.30.0
 
 **✅ PRODUCTION READY**: All major features implemented, content script refactoring completed
 
