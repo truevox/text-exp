@@ -33,7 +33,7 @@
 #### 🎨 **Options Page Simplification** - **✅ COMPLETED**
 
 - [x] **Backup existing options.html** - Create backup before major changes
-- [x] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only  
+- [x] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only
 - [x] **Add red "Delete all data" button** - Single button for local data + settings reset
 - [x] **Add instruction webpage link** - Link to help documentation
 
