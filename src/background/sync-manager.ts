@@ -71,10 +71,14 @@ export class SyncManager {
       this.currentAdapter = factory.createAdapter(provider);
 
       // Try to initialize with stored credentials
-      await AuthenticationService.initializeWithStoredCredentials(
+      const initialized = await AuthenticationService.initializeWithStoredCredentials(
         this.currentAdapter,
         provider,
       );
+      
+      if (!initialized) {
+        console.log(`📝 No stored credentials found for ${provider} provider`);
+      }
     } catch (error) {
       console.error("Failed to set cloud provider:", error);
       throw error;

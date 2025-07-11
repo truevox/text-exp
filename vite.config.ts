@@ -102,6 +102,10 @@ export default defineConfig(({ mode }) => {
             dest: "options",
           },
           {
+            src: "src/options/options-enhanced.css",
+            dest: "options",
+          },
+          {
             src: "src/assets/icons/*",
             dest: "icons",
           },
