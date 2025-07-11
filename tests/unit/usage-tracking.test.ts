@@ -67,6 +67,8 @@ describe("Usage Tracking Interface", () => {
     snippet.lastUsed = new Date();
 
     expect(snippet.usageCount).toBe(6);
-    expect(snippet.lastUsed?.getTime()).toBeGreaterThan(new Date("2023-01-01").getTime());
+    expect(snippet.lastUsed?.getTime()).toBeGreaterThan(
+      new Date("2023-01-01").getTime(),
+    );
   });
 });

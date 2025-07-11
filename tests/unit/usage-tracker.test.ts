@@ -62,7 +62,9 @@ describe("UsageTracker Service", () => {
 
       expect(snippet.usageCount).toBe(initialUsageCount + 1);
       expect(snippet.lastUsed).toBeDefined();
-      expect(snippet.lastUsed!.getTime()).toBeGreaterThan(initialLastUsed!.getTime());
+      expect(snippet.lastUsed!.getTime()).toBeGreaterThan(
+        initialLastUsed!.getTime(),
+      );
     });
 
     test("should handle snippets without initial usage data", async () => {
@@ -82,7 +84,7 @@ describe("UsageTracker Service", () => {
 
     test("should persist usage data to storage", async () => {
       const snippet = mockSnippets[0];
-      const saveUsageDataSpy = jest.spyOn(usageTracker, 'saveUsageData');
+      const saveUsageDataSpy = jest.spyOn(usageTracker, "saveUsageData");
 
       await usageTracker.trackUsage(snippet);
 
@@ -138,7 +140,8 @@ describe("UsageTracker Service", () => {
         },
       ];
 
-      const sortedSnippets = usageTracker.sortByPriorityAndUsage(samePrioritySnippets);
+      const sortedSnippets =
+        usageTracker.sortByPriorityAndUsage(samePrioritySnippets);
 
       // Should be sorted by usage count descending within same priority
       expect(sortedSnippets[0].usageCount).toBe(10);
@@ -149,8 +152,11 @@ describe("UsageTracker Service", () => {
 
   describe("Cyclic Tabbing", () => {
     test("should cycle through matching snippets in priority order", () => {
-      const matchingSnippets = usageTracker.getMatchingSnippets(mockSnippets, ";hello");
-      
+      const matchingSnippets = usageTracker.getMatchingSnippets(
+        mockSnippets,
+        ";hello",
+      );
+
       expect(matchingSnippets).toHaveLength(3);
       expect(matchingSnippets[0].id).toBe("snippet-1"); // Priority 1
       expect(matchingSnippets[1].id).toBe("snippet-2"); // Priority 2
@@ -158,8 +164,11 @@ describe("UsageTracker Service", () => {
     });
 
     test("should cycle to next snippet", () => {
-      const matchingSnippets = usageTracker.getMatchingSnippets(mockSnippets, ";hello");
-      
+      const matchingSnippets = usageTracker.getMatchingSnippets(
+        mockSnippets,
+        ";hello",
+      );
+
       let currentIndex = usageTracker.getCurrentCycleIndex();
       expect(currentIndex).toBe(0); // Start at first snippet
 
@@ -169,8 +178,11 @@ describe("UsageTracker Service", () => {
     });
 
     test("should cycle back to first snippet after reaching end", () => {
-      const matchingSnippets = usageTracker.getMatchingSnippets(mockSnippets, ";hello");
-      
+      const matchingSnippets = usageTracker.getMatchingSnippets(
+        mockSnippets,
+        ";hello",
+      );
+
       // Cycle to last snippet
       usageTracker.cycleToNext(matchingSnippets);
       usageTracker.cycleToNext(matchingSnippets);
@@ -183,7 +195,10 @@ describe("UsageTracker Service", () => {
     });
 
     test("should reset cycle index for new trigger", () => {
-      const helloSnippets = usageTracker.getMatchingSnippets(mockSnippets, ";hello");
+      const helloSnippets = usageTracker.getMatchingSnippets(
+        mockSnippets,
+        ";hello",
+      );
       usageTracker.cycleToNext(helloSnippets);
       expect(usageTracker.getCurrentCycleIndex()).toBe(1);
 
@@ -219,7 +234,9 @@ describe("UsageTracker Service", () => {
     test("should save usage data to storage", async () => {
       const snippet = mockSnippets[0];
       const mockSaveToStorage = jest.fn();
-      jest.spyOn(usageTracker, 'saveUsageData').mockImplementation(mockSaveToStorage);
+      jest
+        .spyOn(usageTracker, "saveUsageData")
+        .mockImplementation(mockSaveToStorage);
 
       await usageTracker.trackUsage(snippet);
 
