@@ -162,10 +162,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
 
-        case "SYNC_SNIPPETS":
-          await syncManager.syncNow();
-          sendResponse({ success: true });
+        case "SYNC_SNIPPETS": {
+          console.log("🔄 [SYNC-DEBUG] Manual sync triggered from message");
+          try {
+            await syncManager.syncNow();
+            console.log("✅ [SYNC-DEBUG] Manual sync completed successfully");
+            sendResponse({ success: true });
+          } catch (error) {
+            console.error("❌ [SYNC-DEBUG] Manual sync failed:", error);
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : "Sync failed",
+            });
+          }
           break;
+        }
 
         case "GET_SYNC_STATUS": {
           const syncStatus = await syncManager.getSyncStatus();
@@ -291,6 +302,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             message.parentId,
           );
           sendResponse({ success: true, data: newFolder });
+          break;
+        }
+
+        case "TEST_GOOGLE_DRIVE_API": {
+          try {
+            console.log("🧪 [DEBUG] Testing Google Drive API access...");
+            const { GoogleDriveAdapter } = await import(
+              "./cloud-adapters/google-drive-adapter.js"
+            );
+            const adapter = new GoogleDriveAdapter();
+
+            // Get stored credentials
+            const credentials = await ExtensionStorage.getCloudCredentials();
+            if (!credentials) {
+              sendResponse({
+                success: false,
+                error:
+                  "No stored credentials found. Please authenticate first.",
+              });
+              break;
+            }
+
+            // Initialize adapter
+            await adapter.initialize(credentials);
+
+            // Run debug flow
+            const debugResult = await adapter.debugCompleteFlow();
+
+            sendResponse({ success: true, data: debugResult });
+          } catch (error) {
+            console.error("❌ [DEBUG] Google Drive API test failed:", error);
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
           break;
         }
 

@@ -2,7 +2,7 @@
 
 ## Preamble
 
-My name is Marvin Bentley II.
+My name is Marvin Bentley II. If you expect me to test something, you must have bumped the version number (either fix or feature) from the last time you had me test.
 
 ## 🎯 Purpose
 

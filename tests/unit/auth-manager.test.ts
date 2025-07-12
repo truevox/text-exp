@@ -121,7 +121,7 @@ describe("AuthManager", () => {
       expect(chrome.identity.getAuthToken).toHaveBeenCalledWith(
         {
           interactive: true,
-          scopes: ["https://www.googleapis.com/auth/drive.file"],
+          scopes: ["https://www.googleapis.com/auth/drive"],
         },
         expect.any(Function),
       );
@@ -469,7 +469,7 @@ describe("AuthManager", () => {
       expect(chrome.identity.getAuthToken).toHaveBeenCalledWith(
         {
           interactive: true,
-          scopes: ["https://www.googleapis.com/auth/drive.file"],
+          scopes: ["https://www.googleapis.com/auth/drive"],
         },
         expect.any(Function),
       );

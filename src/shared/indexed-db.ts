@@ -51,47 +51,111 @@ export class IndexedDB {
   }
 
   public async saveSnippets(snippets: TextSnippet[]): Promise<void> {
+    console.log(
+      `🔍 [INDEXEDDB-DEBUG] saveSnippets called with ${snippets.length} snippets`,
+    );
+    snippets.forEach((snippet, index) => {
+      console.log(`  📋 Snippet ${index + 1} to save:`, {
+        id: snippet.id,
+        trigger: snippet.trigger,
+        content: snippet.content?.substring(0, 50) + "...",
+        source: (snippet as any).source,
+        hasRequiredFields: !!(snippet.id && snippet.trigger && snippet.content),
+      });
+    });
+
     const store = await this.getObjectStore("readwrite");
+    console.log(
+      `🔍 [INDEXEDDB-DEBUG] Got object store, clearing existing data`,
+    );
     const clearRequest = store.clear();
 
     return new Promise((resolve, reject) => {
       clearRequest.onsuccess = () => {
+        console.log(
+          `🔍 [INDEXEDDB-DEBUG] Store cleared successfully, adding ${snippets.length} snippets`,
+        );
         let count = snippets.length;
         if (count === 0) {
+          console.log(`🔍 [INDEXEDDB-DEBUG] No snippets to save, resolving`);
           resolve();
           return;
         }
 
+        let successCount = 0;
+        let errorCount = 0;
+
         for (const snippet of snippets) {
+          console.log(
+            `🔍 [INDEXEDDB-DEBUG] Adding snippet with ID: ${snippet.id}, trigger: ${snippet.trigger}`,
+          );
           const addRequest = store.add(snippet);
           addRequest.onsuccess = () => {
+            successCount++;
+            console.log(
+              `✅ [INDEXEDDB-DEBUG] Successfully added snippet ${successCount}/${snippets.length}: ${snippet.trigger}`,
+            );
             count--;
             if (count === 0) {
+              console.log(
+                `🔍 [INDEXEDDB-DEBUG] All snippets processed. Success: ${successCount}, Errors: ${errorCount}`,
+              );
               resolve();
             }
           };
           addRequest.onerror = (event) => {
-            reject(
-              "Error adding snippet: " + (event.target as IDBRequest).error,
+            errorCount++;
+            const error = (event.target as IDBRequest).error;
+            console.error(
+              `❌ [INDEXEDDB-DEBUG] Error adding snippet ${snippet.trigger}:`,
+              error,
             );
+            console.error(`❌ [INDEXEDDB-DEBUG] Failed snippet data:`, {
+              id: snippet.id,
+              trigger: snippet.trigger,
+              content: snippet.content?.substring(0, 100),
+              source: (snippet as any).source,
+            });
+            reject("Error adding snippet: " + error);
           };
         }
       };
       clearRequest.onerror = (event) => {
+        console.error(
+          `❌ [INDEXEDDB-DEBUG] Error clearing store:`,
+          (event.target as IDBRequest).error,
+        );
         reject("Error clearing store: " + (event.target as IDBRequest).error);
       };
     });
   }
 
   public async getSnippets(): Promise<TextSnippet[]> {
+    console.log(`🔍 [INDEXEDDB-DEBUG] getSnippets called`);
     const store = await this.getObjectStore("readonly");
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
-        resolve(request.result as TextSnippet[]);
+        const result = request.result as TextSnippet[];
+        console.log(
+          `🔍 [INDEXEDDB-DEBUG] getSnippets returning ${result.length} snippets`,
+        );
+        result.forEach((snippet, index) => {
+          console.log(`  📋 Retrieved snippet ${index + 1}:`, {
+            id: snippet.id,
+            trigger: snippet.trigger,
+            content: snippet.content?.substring(0, 30) + "...",
+            source: (snippet as any).source,
+          });
+        });
+        resolve(result);
       };
       request.onerror = (event) => {
+        console.error(
+          `❌ [INDEXEDDB-DEBUG] Error getting snippets:`,
+          (event.target as IDBRequest).error,
+        );
         reject("Error getting snippets: " + (event.target as IDBRequest).error);
       };
     });

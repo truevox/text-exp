@@ -49,6 +49,10 @@ export class ContentMessageService {
 
     // Listen for snippet updates from background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      console.log(
+        `🔍 [MESSAGING-DEBUG] Content script received message:`,
+        message,
+      );
       if (message.type === "SNIPPETS_UPDATED") {
         console.log(
           "📢 Received SNIPPETS_UPDATED message, refreshing snippets...",
@@ -64,6 +68,9 @@ export class ContentMessageService {
         sendResponse({ success: true });
         return true; // Indicate async response
       }
+      console.log(
+        `🔍 [MESSAGING-DEBUG] Not handling message type: ${message.type}`,
+      );
       return false; // Not handling this message
     });
 

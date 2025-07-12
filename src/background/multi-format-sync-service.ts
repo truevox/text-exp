@@ -134,6 +134,30 @@ export class MultiFormatSyncService {
           console.log(
             `✅ Parsed ${snippets.length} snippets from ${file.name}`,
           );
+
+          // DEBUG: Log detailed snippet data
+          console.log(
+            `🔍 [SNIPPET-DEBUG] Detailed snippet data from ${file.name}:`,
+          );
+          snippets.forEach((snippet, index) => {
+            console.log(`  📋 Snippet ${index + 1}:`, {
+              id: snippet.id,
+              trigger: snippet.trigger,
+              content:
+                snippet.content?.substring(0, 100) +
+                (snippet.content?.length > 100 ? "..." : ""),
+              description: snippet.description,
+              tags: snippet.tags,
+              createdAt: snippet.createdAt,
+              updatedAt: snippet.updatedAt,
+              source: (snippet as any).source,
+              hasRequiredFields: !!(
+                snippet.id &&
+                snippet.trigger &&
+                snippet.content
+              ),
+            });
+          });
         } catch (error) {
           console.warn(`⚠️ Failed to parse file ${file.name}:`, error);
           console.warn(`📄 File content was:`, content?.substring(0, 200));
@@ -162,6 +186,7 @@ export class MultiFormatSyncService {
    */
   private isSnippetFile(fileName: string): boolean {
     const lowerName = fileName.toLowerCase();
+    console.log(`🔍 [FILE-CHECK] Checking file: ${fileName}`);
 
     // Blacklist system and temporary files
     const blacklistedFiles = [
@@ -227,6 +252,9 @@ export class MultiFormatSyncService {
     // Check if file matches blacklisted patterns
     for (const pattern of blacklistedFiles) {
       if (lowerName.includes(pattern)) {
+        console.log(
+          `❌ [FILE-CHECK] ${fileName} rejected - matches blacklisted pattern: ${pattern}`,
+        );
         return false;
       }
     }
@@ -234,11 +262,15 @@ export class MultiFormatSyncService {
     // Check if file has blacklisted extension
     for (const ext of blacklistedExtensions) {
       if (lowerName.endsWith(ext)) {
+        console.log(
+          `❌ [FILE-CHECK] ${fileName} rejected - has blacklisted extension: ${ext}`,
+        );
         return false;
       }
     }
 
     // If not blacklisted, consider it a potential snippet file
+    console.log(`✅ [FILE-CHECK] ${fileName} accepted - not blacklisted`);
     return true;
   }
 

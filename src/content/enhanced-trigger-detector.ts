@@ -155,7 +155,20 @@ export class EnhancedTriggerDetector {
     const textUpToCursor =
       cursorPosition !== undefined ? input.substring(0, cursorPosition) : input;
 
-    return this.processInputOptimized(textUpToCursor);
+    const result = this.processInputOptimized(textUpToCursor);
+
+    // DEBUG: Log trigger detection attempts
+    if (result.isMatch) {
+      console.log(
+        `🎯 [TRIGGER-DEBUG] Match found for input "${textUpToCursor}": "${result.trigger}"`,
+      );
+    } else if (result.potentialTrigger) {
+      console.log(
+        `🤔 [TRIGGER-DEBUG] Potential trigger detected: "${result.potentialTrigger}" (state: ${result.state})`,
+      );
+    }
+
+    return result;
   }
 
   private processInputOptimized(input: string): TriggerMatch {
@@ -269,9 +282,11 @@ export class EnhancedTriggerDetector {
           possibleCompletions: completions,
         });
       } else {
-        // Complete but no delimiter yet
-        return this.createMatch(false, TriggerState.COMPLETE, {
-          potentialTrigger: triggerText,
+        // Complete but no delimiter yet - should still be a valid match
+        return this.createMatch(true, TriggerState.COMPLETE, {
+          trigger: node.trigger!,
+          content: node.content!,
+          matchEnd: startPos + node.trigger!.length,
         });
       }
     }
@@ -387,6 +402,42 @@ export class EnhancedTriggerDetector {
   updateSnippets(newSnippets: Snippet[]): void {
     this.snippets = [...newSnippets];
 
+    // DEBUG: Log triggers being registered
+    console.log(
+      `🔍 [TRIGGER-DEBUG] Registering ${newSnippets.length} triggers in detector:`,
+    );
+    newSnippets.forEach((snippet, index) => {
+      console.log(
+        `  🎯 Trigger ${index + 1}: "${snippet.trigger}" (${(snippet as any).source || "unknown"})`,
+      );
+    });
+
+    // Specific debug for our test triggers
+    const eataTrigger = newSnippets.find((s) => s.trigger === ";eata");
+    const ponyTrigger = newSnippets.find((s) => s.trigger === ";pony");
+
+    if (eataTrigger) {
+      console.log(`✅ [TRIGGER-REGISTER] ;eata registered in detector:`, {
+        id: (eataTrigger as any).id,
+        trigger: eataTrigger.trigger,
+        content: eataTrigger.content?.substring(0, 30) + "...",
+        source: (eataTrigger as any).source,
+      });
+    } else {
+      console.warn(`❌ [TRIGGER-REGISTER] ;eata NOT registered in detector`);
+    }
+
+    if (ponyTrigger) {
+      console.log(`✅ [TRIGGER-REGISTER] ;pony registered in detector:`, {
+        id: (ponyTrigger as any).id,
+        trigger: ponyTrigger.trigger,
+        content: ponyTrigger.content?.substring(0, 30) + "...",
+        source: (ponyTrigger as any).source,
+      });
+    } else {
+      console.warn(`❌ [TRIGGER-REGISTER] ;pony NOT registered in detector`);
+    }
+
     // Recompute optimization data
     this.validTriggerChars.clear();
     this.maxTriggerLength = 0;
@@ -402,6 +453,17 @@ export class EnhancedTriggerDetector {
     }
 
     this.buildOptimizedTrie();
+
+    // DEBUG: Verify trie construction for our test triggers
+    if (eataTrigger) {
+      const eataTriggerTest = this.processInput(";eata ");
+      console.log(`🔍 [TRIE-TEST] ;eata trigger test result:`, eataTriggerTest);
+    }
+
+    if (ponyTrigger) {
+      const ponyTriggerTest = this.processInput(";pony ");
+      console.log(`🔍 [TRIE-TEST] ;pony trigger test result:`, ponyTriggerTest);
+    }
   }
 
   getPrefix(): string {

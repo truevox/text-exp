@@ -210,4 +210,84 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       parentId,
     );
   }
+
+  /**
+   * Clear cached tokens and force re-authentication (DEBUG)
+   */
+  async clearTokenAndReAuthenticate(): Promise<void> {
+    console.log("🔄 [DEBUG] Clearing tokens and re-authenticating...");
+    try {
+      const newCredentials =
+        await GoogleDriveAuthService.clearTokenAndReAuthenticate();
+      this.credentials = newCredentials;
+      console.log(
+        "✅ [DEBUG] Successfully re-authenticated with new credentials",
+      );
+    } catch (error) {
+      console.error("❌ [DEBUG] Failed to re-authenticate:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test direct API access (DEBUG)
+   */
+  async testDirectApiAccess(folderId?: string): Promise<{
+    success: boolean;
+    details: string;
+    files?: Array<{ id: string; name: string; mimeType?: string }>;
+  }> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    return GoogleDriveFileService.testDirectApiAccess(
+      this.credentials,
+      folderId,
+    );
+  }
+
+  /**
+   * Debug complete authentication and file access flow
+   */
+  async debugCompleteFlow(folderId?: string): Promise<{
+    authSuccess: boolean;
+    apiTestResult: any;
+    fileListResult: any;
+    error?: string;
+  }> {
+    console.log("🐛 [DEBUG] Starting complete debug flow...");
+
+    try {
+      // Step 1: Clear tokens and re-authenticate
+      console.log(
+        "🐛 [DEBUG] Step 1: Clearing tokens and re-authenticating...",
+      );
+      await this.clearTokenAndReAuthenticate();
+
+      // Step 2: Test direct API access
+      console.log("🐛 [DEBUG] Step 2: Testing direct API access...");
+      const apiTestResult = await this.testDirectApiAccess(folderId);
+
+      // Step 3: Test file listing through normal flow
+      console.log(
+        "🐛 [DEBUG] Step 3: Testing file listing through normal flow...",
+      );
+      const fileListResult = await this.listFiles(folderId);
+
+      return {
+        authSuccess: true,
+        apiTestResult,
+        fileListResult,
+      };
+    } catch (error) {
+      console.error("❌ [DEBUG] Complete debug flow failed:", error);
+      return {
+        authSuccess: false,
+        apiTestResult: null,
+        fileListResult: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
 }

@@ -179,4 +179,135 @@ export class GoogleDriveAuthService {
       return false;
     }
   }
+
+  /**
+   * Clear cached tokens and force re-authentication
+   */
+  static async clearTokenAndReAuthenticate(): Promise<CloudCredentials> {
+    console.log("🔄 Clearing cached tokens and forcing re-authentication...");
+
+    return new Promise((resolve, reject) => {
+      // First, try to remove the cached token
+      chrome.identity.removeCachedAuthToken({ token: "" }, () => {
+        console.log("🗑️ Attempted to clear cached token");
+
+        // Clear all cached tokens for this extension
+        chrome.identity.getAuthToken({ interactive: false }, (token) => {
+          if (token) {
+            chrome.identity.removeCachedAuthToken({ token }, () => {
+              console.log("🗑️ Cleared specific cached token");
+              this.authenticateWithEnhancedLogging()
+                .then(resolve)
+                .catch(reject);
+            });
+          } else {
+            console.log(
+              "🗑️ No cached token found, proceeding with authentication",
+            );
+            this.authenticateWithEnhancedLogging().then(resolve).catch(reject);
+          }
+        });
+      });
+    });
+  }
+
+  /**
+   * Authenticate with enhanced logging to verify scope
+   */
+  private static async authenticateWithEnhancedLogging(): Promise<CloudCredentials> {
+    const scopes = CLOUD_PROVIDERS["google-drive"].scopes;
+    console.log("🔐 Authenticating with scopes:", scopes);
+
+    return new Promise((resolve, reject) => {
+      chrome.identity.getAuthToken(
+        {
+          interactive: true,
+          scopes: [...scopes],
+        },
+        (token) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "🔐 Authentication failed:",
+              chrome.runtime.lastError.message,
+            );
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (!token) {
+            console.error("🚫 No token received");
+            reject(new Error("Authentication failed - no token"));
+            return;
+          }
+
+          console.log("✅ New token received with updated scopes");
+          console.log("🔍 Token starts with:", token.substring(0, 20) + "...");
+
+          // Test the token to verify it has the correct scopes
+          this.testTokenScopes(token)
+            .then((hasCorrectScopes) => {
+              if (hasCorrectScopes) {
+                console.log("✅ Token has correct scopes");
+              } else {
+                console.warn("⚠️ Token may not have correct scopes");
+              }
+
+              const credentials: CloudCredentials = {
+                provider: "google-drive",
+                accessToken: token,
+                expiresAt: undefined,
+              };
+
+              resolve(credentials);
+            })
+            .catch((error) => {
+              console.warn("⚠️ Could not verify token scopes:", error);
+              // Still proceed with authentication
+              const credentials: CloudCredentials = {
+                provider: "google-drive",
+                accessToken: token,
+                expiresAt: undefined,
+              };
+              resolve(credentials);
+            });
+        },
+      );
+    });
+  }
+
+  /**
+   * Test if token has correct scopes by making a test API call
+   */
+  private static async testTokenScopes(token: string): Promise<boolean> {
+    try {
+      // Test if we can access Drive files (requires full drive scope)
+      const response = await fetch(
+        "https://www.googleapis.com/drive/v3/files?pageSize=1&fields=files(id,name)",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      console.log("🔍 Scope test response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("🔍 Scope test successful, can access drive files");
+        return true;
+      } else {
+        console.warn(
+          "⚠️ Scope test failed:",
+          response.status,
+          response.statusText,
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Error testing token scopes:", error);
+      return false;
+    }
+  }
 }

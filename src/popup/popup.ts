@@ -142,9 +142,35 @@ class PopupApp {
   private async loadSnippets(): Promise<void> {
     try {
       this.showLoading();
+      console.log("🔍 [POPUP-DEBUG] Loading snippets via messaging...");
       const result = await SnippetMessages.getSnippets();
       // Ensure result is always an array
       this.snippets = Array.isArray(result) ? result : [];
+
+      console.log(
+        `📋 [POPUP-DEBUG] Loaded ${this.snippets.length} snippets:`,
+        this.snippets.map((s) => ({
+          trigger: s.trigger,
+          source: (s as any).source,
+        })),
+      );
+
+      // CRITICAL: Check specifically for ;pony snippet in popup
+      const ponySnippet = this.snippets.find((s) => s.trigger === ";pony");
+      if (ponySnippet) {
+        console.log(`✅ [POPUP-DEBUG] ;pony snippet found in popup:`, {
+          trigger: ponySnippet.trigger,
+          content: ponySnippet.content,
+          source: (ponySnippet as any).source,
+        });
+      } else {
+        console.warn(`❌ [POPUP-DEBUG] ;pony snippet NOT found in popup`);
+        console.warn(
+          `🔍 [POPUP-DEBUG] Available triggers in popup:`,
+          this.snippets.map((s) => s.trigger),
+        );
+      }
+
       this.hideLoading();
     } catch (error) {
       console.error("Failed to load snippets:", error);

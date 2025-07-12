@@ -169,7 +169,7 @@ describe("UsageTracker Service", () => {
         ";hello",
       );
 
-      let currentIndex = usageTracker.getCurrentCycleIndex();
+      const currentIndex = usageTracker.getCurrentCycleIndex();
       expect(currentIndex).toBe(0); // Start at first snippet
 
       const nextSnippet = usageTracker.cycleToNext(matchingSnippets);

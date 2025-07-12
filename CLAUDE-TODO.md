@@ -498,7 +498,20 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 ---
 
+## 🔧 **Technical Improvements** - **LOW PRIORITY**
+
+### 🎯 **Snippet ID System Enhancement**
+
+- [ ] **Improve snippet ID system to prevent conflicts** - **LOW PRIORITY**
+  - **Issue**: Current system can cause ID collisions between local and Google Drive snippets
+  - **Solution**: Implement namespace prefixing (e.g., "gdrive*", "local*", "dropbox\_")
+  - **Benefits**: Prevents database constraint errors, cleaner data separation
+  - **Priority**: LOW - Current workarounds are sufficient for now
+  - **Files**: `src/shared/types.ts`, `src/background/sync-manager.ts`, storage utilities
+
+---
+
 _Last updated: 2025-07-11_  
 _Project: PuffPuffPaste - Collaborative Text Expander_  
-_Current Version: 0.41.0_  
-_Status: Phase 2 Nearly Complete - Final Settings Persistence Debug_
+_Current Version: 0.44.0_  
+_Status: Debugging Google Drive snippet expansion issue_

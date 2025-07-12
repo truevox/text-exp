@@ -187,8 +187,25 @@ export class SyncManager {
    * Perform manual sync
    */
   async syncNow(): Promise<void> {
+    console.log("🔄 [SYNC-MANAGER] syncNow() called");
+
     if (this.syncState.isSyncInProgress()) {
+      console.warn("⚠️ [SYNC-MANAGER] Sync already in progress, skipping");
       throw new Error("Sync already in progress");
+    }
+
+    if (!this.currentAdapter) {
+      console.error("❌ [SYNC-MANAGER] No cloud adapter configured");
+      throw new Error("No cloud provider configured");
+    }
+
+    console.log(
+      `🔧 [SYNC-MANAGER] Using cloud provider: ${this.currentAdapter.provider}`,
+    );
+
+    if (this.currentAdapter.provider === "local") {
+      console.log("🏠 [SYNC-MANAGER] Local provider - no cloud sync needed");
+      return;
     }
 
     this.syncState.setSyncInProgress(true);
@@ -263,14 +280,74 @@ export class SyncManager {
       );
       console.log(`🔗 Merged result: ${mergedSnippets.length} total snippets`);
 
-      // Update local storage with merged results
-      await ExtensionStorage.setSnippets(mergedSnippets);
+      // ATOMIC STORAGE UPDATE: Update both storage systems simultaneously
+      console.log(
+        `🔄 [STORAGE-UPDATE] Performing atomic update of both storage systems...`,
+      );
 
-      // Ensure IndexedDB is updated before notifying content scripts
-      await this.indexedDB.saveSnippets(mergedSnippets); // Save to IndexedDB for offline access
-      console.log("✅ IndexedDB updated with merged snippets");
+      // DEBUG: Log detailed snippet data being stored
+      console.log(
+        `🔍 [STORAGE-DEBUG] Storing ${mergedSnippets.length} snippets to both storage systems:`,
+      );
+      mergedSnippets.forEach((snippet, index) => {
+        console.log(
+          `  📋 Snippet ${index + 1} (${(snippet as any).source || "unknown"}):`,
+          {
+            id: snippet.id,
+            trigger: snippet.trigger,
+            content:
+              snippet.content?.substring(0, 50) +
+              (snippet.content?.length > 50 ? "..." : ""),
+            description: snippet.description,
+            tags: snippet.tags,
+            source: (snippet as any).source,
+            hasRequiredFields: !!(
+              snippet.id &&
+              snippet.trigger &&
+              snippet.content
+            ),
+          },
+        );
+      });
 
-      // Notify content scripts that snippets have been updated (after storage is fully updated)
+      // CRITICAL: Check if we have the pony snippet before storage
+      const ponySnippet = mergedSnippets.find((s) => s.trigger === ";pony");
+      if (ponySnippet) {
+        console.log(
+          `✅ [PONY-DEBUG] ;pony snippet found in merge results:`,
+          ponySnippet,
+        );
+      } else {
+        console.warn(
+          `❌ [PONY-DEBUG] ;pony snippet MISSING from merge results!`,
+        );
+        console.warn(
+          `🔍 [PONY-DEBUG] Available triggers:`,
+          mergedSnippets.map((s) => s.trigger),
+        );
+        console.warn(
+          `🔍 [PONY-DEBUG] Cloud snippets:`,
+          cloudSnippets.map((s) => s.trigger),
+        );
+        console.warn(
+          `🔍 [PONY-DEBUG] Existing snippets:`,
+          existingSnippets.map((s) => s.trigger),
+        );
+      }
+
+      // CRITICAL FIX: Update both storage systems atomically
+      await Promise.all([
+        ExtensionStorage.setSnippets(mergedSnippets),
+        this.indexedDB.saveSnippets(mergedSnippets),
+      ]);
+      console.log("✅ Both storage systems updated atomically");
+
+      // CRITICAL FIX: Add a small delay to ensure storage operations are fully settled
+      // This prevents race conditions where content scripts load before storage is ready
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      console.log("⏱️ Storage settling delay completed");
+
+      // Notify content scripts that snippets have been updated (after storage is fully settled)
       await notifyContentScriptsOfSnippetUpdate();
       console.log("📢 Notified content scripts of snippet update");
 

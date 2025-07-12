@@ -17,38 +17,81 @@ import type {
  */
 export class ExtensionStorage {
   /**
-   * Get all snippets from storage
+   * Get all snippets from storage with improved fallback logic
    */
   static async getSnippets(): Promise<TextSnippet[]> {
     const indexedDB = new IndexedDB();
+
+    // Always try both storage systems and use the one with more data
+    let indexedDBSnippets: TextSnippet[] = [];
+    let chromeStorageSnippets: TextSnippet[] = [];
+
+    // Try IndexedDB first
     try {
-      const snippets = await indexedDB.getSnippets();
-      if (snippets.length > 0) {
-        return snippets;
-      }
-    } catch (error) {
-      console.warn(
-        "Failed to load snippets from IndexedDB, falling back to chrome.storage.local:",
-        error,
+      indexedDBSnippets = await indexedDB.getSnippets();
+      console.log(
+        `🔍 [STORAGE-RETRIEVAL] IndexedDB returned ${indexedDBSnippets.length} snippets`,
       );
+    } catch (error) {
+      console.warn("Failed to load snippets from IndexedDB:", error);
     }
 
-    // Fallback to chrome.storage.local
-    const result = await chrome.storage.local.get(STORAGE_KEYS.SNIPPETS);
-    const localSnippets = result?.[STORAGE_KEYS.SNIPPETS] || [];
+    // Always check chrome.storage.local as well
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.SNIPPETS);
+      chromeStorageSnippets = result?.[STORAGE_KEYS.SNIPPETS] || [];
+      console.log(
+        `🔍 [STORAGE-RETRIEVAL] Chrome.storage.local returned ${chromeStorageSnippets.length} snippets`,
+      );
+    } catch (error) {
+      console.warn("Failed to load snippets from chrome.storage.local:", error);
+    }
 
-    // If snippets were found in local storage but not IndexedDB, save them to IndexedDB
-    if (localSnippets.length > 0) {
-      try {
-        await indexedDB.saveSnippets(localSnippets);
-      } catch (error) {
-        console.error(
-          "Failed to save snippets to IndexedDB from chrome.storage.local:",
-          error,
+    // Use whichever source has more data (handles race conditions)
+    const finalSnippets =
+      indexedDBSnippets.length >= chromeStorageSnippets.length
+        ? indexedDBSnippets
+        : chromeStorageSnippets;
+
+    console.log(
+      `✅ [STORAGE-RETRIEVAL] Using ${finalSnippets.length} snippets from ${
+        finalSnippets === indexedDBSnippets
+          ? "IndexedDB"
+          : "chrome.storage.local"
+      }`,
+    );
+
+    if (finalSnippets.length > 0) {
+      console.log(
+        `📋 [STORAGE-RETRIEVAL] Final snippets:`,
+        finalSnippets.map((s) => ({
+          id: s.id,
+          trigger: s.trigger,
+          content: s.content?.substring(0, 30) + "...",
+          source: (s as any).source,
+        })),
+      );
+
+      // Sync the storage systems if they're out of sync
+      if (indexedDBSnippets.length !== chromeStorageSnippets.length) {
+        console.log(
+          `🔄 [STORAGE-SYNC] Storage systems out of sync, updating both`,
         );
+        try {
+          await Promise.all([
+            chrome.storage.local.set({
+              [STORAGE_KEYS.SNIPPETS]: finalSnippets,
+            }),
+            indexedDB.saveSnippets(finalSnippets),
+          ]);
+          console.log(`✅ [STORAGE-SYNC] Both storage systems synchronized`);
+        } catch (error) {
+          console.error("Failed to synchronize storage systems:", error);
+        }
       }
     }
-    return localSnippets;
+
+    return finalSnippets;
   }
 
   /**
@@ -115,8 +158,39 @@ export class ExtensionStorage {
   static async findSnippetByTrigger(
     trigger: string,
   ): Promise<TextSnippet | null> {
+    console.log(
+      `🔍 [SNIPPET-LOOKUP] Looking for snippet with trigger: "${trigger}"`,
+    );
     const snippets = await this.getSnippets();
-    return snippets.find((s) => s.trigger === trigger) || null;
+    console.log(
+      `📋 [SNIPPET-LOOKUP] Searching through ${snippets.length} snippets:`,
+    );
+    snippets.forEach((snippet, index) => {
+      console.log(
+        `  📋 Snippet ${index + 1}: "${snippet.trigger}" (${(snippet as any).source || "unknown"})`,
+      );
+    });
+
+    const foundSnippet = snippets.find((s) => s.trigger === trigger);
+
+    if (foundSnippet) {
+      console.log(`✅ [SNIPPET-LOOKUP] Found snippet for "${trigger}":`, {
+        id: foundSnippet.id,
+        trigger: foundSnippet.trigger,
+        content: foundSnippet.content?.substring(0, 50) + "...",
+        source: (foundSnippet as any).source,
+      });
+    } else {
+      console.warn(
+        `❌ [SNIPPET-LOOKUP] No snippet found for trigger "${trigger}"`,
+      );
+      console.warn(
+        `🔍 [SNIPPET-LOOKUP] Available triggers:`,
+        snippets.map((s) => s.trigger),
+      );
+    }
+
+    return foundSnippet || null;
   }
 
   /**

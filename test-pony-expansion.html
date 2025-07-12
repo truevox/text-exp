@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Pony Expansion</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      textarea {
+        width: 100%;
+        height: 200px;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        font-family: monospace;
+        resize: vertical;
+      }
+      textarea:focus {
+        border-color: #007cba;
+        outline: none;
+      }
+      .instructions {
+        background: #e7f3ff;
+        padding: 15px;
+        border-left: 4px solid #007cba;
+        margin-bottom: 20px;
+      }
+      .debug-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 20px;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+      input[type="text"]:focus {
+        border-color: #007cba;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🐴 PuffPuffPaste - Pony Expansion Test</h1>
+
+      <div class="instructions">
+        <h3>📋 Instructions:</h3>
+        <ol>
+          <li>
+            Make sure the PuffPuffPaste extension is installed and enabled
+          </li>
+          <li>Open browser console (F12) to see debug logs</li>
+          <li>Click in the textarea below</li>
+          <li>
+            Type <code>;pony</code> followed by a <strong>space</strong> or
+            <strong>tab</strong>
+          </li>
+          <li>The text should expand to "Peanut **BUTTER** Pony Time!"</li>
+          <li>Check console for detailed debug information</li>
+        </ol>
+      </div>
+
+      <h3>🎯 Test Area - Textarea:</h3>
+      <textarea
+        id="testTextarea"
+        placeholder="Type ;pony followed by space or tab here..."
+      ></textarea>
+
+      <h3>🎯 Test Area - Input Field:</h3>
+      <input
+        type="text"
+        id="testInput"
+        placeholder="Type ;pony followed by space or tab here..."
+      />
+
+      <div class="debug-info" id="debugInfo">
+        <strong>Debug Information:</strong><br />
+        Extension loaded: <span id="extensionStatus">Checking...</span><br />
+        Content script active: <span id="contentScriptStatus">Checking...</span
+        ><br />
+        Last trigger: <span id="lastTrigger">None</span><br />
+        Last expansion: <span id="lastExpansion">None</span>
+      </div>
+    </div>
+
+    <script>
+      // Simple test script to monitor text changes and provide debug info
+      const textarea = document.getElementById("testTextarea");
+      const inputField = document.getElementById("testInput");
+      const debugInfo = document.getElementById("debugInfo");
+      const extensionStatus = document.getElementById("extensionStatus");
+      const contentScriptStatus = document.getElementById(
+        "contentScriptStatus",
+      );
+      const lastTrigger = document.getElementById("lastTrigger");
+      const lastExpansion = document.getElementById("lastExpansion");
+
+      // Check if extension is available
+      function checkExtensionStatus() {
+        if (
+          typeof chrome !== "undefined" &&
+          chrome.runtime &&
+          chrome.runtime.id
+        ) {
+          extensionStatus.textContent = "✅ Available";
+          extensionStatus.style.color = "green";
+        } else {
+          extensionStatus.textContent = "❌ Not available";
+          extensionStatus.style.color = "red";
+        }
+      }
+
+      // Monitor text changes
+      function monitorElement(element, elementName) {
+        let lastValue = "";
+
+        element.addEventListener("input", function (e) {
+          const newValue = e.target.value;
+          const valueChanged = newValue !== lastValue;
+
+          if (valueChanged) {
+            console.log(`📝 [TEST-PAGE] ${elementName} value changed:`, {
+              from: lastValue,
+              to: newValue,
+              length: newValue.length,
+            });
+
+            // Check if this looks like an expansion
+            if (lastValue.endsWith(";pony") && newValue !== lastValue) {
+              console.log(
+                `🎯 [TEST-PAGE] Potential expansion detected in ${elementName}!`,
+              );
+              lastTrigger.textContent = ";pony";
+              lastExpansion.textContent = new Date().toLocaleTimeString();
+              lastExpansion.style.color = "green";
+            }
+
+            lastValue = newValue;
+          }
+        });
+
+        element.addEventListener("keydown", function (e) {
+          console.log(`⌨️ [TEST-PAGE] ${elementName} keydown:`, {
+            key: e.key,
+            code: e.code,
+            value: e.target.value,
+            cursorPosition: e.target.selectionStart,
+          });
+
+          // Track when user presses space or tab after ;pony
+          if (
+            (e.key === " " || e.key === "Tab") &&
+            e.target.value.endsWith(";pony")
+          ) {
+            console.log(
+              `🎯 [TEST-PAGE] Potential trigger activation in ${elementName}: ${e.key} after ;pony`,
+            );
+            lastTrigger.textContent = ";pony + " + e.key;
+          }
+        });
+      }
+
+      // Monitor both textarea and input
+      monitorElement(textarea, "textarea");
+      monitorElement(inputField, "input");
+
+      // Check extension status on load
+      checkExtensionStatus();
+
+      // Log page ready
+      console.log("🎯 [TEST-PAGE] Pony expansion test page loaded and ready");
+      console.log(
+        '📋 [TEST-PAGE] To test: type ";pony" followed by space or tab in the text areas above',
+      );
+
+      // Set content script status (this will be updated by content script if it's running)
+      contentScriptStatus.textContent = "❓ Unknown";
+      contentScriptStatus.style.color = "orange";
+
+      // Try to detect if content script is running
+      setTimeout(() => {
+        if (window.puffPuffPasteContentScript) {
+          contentScriptStatus.textContent = "✅ Active";
+          contentScriptStatus.style.color = "green";
+        } else {
+          contentScriptStatus.textContent = "❌ Not detected";
+          contentScriptStatus.style.color = "red";
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>

@@ -157,27 +157,79 @@ export class GoogleDriveFileService {
     }>
   > {
     const targetFolderId = folderId || "root";
-    console.log(`📁 Listing files in Google Drive folder: ${targetFolderId}`);
+    console.log(
+      `📁 [ENHANCED] Listing files in Google Drive folder: ${targetFolderId}`,
+    );
 
-    const response = await fetch(
-      `${this.DRIVE_API}/files?` +
-        `q=parents in '${targetFolderId}' and mimeType!='application/vnd.google-apps.folder'&` +
-        `fields=files(id,name,mimeType,modifiedTime)&` +
-        `orderBy=name`,
-      { headers: GoogleDriveAuthService.getAuthHeaders(credentials) },
+    // Enhanced logging for debugging
+    const query = `parents in '${targetFolderId}' and mimeType!='application/vnd.google-apps.folder'`;
+    const fields = `files(id,name,mimeType,modifiedTime)`;
+    const orderBy = `name`;
+
+    const url = `${this.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&orderBy=${orderBy}`;
+
+    console.log(`🔍 [DEBUG] API Request Details:`);
+    console.log(`  - URL: ${url}`);
+    console.log(`  - Query: ${query}`);
+    console.log(`  - Fields: ${fields}`);
+    console.log(`  - Target Folder ID: ${targetFolderId}`);
+    console.log(
+      `  - Token starts with: ${credentials.accessToken.substring(0, 20)}...`,
+    );
+
+    const headers = GoogleDriveAuthService.getAuthHeaders(credentials);
+    console.log(`  - Headers:`, Object.keys(headers));
+
+    const response = await fetch(url, { headers });
+
+    console.log(`🔍 [DEBUG] API Response Details:`);
+    console.log(`  - Status: ${response.status} ${response.statusText}`);
+    console.log(
+      `  - Headers:`,
+      response.headers?.entries
+        ? Object.fromEntries(response.headers.entries())
+        : "Headers not available",
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to list files: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ [ERROR] API Error Response:`, errorText);
+
+      // Try to parse error for more details
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error(`❌ [ERROR] Parsed error:`, errorData);
+      } catch (parseError) {
+        console.error(`❌ [ERROR] Could not parse error response:`, parseError);
+      }
+
+      throw new Error(
+        `Failed to list files: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
     const files = data.files || [];
 
     console.log(
-      `📁 Found ${files.length} files in folder ${targetFolderId}:`,
-      files.map((f: any) => ({ id: f.id, name: f.name })),
+      `📁 [ENHANCED] Found ${files.length} files in folder ${targetFolderId}:`,
     );
+    if (files.length > 0) {
+      console.log(
+        `📋 [ENHANCED] File details:`,
+        files.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          mimeType: f.mimeType,
+          modifiedTime: f.modifiedTime,
+        })),
+      );
+    } else {
+      console.warn(
+        `⚠️ [ENHANCED] No files found! This might indicate a permissions issue.`,
+      );
+      console.log(`🔍 [ENHANCED] Raw API response:`, data);
+    }
 
     return files;
   }
@@ -235,6 +287,115 @@ export class GoogleDriveFileService {
   }
 
   /**
+   * Direct API test function to verify Google Drive access
+   */
+  static async testDirectApiAccess(
+    credentials: CloudCredentials,
+    folderId?: string,
+  ): Promise<{
+    success: boolean;
+    details: string;
+    files?: Array<{ id: string; name: string; mimeType?: string }>;
+  }> {
+    console.log(
+      `🧪 [TEST] Testing direct Google Drive API access for folder: ${folderId || "root"}`,
+    );
+
+    try {
+      // Test 1: Basic API connectivity
+      console.log(`🧪 [TEST] Step 1: Testing basic API connectivity...`);
+      const aboutResponse = await fetch(`${this.DRIVE_API}/about?fields=user`, {
+        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      });
+
+      if (!aboutResponse.ok) {
+        return {
+          success: false,
+          details: `Basic API test failed: ${aboutResponse.status} ${aboutResponse.statusText}`,
+        };
+      }
+
+      const aboutData = await aboutResponse.json();
+      console.log(`✅ [TEST] Basic API test passed. User:`, aboutData.user);
+
+      // Test 2: List files without mimeType filter
+      console.log(
+        `🧪 [TEST] Step 2: Testing file listing without mimeType filter...`,
+      );
+      const simpleQuery = folderId
+        ? `parents in '${folderId}'`
+        : `parents in 'root'`;
+      const simpleUrl = `${this.DRIVE_API}/files?q=${encodeURIComponent(simpleQuery)}&fields=files(id,name,mimeType)`;
+
+      const simpleResponse = await fetch(simpleUrl, {
+        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      });
+
+      if (!simpleResponse.ok) {
+        return {
+          success: false,
+          details: `Simple file listing failed: ${simpleResponse.status} ${simpleResponse.statusText}`,
+        };
+      }
+
+      const simpleData = await simpleResponse.json();
+      const allFiles = simpleData.files || [];
+      console.log(
+        `✅ [TEST] Simple file listing passed. Found ${allFiles.length} files:`,
+        allFiles,
+      );
+
+      // Test 3: List files with mimeType filter (original query)
+      console.log(
+        `🧪 [TEST] Step 3: Testing file listing with mimeType filter...`,
+      );
+      const filteredQuery = folderId
+        ? `parents in '${folderId}' and mimeType!='application/vnd.google-apps.folder'`
+        : `parents in 'root' and mimeType!='application/vnd.google-apps.folder'`;
+      const filteredUrl = `${this.DRIVE_API}/files?q=${encodeURIComponent(filteredQuery)}&fields=files(id,name,mimeType)`;
+
+      const filteredResponse = await fetch(filteredUrl, {
+        headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+      });
+
+      if (!filteredResponse.ok) {
+        return {
+          success: false,
+          details: `Filtered file listing failed: ${filteredResponse.status} ${filteredResponse.statusText}`,
+        };
+      }
+
+      const filteredData = await filteredResponse.json();
+      const filteredFiles = filteredData.files || [];
+      console.log(
+        `✅ [TEST] Filtered file listing passed. Found ${filteredFiles.length} files:`,
+        filteredFiles,
+      );
+
+      // Test 4: Analyze JSON files specifically
+      const jsonFiles = allFiles.filter((f: any) =>
+        f.name.toLowerCase().endsWith(".json"),
+      );
+      console.log(
+        `🧪 [TEST] Step 4: Found ${jsonFiles.length} JSON files:`,
+        jsonFiles,
+      );
+
+      return {
+        success: true,
+        details: `Direct API test successful. Found ${allFiles.length} total files, ${filteredFiles.length} filtered files, ${jsonFiles.length} JSON files`,
+        files: allFiles,
+      };
+    } catch (error) {
+      console.error(`❌ [TEST] Direct API test failed:`, error);
+      return {
+        success: false,
+        details: `Direct API test failed with error: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  /**
    * Download and parse snippets from JSON file
    */
   static async downloadSnippets(
@@ -271,6 +432,27 @@ export class GoogleDriveFileService {
           content: s.content.substring(0, 50) + "...",
         })),
       );
+
+      // CRITICAL: Check specifically for ;pony snippet
+      const ponySnippet = snippets.find((s) => s.trigger === ";pony");
+      if (ponySnippet) {
+        console.log(
+          `✅ [PONY-DEBUG] ;pony snippet found in Google Drive download:`,
+          {
+            trigger: ponySnippet.trigger,
+            content: ponySnippet.content,
+            id: ponySnippet.id,
+          },
+        );
+      } else {
+        console.warn(
+          `❌ [PONY-DEBUG] ;pony snippet NOT found in Google Drive download`,
+        );
+        console.warn(
+          `🔍 [PONY-DEBUG] Available triggers from Google Drive:`,
+          snippets.map((s) => s.trigger),
+        );
+      }
 
       // Ensure date fields are properly parsed
       const processedSnippets = snippets.map((snippet) => ({

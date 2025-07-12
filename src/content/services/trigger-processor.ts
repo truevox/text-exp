@@ -76,9 +76,22 @@ export class ContentTriggerProcessor {
         return;
       }
 
+      console.log(
+        `🎯 [TRIGGER-PROCESSOR] Looking for snippet with trigger: "${trigger}"`,
+      );
       const snippet = await this.snippetManager.findSnippetByTrigger(trigger);
 
-      console.log("🔍 Found snippet:", snippet);
+      console.log(
+        `🔍 [TRIGGER-PROCESSOR] Found snippet:`,
+        snippet
+          ? {
+              id: snippet.id,
+              trigger: snippet.trigger,
+              content: snippet.content?.substring(0, 50) + "...",
+              source: (snippet as any).source,
+            }
+          : null,
+      );
 
       if (!snippet) {
         console.log("❌ No matching snippet found for trigger:", trigger);
