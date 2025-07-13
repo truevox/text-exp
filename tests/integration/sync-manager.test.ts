@@ -272,7 +272,7 @@ describe("SyncManager Integration", () => {
         // Expected: syncNow() throws an error and sets error status
         expect(ExtensionStorage.setSyncStatus).toHaveBeenCalledWith(
           expect.objectContaining({
-            isOnline: false,
+            isOnline: true, // Non-auth errors still mark as online
             error: "Simulated sync error",
           }),
         );
