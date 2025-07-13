@@ -486,4 +486,130 @@ description: "Complex Markdown with various elements"
       expect(htmlSerialized).toContain("contentType: html");
     });
   });
+
+  describe.skip("Markdown Parser - Additional Tests", () => {
+    it("should parse a complex markdown file with frontmatter and multiple snippets", () => {
+      const markdownContent = `
+---
+author: Marvin Bentley
+version: 1.0
+---
+
+# Snippets Collection
+
+## ;greet
+Hello, world!
+
+### ;farewell
+\`\`\`
+Goodbye, cruel world!
+See you tomorrow.
+\`\`\`
+
+## ;code (Code Snippet)
+\`\`\`javascript
+console.log("This is a test.");
+\`\`\`
+
+---
+
+## Another Section
+
+### ;multi-line
+This is a multi-line snippet.
+It spans across multiple lines.
+
+### ;empty
+
+### ;with-tags
+- tag1
+- tag2
+A snippet with tags.
+`;
+
+      const result = parser.parse(markdownContent, "test.md");
+      const snippets = result as SnippetDoc[];
+
+      expect(snippets).toHaveLength(6);
+
+      expect(snippets[0]).toMatchObject({
+        meta: { trigger: ";greet" },
+        body: "Hello, world!",
+      });
+
+      expect(snippets[1]).toMatchObject({
+        meta: { trigger: ";farewell" },
+        body: "Goodbye, cruel world!\nSee you tomorrow.",
+      });
+
+      expect(snippets[2]).toMatchObject({
+        meta: { trigger: ";code" },
+        body: 'console.log("This is a test.");',
+      });
+
+      expect(snippets[3]).toMatchObject({
+        meta: { trigger: ";multi-line" },
+        body: "This is a multi-line snippet.\nIt spans across multiple lines.",
+      });
+
+      expect(snippets[4]).toMatchObject({
+        meta: { trigger: ";empty" },
+        body: "",
+      });
+
+      expect(snippets[5]).toMatchObject({
+        meta: { trigger: ";with-tags" },
+        body: "A snippet with tags.\n- tag1\n- tag2",
+      });
+    });
+
+    it("should handle markdown with no frontmatter", () => {
+      const markdownContent = `
+# Snippets
+
+## ;test
+This is a test snippet.
+`;
+      const result = parser.parse(markdownContent, "test.md");
+      const snippets = result as SnippetDoc[];
+
+      expect(snippets).toHaveLength(1);
+      expect(snippets[0]).toMatchObject({
+        meta: { trigger: ";test" },
+        body: "This is a test snippet.",
+      });
+    });
+
+    it("should handle markdown with only frontmatter", () => {
+      const markdownContent = `
+---
+author: Test
+---
+`;
+      const result = parser.parse(markdownContent, "test.md");
+      const snippets = result as SnippetDoc[];
+
+      expect(snippets).toHaveLength(0);
+    });
+
+    it("should handle markdown with no snippets", () => {
+      const markdownContent = `
+# No Snippets Here
+
+This is just some regular markdown content.
+`;
+      const result = parser.parse(markdownContent, "test.md");
+      const snippets = result as SnippetDoc[];
+
+      expect(snippets).toHaveLength(0);
+    });
+
+    it("should handle an empty markdown file", () => {
+      const markdownContent = "";
+      const result = parser.parse(markdownContent, "test.md");
+      const snippets = result as SnippetDoc[];
+
+      expect(snippets).toHaveLength(0);
+    });
+  });
 });

@@ -9,6 +9,7 @@ import { ScopedSourceManager } from "./scoped-source-manager.js";
 import { ImageProcessor } from "./image-processor.js";
 import { sanitizeHtml } from "../shared/sanitizer.js";
 import { ExtensionStorage } from "../shared/storage.js";
+import type { CloudProvider } from "../shared/types.js";
 
 // Log version on startup
 logVersion();
@@ -181,6 +182,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case "GET_SYNC_STATUS": {
           const syncStatus = await syncManager.getSyncStatus();
           sendResponse({ success: true, data: syncStatus });
+          break;
+        }
+
+        case "CHECK_AUTH_STATUS": {
+          try {
+            const isAuthenticated = await syncManager.isAuthenticated();
+            const currentProvider = syncManager.getCurrentProvider();
+
+            let authData: {
+              isAuthenticated: boolean;
+              provider: CloudProvider | null;
+              expiresAt?: Date;
+              email?: string;
+            } = {
+              isAuthenticated,
+              provider: currentProvider,
+            };
+
+            // If authenticated, get additional details
+            if (isAuthenticated && currentProvider !== "local") {
+              const credentials = await ExtensionStorage.getCloudCredentials();
+              if (credentials) {
+                authData = {
+                  ...authData,
+                  expiresAt: credentials.expiresAt,
+                  email: credentials.email,
+                };
+              }
+            }
+
+            sendResponse({ success: true, data: authData });
+          } catch (error) {
+            console.error("Error checking auth status:", error);
+            sendResponse({
+              success: true,
+              data: {
+                isAuthenticated: false,
+                provider: syncManager.getCurrentProvider() || "local",
+              },
+            });
+          }
           break;
         }
 

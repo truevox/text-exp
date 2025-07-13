@@ -204,4 +204,41 @@ export class IndexedDB {
       };
     });
   }
+
+  /**
+   * Clear all data from IndexedDB (both snippets and images)
+   */
+  public async clearAll(): Promise<void> {
+    try {
+      // Clear snippets store
+      await this.clearSnippets();
+
+      // Clear images store
+      await this.clearImages();
+
+      console.log("✅ All IndexedDB data cleared successfully");
+    } catch (error) {
+      console.error("❌ Error clearing IndexedDB:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all images from IndexedDB
+   */
+  private async clearImages(): Promise<void> {
+    const db = await this.openDB();
+    const transaction = db.transaction([IMAGE_STORE_NAME], "readwrite");
+    const store = transaction.objectStore(IMAGE_STORE_NAME);
+    const request = store.clear();
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        resolve();
+      };
+      request.onerror = (event) => {
+        reject("Error clearing images: " + (event.target as IDBRequest).error);
+      };
+    });
+  }
 }

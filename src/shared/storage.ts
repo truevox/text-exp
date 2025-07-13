@@ -283,8 +283,13 @@ export class ExtensionStorage {
    * Clear all extension data
    */
   static async clearAll(): Promise<void> {
+    // Clear chrome storage
     await chrome.storage.local.clear();
     await chrome.storage.sync.clear();
+
+    // Clear IndexedDB as well
+    const indexedDB = new IndexedDB();
+    await indexedDB.clearAll();
   }
 
   /**

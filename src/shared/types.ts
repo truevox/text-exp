@@ -119,6 +119,7 @@ export interface CloudCredentials {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: Date;
+  email?: string;
 }
 
 /**
@@ -238,6 +239,7 @@ export type MessageType =
   | "UPDATE_SETTINGS"
   | "SETTINGS_UPDATED"
   | "GET_SYNC_STATUS"
+  | "CHECK_AUTH_STATUS"
   | "TRIGGER_DETECTED"
   | "EXPAND_TEXT"
   | "VARIABLE_PROMPT"

@@ -367,13 +367,36 @@ export class SyncManager {
     } catch (error) {
       console.error("Sync failed:", error);
 
+      // Check if this is an authentication-related error
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      const isAuthError = this.isAuthenticationError(errorMessage);
+
+      // If it's an auth error, try to clear stale credentials
+      if (
+        isAuthError &&
+        this.currentAdapter &&
+        this.currentAdapter.provider !== "local-filesystem"
+      ) {
+        console.log(
+          "🔐 Authentication error detected, clearing stale credentials",
+        );
+        try {
+          await this.disconnect();
+        } catch (disconnectError) {
+          console.error("Failed to clear stale credentials:", disconnectError);
+        }
+      }
+
       // Update final status to error
       finalSyncStatus = {
         provider: this.currentAdapter?.provider || "local",
         lastSync: await ExtensionStorage.getLastSync(), // Keep previous last sync time on failure
-        isOnline: false,
+        isOnline: !isAuthError, // If auth error, mark as offline
         hasChanges: true,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: isAuthError
+          ? "Authentication expired. Please reconnect to continue syncing."
+          : errorMessage,
       };
       throw error;
     } finally {
@@ -609,6 +632,25 @@ export class SyncManager {
     }
 
     return await this.currentAdapter.createFolder(folderName, parentId);
+  }
+
+  /**
+   * Check if an error message indicates an authentication problem
+   */
+  private isAuthenticationError(errorMessage: string): boolean {
+    const authErrorPatterns = [
+      /authentication.*failed/i,
+      /not.*authenticated/i,
+      /token.*expired/i,
+      /invalid.*token/i,
+      /access.*denied/i,
+      /unauthorized/i,
+      /credential.*invalid/i,
+      /401/,
+      /403.*forbidden/i,
+    ];
+
+    return authErrorPatterns.some((pattern) => pattern.test(errorMessage));
   }
 
   /**

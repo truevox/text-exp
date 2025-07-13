@@ -298,6 +298,18 @@ export class SyncMessages {
   static async getSyncStatus(): Promise<any> {
     return MessageSender.sendToBackground("GET_SYNC_STATUS");
   }
+
+  /**
+   * Check current authentication status
+   */
+  static async checkAuthenticationStatus(): Promise<{
+    isAuthenticated: boolean;
+    provider?: string;
+    expiresAt?: Date;
+    email?: string;
+  }> {
+    return MessageSender.sendToBackground("CHECK_AUTH_STATUS");
+  }
 }
 
 /**

@@ -123,7 +123,7 @@ class OptionsApp {
       this.setupEventListeners();
 
       // Update UI
-      this.updateUI();
+      await this.updateUI();
 
       // Initialize folder pickers
       this.initializeFolderPickers();
@@ -224,9 +224,9 @@ class OptionsApp {
   /**
    * Update UI based on current settings
    */
-  private updateUI(): void {
+  private async updateUI(): Promise<void> {
     // Update authentication status
-    this.updateAuthenticationStatus();
+    await this.updateAuthenticationStatus();
 
     // Update folder pickers
     this.updateFolderPickers();
@@ -235,17 +235,100 @@ class OptionsApp {
   /**
    * Update authentication status display
    */
-  private updateAuthenticationStatus(): void {
-    // This would check actual auth status
-    const isAuthenticated = this.settings.cloudProvider === "google-drive";
+  private async updateAuthenticationStatus(): Promise<void> {
+    try {
+      // Show loading state
+      this.showAuthenticationLoading();
 
-    if (isAuthenticated) {
+      // Check actual authentication status from background script
+      const authStatus = await SyncMessages.checkAuthenticationStatus();
+
+      if (authStatus.isAuthenticated && authStatus.provider !== "local") {
+        this.showAuthenticationConnected(authStatus);
+      } else if (authStatus.provider === "google-drive") {
+        // Provider is set to Google Drive but not authenticated - show reconnection needed
+        this.showAuthenticationExpired();
+      } else {
+        this.showAuthenticationDisconnected();
+      }
+    } catch (error) {
+      console.error("Failed to check authentication status:", error);
+      this.showAuthenticationError();
+    }
+  }
+
+  /**
+   * Show authentication loading state
+   */
+  private showAuthenticationLoading(): void {
+    this.elements.authDisconnected.classList.add("hidden");
+    this.elements.authConnected.classList.remove("hidden");
+    this.elements.authEmail.textContent = "Checking connection...";
+  }
+
+  /**
+   * Show authenticated state
+   */
+  private showAuthenticationConnected(authStatus: any): void {
+    this.elements.authDisconnected.classList.add("hidden");
+    this.elements.authConnected.classList.remove("hidden");
+
+    // Show email if available, otherwise generic "Connected" message
+    const displayText = authStatus.email || "Connected";
+    this.elements.authEmail.textContent = displayText;
+
+    // Check if token is expiring soon (within 1 hour)
+    if (authStatus.expiresAt) {
+      const expirationTime = new Date(authStatus.expiresAt);
+      const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+
+      if (expirationTime < oneHourFromNow) {
+        this.elements.authEmail.textContent += " (expires soon)";
+        this.elements.authEmail.style.color = "#ff6b35";
+      } else {
+        this.elements.authEmail.style.color = "";
+      }
+    }
+  }
+
+  /**
+   * Show expired authentication state
+   */
+  private showAuthenticationExpired(): void {
+    this.elements.authDisconnected.classList.add("hidden");
+    this.elements.authConnected.classList.remove("hidden");
+    this.elements.authEmail.textContent = "Reconnection needed";
+    this.elements.authEmail.style.color = "#ff6b35";
+
+    // Show a subtle hint about reconnecting
+    this.showStatus(
+      "Google Drive connection expired. Please reconnect to sync your snippets.",
+      "warning",
+    );
+  }
+
+  /**
+   * Show disconnected state
+   */
+  private showAuthenticationDisconnected(): void {
+    this.elements.authDisconnected.classList.remove("hidden");
+    this.elements.authConnected.classList.add("hidden");
+  }
+
+  /**
+   * Show authentication error state
+   */
+  private showAuthenticationError(): void {
+    // Fall back to settings-based check if auth status check fails
+    const isProviderSet = this.settings.cloudProvider === "google-drive";
+
+    if (isProviderSet) {
       this.elements.authDisconnected.classList.add("hidden");
       this.elements.authConnected.classList.remove("hidden");
-      this.elements.authEmail.textContent = "Connected"; // Would show actual email
+      this.elements.authEmail.textContent = "Connection status unknown";
+      this.elements.authEmail.style.color = "#ff6b35";
     } else {
-      this.elements.authDisconnected.classList.remove("hidden");
-      this.elements.authConnected.classList.add("hidden");
+      this.showAuthenticationDisconnected();
     }
   }
 
@@ -352,7 +435,7 @@ class OptionsApp {
       if (response.success) {
         this.settings.cloudProvider = "google-drive";
         await SettingsMessages.updateSettings(this.settings);
-        this.updateAuthenticationStatus();
+        await this.updateAuthenticationStatus();
         this.showStatus("Successfully connected to Google Drive", "success");
       } else {
         throw new Error(response.error || "Authentication failed");
@@ -379,7 +462,7 @@ class OptionsApp {
         this.settings.cloudProvider = "local";
         this.settings.configuredSources = [];
         await SettingsMessages.updateSettings(this.settings);
-        this.updateAuthenticationStatus();
+        await this.updateAuthenticationStatus();
         this.updateFolderPickers();
         this.showStatus("Disconnected from Google Drive", "success");
       } else {
@@ -740,7 +823,7 @@ class OptionsApp {
       await SettingsMessages.updateSettings(this.settings);
 
       // Update UI
-      this.updateUI();
+      await this.updateUI();
       this.updateSyncStatus();
 
       this.closeAllModals();
