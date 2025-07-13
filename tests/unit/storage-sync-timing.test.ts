@@ -57,18 +57,22 @@ describe("Storage Synchronization Timing", () => {
     mockNotify.mockResolvedValue(undefined);
 
     // Mock getCloudAdapterFactory
-    const { getCloudAdapterFactory } = await import("../../src/background/cloud-adapters/index");
+    const { getCloudAdapterFactory } = await import(
+      "../../src/background/cloud-adapters/index"
+    );
     (getCloudAdapterFactory as jest.Mock).mockReturnValue({
       createAdapter: jest.fn().mockReturnValue(mockCloudAdapter),
     });
 
     // Mock AuthenticationService
-    (AuthenticationService.initializeWithStoredCredentials as jest.Mock).mockResolvedValue(true);
+    (
+      AuthenticationService.initializeWithStoredCredentials as jest.Mock
+    ).mockResolvedValue(true);
 
     syncManager = SyncManager.getInstance();
     (syncManager as any).indexedDB = mockIndexedDB;
     (syncManager as any).multiScopeSyncManager = mockMultiScopeSyncManager;
-    
+
     // Set up cloud provider
     await syncManager.setCloudProvider("google-drive");
   });

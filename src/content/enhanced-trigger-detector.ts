@@ -172,25 +172,45 @@ export class EnhancedTriggerDetector {
   }
 
   private processInputOptimized(input: string): TriggerMatch {
-    // Fast path: check if prefix character is even present
-    const prefixIndex = input.lastIndexOf(this.prefix);
-    if (prefixIndex === -1) {
-      return this.createMatch(false, TriggerState.IDLE);
-    }
-
     // For long inputs, search more broadly but still optimize
     const searchStart =
       input.length > 100
         ? Math.max(0, input.length - Math.max(this.maxTriggerLength * 2, 100))
         : 0;
 
-    const triggerStart = this.findOptimizedTriggerStart(input, searchStart);
-
-    if (triggerStart === -1) {
-      return this.createMatch(false, TriggerState.IDLE);
+    // Try to find triggers with prefix first
+    const prefixIndex = input.lastIndexOf(this.prefix);
+    if (prefixIndex !== -1) {
+      const triggerStart = this.findOptimizedTriggerStart(input, searchStart);
+      if (triggerStart !== -1) {
+        const prefixedResult = this.matchFromPosition(input, triggerStart);
+        if (
+          prefixedResult.isMatch ||
+          prefixedResult.state !== TriggerState.IDLE
+        ) {
+          return prefixedResult;
+        }
+      }
     }
 
-    return this.matchFromPosition(input, triggerStart);
+    // Only check for non-prefixed triggers if no valid prefixed trigger was found
+    // AND there's no prefix character that would indicate intent for a prefixed trigger
+    const lastPrefixPos = input.lastIndexOf(this.prefix);
+    const shouldCheckNonPrefixed =
+      lastPrefixPos === -1 ||
+      lastPrefixPos < input.length - this.maxTriggerLength;
+
+    if (shouldCheckNonPrefixed) {
+      const nonPrefixedResult = this.findNonPrefixedTrigger(input, searchStart);
+      if (
+        nonPrefixedResult.isMatch ||
+        nonPrefixedResult.state !== TriggerState.IDLE
+      ) {
+        return nonPrefixedResult;
+      }
+    }
+
+    return this.createMatch(false, TriggerState.IDLE);
   }
 
   private findOptimizedTriggerStart(
@@ -295,6 +315,97 @@ export class EnhancedTriggerDetector {
     return this.createMatch(false, TriggerState.TYPING, {
       potentialTrigger: triggerText,
     });
+  }
+
+  /**
+   * Find non-prefixed triggers by checking word boundaries
+   */
+  private findNonPrefixedTrigger(
+    input: string,
+    searchStart: number,
+  ): TriggerMatch {
+    // Find word boundaries from the end of input backwards
+    for (let end = input.length; end > searchStart; end--) {
+      // Skip if this position is not at a word boundary (end of word)
+      if (end < input.length && !this.delimiters.has(input[end])) {
+        continue; // Not at end of word
+      }
+
+      // Find start of current word
+      let start = end - 1;
+      while (start >= searchStart && !this.delimiters.has(input[start])) {
+        start--;
+      }
+      start++; // Move to first non-delimiter character
+
+      if (start >= end) continue;
+
+      // Also verify this is the start of a word (or beginning of input)
+      if (start > 0 && !this.delimiters.has(input[start - 1])) {
+        continue; // Not at start of word
+      }
+
+      const wordText = input.slice(start, end);
+
+      // Skip if word is too long to be a trigger
+      if (wordText.length > this.maxTriggerLength) continue;
+
+      // Check if this word matches any non-prefixed trigger
+      // isAtEnd is true if this word goes to the end of the input (no delimiter after)
+      const isAtEnd = end === input.length;
+      const matchResult = this.matchNonPrefixedTrigger(
+        wordText,
+        start,
+        isAtEnd,
+      );
+      if (matchResult.isMatch || matchResult.state !== TriggerState.IDLE) {
+        return matchResult;
+      }
+    }
+
+    return this.createMatch(false, TriggerState.IDLE);
+  }
+
+  /**
+   * Check if a word matches a non-prefixed trigger
+   */
+  private matchNonPrefixedTrigger(
+    wordText: string,
+    startPos: number,
+    isAtEnd: boolean,
+  ): TriggerMatch {
+    // Look for exact matches in our snippets that don't start with prefix
+    for (const snippet of this.snippets) {
+      if (
+        !snippet.trigger.startsWith(this.prefix) &&
+        snippet.trigger === wordText
+      ) {
+        // For non-prefixed triggers, we complete when:
+        // 1. We're at the end of the input (isAtEnd = true), OR
+        // 2. The word is followed by a delimiter (isAtEnd = false means delimiter found)
+        return this.createMatch(true, TriggerState.COMPLETE, {
+          trigger: snippet.trigger,
+          content: snippet.content,
+          matchEnd: startPos + snippet.trigger.length,
+        });
+      }
+    }
+
+    // Check for partial matches - only when we're at the end (still typing)
+    if (isAtEnd) {
+      for (const snippet of this.snippets) {
+        if (
+          !snippet.trigger.startsWith(this.prefix) &&
+          snippet.trigger.startsWith(wordText)
+        ) {
+          return this.createMatch(false, TriggerState.TYPING, {
+            potentialTrigger: wordText,
+          });
+        }
+      }
+    }
+
+    return this.createMatch(false, TriggerState.IDLE);
   }
 
   /**

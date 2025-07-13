@@ -509,6 +509,20 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
   - **Priority**: LOW - Current workarounds are sufficient for now
   - **Files**: `src/shared/types.ts`, `src/background/sync-manager.ts`, storage utilities
 
+### 🧪 **Test Coverage Improvements** - **HIGH PRIORITY**
+
+- [ ] **Add comprehensive test coverage for trigger detection** - **HIGH PRIORITY**
+  - **Issue**: Non-prefixed trigger detection (like "punt" trigger) not covered by tests
+  - **Solution**: Write tests for both prefixed and non-prefixed trigger detection scenarios
+  - **Why Important**: These are EASY tests to write and should have been covered from the start
+  - **Files**: `tests/unit/enhanced-trigger-detector.test.ts`, `tests/unit/trigger-detector.test.ts`
+  - **Test Cases**:
+    - Non-prefixed triggers (e.g., "punt" → "PUNT! LETS GOOOOOO!!!!")
+    - Prefixed triggers (e.g., ";pony" → "Peanut **BUTTER** Pony Time!")
+    - Mixed scenarios with both types of triggers
+    - Word boundary detection for non-prefixed triggers
+    - Partial matching states for both types
+
 ---
 
 _Last updated: 2025-07-11_  
