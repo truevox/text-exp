@@ -3,12 +3,16 @@ import { ExtensionStorage } from "../../src/shared/storage";
 import { IndexedDB } from "../../src/shared/indexed-db";
 import { MultiScopeSyncManager } from "../../src/background/multi-scope-sync-manager";
 import { notifyContentScriptsOfSnippetUpdate } from "../../src/background/messaging-helpers";
+import { AuthenticationService } from "../../src/background/services/auth-service";
+import { BaseCloudAdapter } from "../../src/background/cloud-adapters/base-adapter";
 
 // Mock dependencies
 jest.mock("../../src/shared/storage");
 jest.mock("../../src/shared/indexed-db");
 jest.mock("../../src/background/multi-scope-sync-manager");
 jest.mock("../../src/background/messaging-helpers");
+jest.mock("../../src/background/services/auth-service");
+jest.mock("../../src/background/cloud-adapters/index");
 
 describe("Storage Synchronization Timing", () => {
   let syncManager: SyncManager;
@@ -18,8 +22,9 @@ describe("Storage Synchronization Timing", () => {
   let mockNotify: jest.MockedFunction<
     typeof notifyContentScriptsOfSnippetUpdate
   >;
+  let mockCloudAdapter: jest.Mocked<BaseCloudAdapter>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mocks
     jest.clearAllMocks();
 
@@ -33,6 +38,16 @@ describe("Storage Synchronization Timing", () => {
       typeof notifyContentScriptsOfSnippetUpdate
     >;
 
+    // Mock cloud adapter
+    mockCloudAdapter = {
+      provider: "google-drive",
+      authenticate: jest.fn(),
+      uploadSnippets: jest.fn(),
+      downloadSnippets: jest.fn(),
+      deleteSnippets: jest.fn(),
+      isAuthenticated: jest.fn().mockResolvedValue(true),
+    } as any;
+
     // Mock successful operations
     mockExtensionStorage.setSnippets.mockResolvedValue(undefined);
     mockExtensionStorage.getSnippets.mockResolvedValue([]);
@@ -41,9 +56,21 @@ describe("Storage Synchronization Timing", () => {
     mockMultiScopeSyncManager.syncAndMerge.mockResolvedValue([]);
     mockNotify.mockResolvedValue(undefined);
 
+    // Mock getCloudAdapterFactory
+    const { getCloudAdapterFactory } = await import("../../src/background/cloud-adapters/index");
+    (getCloudAdapterFactory as jest.Mock).mockReturnValue({
+      createAdapter: jest.fn().mockReturnValue(mockCloudAdapter),
+    });
+
+    // Mock AuthenticationService
+    (AuthenticationService.initializeWithStoredCredentials as jest.Mock).mockResolvedValue(true);
+
     syncManager = SyncManager.getInstance();
     (syncManager as any).indexedDB = mockIndexedDB;
     (syncManager as any).multiScopeSyncManager = mockMultiScopeSyncManager;
+    
+    // Set up cloud provider
+    await syncManager.setCloudProvider("google-drive");
   });
 
   it("should update IndexedDB before notifying content scripts", async () => {
