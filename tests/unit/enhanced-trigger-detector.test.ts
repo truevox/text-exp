@@ -297,4 +297,130 @@ describe("EnhancedTriggerDetector", () => {
       expect(result.state).toBe(TriggerState.IDLE);
     });
   });
+
+  describe("Word Boundary Validation for Non-Prefixed Triggers", () => {
+    beforeEach(() => {
+      // Add additional triggers for comprehensive word boundary testing
+      const boundaryTestSnippets = [
+        { trigger: ";hello", content: "Hello, World!" },
+        { trigger: "punt", content: "PUNT! LETS GOOOOOO!!!!" },
+        { trigger: "hello", content: "Hi there!" },
+        { trigger: "test", content: "Test content" },
+        { trigger: "go", content: "Let's go!" },
+        { trigger: "run", content: "Running fast!" },
+      ];
+      detector = new EnhancedTriggerDetector(boundaryTestSnippets);
+    });
+
+    describe("Valid word boundary cases", () => {
+      const validCases = [
+        { input: "test", description: "trigger at end of input" },
+        { input: "test ", description: "trigger followed by space" },
+        { input: "test.", description: "trigger followed by period" },
+        { input: "test!", description: "trigger followed by exclamation" },
+        { input: "test?", description: "trigger followed by question mark" },
+        { input: "test,", description: "trigger followed by comma" },
+        // Note: semicolon is a trigger prefix, so "test;" is handled differently
+        { input: "test:", description: "trigger followed by colon" },
+        { input: "test(", description: "trigger followed by opening paren" },
+        { input: "test)", description: "trigger followed by closing paren" },
+        { input: "test[", description: "trigger followed by opening bracket" },
+        { input: "test]", description: "trigger followed by closing bracket" },
+        { input: "test\n", description: "trigger followed by newline" },
+        { input: "test\t", description: "trigger followed by tab" },
+        { input: "hello test", description: "trigger with proper start boundary" },
+        { input: "hello test world", description: "trigger with proper boundaries on both sides" },
+        { input: " test ", description: "trigger surrounded by spaces" },
+      ];
+
+      validCases.forEach(({ input, description }) => {
+        test(`should match '${input}' (${description})`, () => {
+          const result = detector.processInput(input);
+          expect(result.isMatch).toBe(true);
+          expect(result.trigger).toBe("test");
+        });
+      });
+    });
+
+    describe("Invalid word boundary cases - should NOT match", () => {
+      const invalidCases = [
+        { input: "testing", description: "trigger followed by alphanumeric" },
+        { input: "test123", description: "trigger followed by numbers" },
+        { input: "testabc", description: "trigger followed by letters" },
+        { input: "mytest", description: "trigger preceded by alphanumeric" },
+        { input: "123test", description: "trigger preceded by numbers" },
+        { input: "abctest", description: "trigger preceded by letters" },
+        { input: "sometestword", description: "trigger in middle of word" },
+        { input: "atestb", description: "trigger surrounded by alphanumeric" },
+        { input: "test_word", description: "trigger followed by underscore" },
+        { input: "my_test", description: "trigger preceded by underscore" },
+      ];
+
+      invalidCases.forEach(({ input, description }) => {
+        test(`should NOT match '${input}' (${description})`, () => {
+          const result = detector.processInput(input);
+          // Should either not match at all, or match a different trigger
+          if (result.isMatch) {
+            expect(result.trigger).not.toBe("test");
+          } else {
+            expect(result.isMatch).toBe(false);
+          }
+        });
+      });
+    });
+
+    describe("Edge cases with multiple potential triggers", () => {
+      test("should not match 'go' inside 'going'", () => {
+        const result = detector.processInput("going");
+        expect(result.isMatch).toBe(false);
+      });
+
+      test("should not match 'run' inside 'running'", () => {
+        const result = detector.processInput("running");
+        expect(result.isMatch).toBe(false);
+      });
+
+      test("should match 'go' when properly bounded", () => {
+        const result = detector.processInput("let's go!");
+        expect(result.isMatch).toBe(true);
+        expect(result.trigger).toBe("go");
+      });
+
+      test("should match 'run' when properly bounded", () => {
+        const result = detector.processInput("please run fast");
+        expect(result.isMatch).toBe(true);
+        expect(result.trigger).toBe("run");
+      });
+    });
+
+    describe("Performance with boundary checking", () => {
+      test("should handle boundary checking efficiently", () => {
+        // Use a shorter text that's within the search optimization range
+        const longText = "a".repeat(50) + " test " + "b".repeat(50);
+        const startTime = performance.now();
+        
+        const result = detector.processInput(longText);
+        
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        expect(result.isMatch).toBe(true);
+        expect(result.trigger).toBe("test");
+        expect(duration).toBeLessThan(100); // Should be fast even with boundary checking
+      });
+
+      test("should not find triggers without proper boundaries even in long text", () => {
+        // This should NOT match because "test" is not properly bounded
+        const longText = "a".repeat(1000) + "testword" + "b".repeat(1000);
+        const result = detector.processInput(longText);
+        
+        // Should either not match at all, or not match "test" specifically
+        if (result.isMatch) {
+          expect(result.trigger).not.toBe("test");
+        } else {
+          expect(result.isMatch).toBe(false);
+        }
+      });
+    });
+  });
 });
