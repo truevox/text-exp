@@ -498,6 +498,104 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 ---
 
+## 🚨 **CRITICAL BUG FIX: Word Boundary Detection** - **HIGHEST PRIORITY**
+
+**Issue**: The "wub" trigger is incorrectly matching inside "Wubbalubba" text, causing unwanted expansions. From the user logs, the trigger detection result shows `{isMatch: true, state: 'complete', trigger: 'wub', content: 'Wubbalubba Dub Dub!!!', matchEnd: 17}` which demonstrates the word boundary detection failure.
+
+**Root Cause**: The enhanced trigger detector's `findNonPrefixedTrigger` method only validates the start of word boundaries but not the end boundaries for non-prefixed triggers. It's finding "wub" at position 0 inside "Wubbalubba" without checking if the character following the match is a valid word delimiter.
+
+### 📋 **Phase A: Critical Word Boundary Fix** - **IMMEDIATE ACTION REQUIRED**
+
+#### 🔧 **A.1: Enhanced Trigger Detector Modification** - **URGENT**
+
+- [ ] **Locate and analyze enhanced-trigger-detector.ts** - **IMMEDIATE**
+  - **Action**: Read the current implementation of `findNonPrefixedTrigger` method
+  - **Focus**: Understand how word boundary validation currently works
+  - **File**: `src/content/enhanced-trigger-detector.ts`
+  - **Priority**: CRITICAL - This is the core issue causing the bug
+
+- [ ] **Fix word boundary validation logic** - **CRITICAL IMPLEMENTATION**
+  - **Issue**: Method finds "wub" inside "Wubbalubba" because it doesn't check end boundaries
+  - **Required Fix**: Modify `findNonPrefixedTrigger` to validate BOTH start AND end word boundaries
+  - **Logic**: When a potential trigger is found, verify that the character immediately following the match is either:
+    - A delimiter (space, punctuation, etc.)
+    - End of input string
+    - A non-alphanumeric character
+  - **Example**: "wub" in "Wubbalubba" should fail because it's followed by "b" (alphanumeric)
+  - **Example**: "wub" in "wub " should pass because it's followed by space (delimiter)
+
+#### 🧪 **A.2: Comprehensive Test Coverage** - **HIGH PRIORITY**
+
+- [ ] **Add word boundary edge case tests** - **CRITICAL TESTING**
+  - **Purpose**: Ensure the fix works correctly and prevents regressions
+  - **File**: `tests/unit/enhanced-trigger-detector.test.ts`
+  - **Test Cases Required**:
+    - `"wub"` → should match (end of input)
+    - `"wub "` → should match (followed by space)
+    - `"wub."` → should match (followed by punctuation)
+    - `"Wubbalubba"` → should NOT match "wub" (followed by alphanumeric)
+    - `"wubba"` → should NOT match "wub" (followed by alphanumeric)
+    - `"subwub"` → should NOT match "wub" (preceded by alphanumeric)
+    - `" wub "` → should match "wub" (proper word boundaries)
+    - `"test wub test"` → should match "wub" (proper word boundaries)
+
+- [ ] **Add non-prefixed trigger test coverage** - **HIGH PRIORITY**
+  - **Current Gap**: Non-prefixed triggers like "punt" and "wub" lack comprehensive test coverage
+  - **Required Tests**: Based on existing test structure in enhanced-trigger-detector.test.ts
+  - **Test Categories**:
+    - Basic non-prefixed trigger detection
+    - Word boundary validation for non-prefixed triggers
+    - Mixed scenarios with both prefixed and non-prefixed triggers
+    - Partial matching states for non-prefixed triggers
+    - Performance tests with non-prefixed triggers
+
+#### 🔍 **A.3: Verification and Validation** - **MEDIUM PRIORITY**
+
+- [ ] **Run existing test suite** - **COMPATIBILITY CHECK**
+  - **Command**: `npm test`
+  - **Purpose**: Ensure the fix doesn't break existing functionality
+  - **Expected**: All 536/536 tests should still pass
+  - **Files**: All existing test files should remain green
+
+- [ ] **Test the specific wub scenario** - **BUG VALIDATION**
+  - **Manual Test**: Create test scenario that reproduces the exact log issue
+  - **Input**: Text containing "Wubbalubba Dub Dub!!!" with "wub" trigger defined
+  - **Expected**: "wub" trigger should NOT match inside "Wubbalubba"
+  - **Validation**: Verify the fix resolves the user's reported issue
+
+- [ ] **Performance impact assessment** - **OPTIMIZATION CHECK**
+  - **Concern**: Additional boundary checking might impact performance
+  - **Test**: Run performance tests before and after the fix
+  - **Benchmark**: Ensure minimal performance degradation (<5ms increase)
+  - **Files**: Use existing performance tests in fuzz testing suite
+
+### 📋 **Implementation Timeline**
+
+**Immediate (Next 30 minutes)**:
+1. Read and analyze enhanced-trigger-detector.ts file
+2. Identify the exact location of the word boundary issue
+3. Implement the fix to validate end word boundaries
+
+**Next Hour**:
+1. Add comprehensive test cases for word boundary edge cases
+2. Run full test suite to ensure compatibility
+3. Test the specific "wub" scenario to validate the fix
+
+**Final Validation**:
+1. Performance testing to ensure no significant impact
+2. Update version number as per CLAUDE.md guidelines
+3. Commit the fix with proper commit message format
+
+### 🎯 **Success Criteria**
+
+- [ ] **Bug Resolution**: "wub" trigger no longer matches inside "Wubbalubba"
+- [ ] **Test Coverage**: All edge cases properly tested and passing
+- [ ] **Compatibility**: All existing tests continue to pass
+- [ ] **Performance**: No significant performance degradation
+- [ ] **Documentation**: Fix properly documented and committed
+
+---
+
 ## 🔧 **Technical Improvements** - **LOW PRIORITY**
 
 ### 🎯 **Snippet ID System Enhancement**
