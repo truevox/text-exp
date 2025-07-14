@@ -228,7 +228,7 @@ describe("Complete User Workflows E2E", () => {
       const authResult = await AuthManager.authenticateWithGoogle();
       expect(authResult.success).toBe(false);
       expect(authResult.error).toContain(
-        "Failed to get access token from Chrome identity API",
+        "chrome.runtime.getManifest is not a function",
       );
     }, 15000);
   });

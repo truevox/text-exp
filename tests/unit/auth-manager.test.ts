@@ -145,7 +145,7 @@ describe("AuthManager", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain(
-        "Failed to get access token from Chrome identity API",
+        "OAuth flow cancelled or failed",
       );
 
       // Clean up
@@ -168,19 +168,34 @@ describe("AuthManager", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain(
-        "Failed to get access token from Chrome identity API",
+        "OAuth flow cancelled or failed",
       );
     });
   });
 
   describe("refreshToken", () => {
     it("should refresh token successfully using Chrome identity API", async () => {
-      // Mock Chrome identity API returning new token
-      (chrome.identity.getAuthToken as jest.Mock).mockImplementation(
-        (options, callback) => {
-          callback("new-access-token");
-        },
+      // Mock existing credentials for refresh
+      const existingCredentials: CloudCredentials = {
+        provider: "google-drive",
+        accessToken: "old-token",
+        refreshToken: "refresh-token",
+        expiresAt: new Date(Date.now() - 1000), // Expired
+      };
+
+      (ExtensionStorage.getCloudCredentials as jest.Mock).mockResolvedValue(
+        existingCredentials,
       );
+
+      // Mock successful refresh token request
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          access_token: "new-access-token",
+          refresh_token: "new-refresh-token",
+          expires_in: 3600
+        }),
+      });
 
       const result = await AuthManager.refreshToken();
 
@@ -190,24 +205,17 @@ describe("AuthManager", () => {
     });
 
     it("should handle refresh token failure", async () => {
-      // Mock Chrome identity API failure
-      (chrome.identity.getAuthToken as jest.Mock).mockImplementation(
-        (options, callback) => {
-          chrome.runtime.lastError = { message: "Token expired" };
-          callback(null);
-        },
+      // Mock no existing credentials
+      (ExtensionStorage.getCloudCredentials as jest.Mock).mockResolvedValue(
+        null,
       );
 
       const result = await AuthManager.refreshToken();
 
       expect(result.success).toBe(false);
       expect(result.error).toContain(
-        "Failed to refresh token via Chrome identity API",
+        "No credentials found for refresh",
       );
-      expect(ExtensionStorage.clearCloudCredentials).toHaveBeenCalled();
-
-      // Clean up
-      chrome.runtime.lastError = undefined;
     });
   });
 
@@ -278,6 +286,7 @@ describe("AuthManager", () => {
       const credentials: CloudCredentials = {
         provider: "google-drive",
         accessToken: "invalid-token",
+        refreshToken: "refresh-token",
       };
 
       (ExtensionStorage.getCloudCredentials as jest.Mock).mockResolvedValue(
@@ -376,12 +385,34 @@ describe("AuthManager", () => {
 
   describe("signOut", () => {
     it("should clear credentials successfully", async () => {
+      // Mock existing credentials with refresh token
+      const credentials: CloudCredentials = {
+        provider: "google-drive",
+        accessToken: "token",
+        refreshToken: "refresh-token",
+      };
+
+      (ExtensionStorage.getCloudCredentials as jest.Mock).mockResolvedValue(
+        credentials,
+      );
+
+      // Mock successful refresh token revocation
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+      });
+
+      // Reset the mock to count calls properly
+      (ExtensionStorage.clearCloudCredentials as jest.Mock).mockClear();
+
       await AuthManager.signOut();
 
       expect(ExtensionStorage.clearCloudCredentials).toHaveBeenCalled();
     });
 
     it("should handle clear credentials error", async () => {
+      (ExtensionStorage.getCloudCredentials as jest.Mock).mockResolvedValue(
+        null,
+      );
       (ExtensionStorage.clearCloudCredentials as jest.Mock).mockRejectedValue(
         new Error("Storage error"),
       );

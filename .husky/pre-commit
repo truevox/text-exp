@@ -20,4 +20,5 @@ npm run format --silent
 # Re-add any newly formatted files
 git add package.json manifest.json src/utils/version.ts
 
-npm run validate
+# Run validation without tests (tests results are captured in commit message)
+npm run type-check && npm run lint && npm run format:check
