@@ -449,7 +449,9 @@ describe("Enhanced AuthManager", () => {
       // Mock Chrome identity failure to trigger OAuth flow
       mockChrome.identity.getAuthToken.mockImplementation(
         (config, callback) => {
-          (mockChrome.runtime as any).lastError = { message: "User denied access" };
+          (mockChrome.runtime as any).lastError = {
+            message: "User denied access",
+          };
           callback(null);
         },
       );

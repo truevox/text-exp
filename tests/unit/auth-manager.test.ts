@@ -144,9 +144,7 @@ describe("AuthManager", () => {
       const result = await AuthManager.authenticateWithGoogle();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        "OAuth flow cancelled or failed",
-      );
+      expect(result.error).toContain("OAuth flow cancelled or failed");
 
       // Clean up
       chrome.runtime.lastError = undefined;
@@ -167,9 +165,7 @@ describe("AuthManager", () => {
       const result = await AuthManager.authenticateWithGoogle();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        "OAuth flow cancelled or failed",
-      );
+      expect(result.error).toContain("OAuth flow cancelled or failed");
     });
   });
 
@@ -190,11 +186,12 @@ describe("AuthManager", () => {
       // Mock successful refresh token request
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          access_token: "new-access-token",
-          refresh_token: "new-refresh-token",
-          expires_in: 3600
-        }),
+        json: () =>
+          Promise.resolve({
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            expires_in: 3600,
+          }),
       });
 
       const result = await AuthManager.refreshToken();
@@ -213,9 +210,7 @@ describe("AuthManager", () => {
       const result = await AuthManager.refreshToken();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        "No credentials found for refresh",
-      );
+      expect(result.error).toContain("No credentials found for refresh");
     });
   });
 
