@@ -120,6 +120,14 @@ export interface CloudCredentials {
   refreshToken?: string;
   expiresAt?: Date;
   email?: string;
+  // Enhanced refresh token management
+  tokenType?: "bearer" | "access";
+  scope?: string;
+  issuedAt?: Date;
+  refreshExpiresAt?: Date;
+  // Track refresh attempts to prevent infinite loops
+  refreshAttempts?: number;
+  lastRefreshAt?: Date;
 }
 
 /**

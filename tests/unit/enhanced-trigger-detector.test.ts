@@ -328,8 +328,14 @@ describe("EnhancedTriggerDetector", () => {
         { input: "test]", description: "trigger followed by closing bracket" },
         { input: "test\n", description: "trigger followed by newline" },
         { input: "test\t", description: "trigger followed by tab" },
-        { input: "hello test", description: "trigger with proper start boundary" },
-        { input: "hello test world", description: "trigger with proper boundaries on both sides" },
+        {
+          input: "hello test",
+          description: "trigger with proper start boundary",
+        },
+        {
+          input: "hello test world",
+          description: "trigger with proper boundaries on both sides",
+        },
         { input: " test ", description: "trigger surrounded by spaces" },
       ];
 
@@ -398,12 +404,12 @@ describe("EnhancedTriggerDetector", () => {
         // Use a shorter text that's within the search optimization range
         const longText = "a".repeat(50) + " test " + "b".repeat(50);
         const startTime = performance.now();
-        
+
         const result = detector.processInput(longText);
-        
+
         const endTime = performance.now();
         const duration = endTime - startTime;
-        
+
         expect(result.isMatch).toBe(true);
         expect(result.trigger).toBe("test");
         expect(duration).toBeLessThan(100); // Should be fast even with boundary checking
@@ -413,7 +419,7 @@ describe("EnhancedTriggerDetector", () => {
         // This should NOT match because "test" is not properly bounded
         const longText = "a".repeat(1000) + "testword" + "b".repeat(1000);
         const result = detector.processInput(longText);
-        
+
         // Should either not match at all, or not match "test" specifically
         if (result.isMatch) {
           expect(result.trigger).not.toBe("test");

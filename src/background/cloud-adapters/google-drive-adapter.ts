@@ -115,7 +115,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
       return false;
     }
 
-    return GoogleDriveAuthService.validateCredentials(this.credentials);
+    const result = await GoogleDriveAuthService.validateCredentials(
+      this.credentials,
+    );
+    return result.isValid;
   }
 
   /**
