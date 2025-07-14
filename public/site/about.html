@@ -8,141 +8,1125 @@
       content="Meet PuffPuffPaste — a magical Chrome extension that expands your shortcodes into full text with the help of a friendly pufferfish!"
     />
     <title>PuffPuffPaste - Blow Up Your Words, expand your productivity!</title>
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon-16.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="images/icon-48.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="128x128"
+      href="images/icon-128.png"
+    />
+    <link rel="apple-touch-icon" href="images/icon-128.png" />
+
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap"
     />
     <style>
+      :root {
+        --primary-blue: #0087d2;
+        --light-blue: #7fd5ff;
+        --pale-blue: #c0eaff;
+        --background: #f8fcff;
+        --card-bg: rgba(255, 255, 255, 0.95);
+        --text-dark: #1a365d;
+        --text-light: #4a5568;
+        --accent-coral: #ff6b47;
+        --accent-yellow: #ffd93d;
+        --accent-purple: #a855f7;
+        --accent-pink: #ec4899;
+        --accent-green: #10b981;
+        --glow-blue: rgba(0, 135, 210, 0.6);
+        --glow-coral: rgba(255, 107, 71, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        font-family: "Fredoka", sans-serif;
-        background: #f0faff;
-        color: #222;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--background);
+        background-image:
+          radial-gradient(
+            circle at 20% 80%,
+            rgba(127, 213, 255, 0.12) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(192, 234, 255, 0.18) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at 40% 40%,
+            rgba(255, 217, 61, 0.08) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at 60% 80%,
+            rgba(168, 85, 247, 0.06) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 90% 60%,
+            rgba(236, 72, 153, 0.04) 0%,
+            transparent 50%
+          );
+        background-attachment: fixed;
+        color: var(--text-dark);
+        min-height: 100vh;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
       }
-      header {
-        background: linear-gradient(90deg, #7fd5ff, #c0eaff);
+
+      /* Floating bubbles animation */
+      .bubbles {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        padding: 2rem;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
       }
+
+      .bubble {
+        position: absolute;
+        border-radius: 50%;
+        animation: float 15s infinite linear;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow:
+          0 0 20px rgba(127, 213, 255, 0.4),
+          inset 0 0 20px rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+      }
+
+      .bubble:nth-child(1) {
+        left: 10%;
+        animation-delay: 0s;
+        width: 40px;
+        height: 40px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.4),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(2) {
+        left: 20%;
+        animation-delay: 2s;
+        width: 20px;
+        height: 20px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(168, 85, 247, 0.3),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(3) {
+        left: 35%;
+        animation-delay: 4s;
+        width: 60px;
+        height: 60px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.5),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(4) {
+        left: 50%;
+        animation-delay: 6s;
+        width: 30px;
+        height: 30px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 217, 61, 0.3),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(5) {
+        left: 70%;
+        animation-delay: 8s;
+        width: 50px;
+        height: 50px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(16, 185, 129, 0.3),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(6) {
+        left: 80%;
+        animation-delay: 10s;
+        width: 25px;
+        height: 25px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(236, 72, 153, 0.3),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(7) {
+        left: 15%;
+        animation-delay: 1s;
+        width: 35px;
+        height: 35px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.3),
+          rgba(192, 234, 255, 0.15)
+        );
+      }
+      .bubble:nth-child(8) {
+        left: 65%;
+        animation-delay: 3s;
+        width: 15px;
+        height: 15px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 217, 61, 0.4),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(9) {
+        left: 45%;
+        animation-delay: 7s;
+        width: 45px;
+        height: 45px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(168, 85, 247, 0.25),
+          rgba(192, 234, 255, 0.15)
+        );
+      }
+      .bubble:nth-child(10) {
+        left: 85%;
+        animation-delay: 5s;
+        width: 18px;
+        height: 18px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(16, 185, 129, 0.4),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(11) {
+        left: 5%;
+        animation-delay: 11s;
+        width: 55px;
+        height: 55px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.35),
+          rgba(192, 234, 255, 0.18)
+        );
+      }
+      .bubble:nth-child(12) {
+        left: 75%;
+        animation-delay: 9s;
+        width: 22px;
+        height: 22px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(236, 72, 153, 0.35),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(13) {
+        left: 30%;
+        animation-delay: 13s;
+        width: 38px;
+        height: 38px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 217, 61, 0.3),
+          rgba(192, 234, 255, 0.15)
+        );
+      }
+      .bubble:nth-child(14) {
+        left: 55%;
+        animation-delay: 2.5s;
+        width: 12px;
+        height: 12px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(168, 85, 247, 0.4),
+          rgba(192, 234, 255, 0.25)
+        );
+      }
+      .bubble:nth-child(15) {
+        left: 90%;
+        animation-delay: 14s;
+        width: 42px;
+        height: 42px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(16, 185, 129, 0.3),
+          rgba(192, 234, 255, 0.18)
+        );
+      }
+      .bubble:nth-child(16) {
+        left: 25%;
+        animation-delay: 8.5s;
+        width: 28px;
+        height: 28px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.4),
+          rgba(192, 234, 255, 0.2)
+        );
+      }
+      .bubble:nth-child(17) {
+        left: 60%;
+        animation-delay: 12s;
+        width: 16px;
+        height: 16px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(236, 72, 153, 0.4),
+          rgba(192, 234, 255, 0.25)
+        );
+      }
+      .bubble:nth-child(18) {
+        left: 40%;
+        animation-delay: 15s;
+        width: 65px;
+        height: 65px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(127, 213, 255, 0.25),
+          rgba(192, 234, 255, 0.12)
+        );
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(100vh) scale(0);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px) scale(1);
+          opacity: 0;
+        }
+      }
+
+      header {
+        background: linear-gradient(
+          135deg,
+          var(--light-blue) 0%,
+          var(--pale-blue) 30%,
+          var(--primary-blue) 70%,
+          var(--accent-purple) 100%
+        );
+        width: 100%;
+        padding: 6rem 2rem 4rem 2rem;
+        text-align: center;
+        box-shadow:
+          0 8px 32px rgba(0, 135, 210, 0.3),
+          0 0 0 1px rgba(255, 255, 255, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        position: relative;
+        z-index: 0;
+        overflow: visible;
+      }
+
+      header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        animation: drift 20s infinite linear;
+      }
+
+      @keyframes drift {
+        0% {
+          transform: translateX(-60px);
+        }
+        100% {
+          transform: translateX(60px);
+        }
+      }
+
       header h1 {
-        font-size: 3rem;
+        font-family: "Fredoka", sans-serif;
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        font-weight: 700;
+        margin: 0;
+        color: white;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        animation: bounce-in 1s ease-out;
+      }
+
+      header p {
+        font-size: clamp(1.1rem, 3vw, 1.4rem);
+        margin-top: 1rem;
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
+        animation: fade-in-up 1s ease-out 0.3s both;
+      }
+
+      @keyframes bounce-in {
+        0% {
+          transform: scale(0.3) translateY(-50px);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        70% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1) translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fade-in-up {
+        0% {
+          transform: translateY(30px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-section {
+        text-align: center;
+        padding: 4rem 0;
+        animation: fade-in-up 1s ease-out 0.6s both;
+        position: relative;
+      }
+
+      .logo-container {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 3rem;
+      }
+
+      .logo-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(
+          circle,
+          var(--glow-blue) 0%,
+          transparent 70%
+        );
+        animation: pulse-glow 4s ease-in-out infinite;
+        z-index: 1;
+      }
+
+      .hero-img {
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background:
+          linear-gradient(
+            45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 70%
+          ),
+          linear-gradient(
+            135deg,
+            var(--accent-yellow) 0%,
+            var(--accent-coral) 50%,
+            var(--accent-pink) 100%
+          );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        box-shadow:
+          0 30px 60px rgba(255, 107, 71, 0.4),
+          0 0 0 4px rgba(255, 255, 255, 0.1),
+          inset 0 4px 20px rgba(255, 255, 255, 0.2);
+        animation:
+          float-gentle 6s ease-in-out infinite,
+          rotate-subtle 20s linear infinite;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        z-index: 2;
+        cursor: pointer;
+        overflow: hidden;
+      }
+
+      .hero-img img {
+        width: 180px;
+        height: 180px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        transition: transform 0.3s ease;
+      }
+
+      .hero-img:hover {
+        transform: scale(1.15) rotate(5deg);
+        box-shadow:
+          0 40px 80px rgba(255, 107, 71, 0.6),
+          0 0 0 6px rgba(255, 255, 255, 0.2),
+          inset 0 4px 20px rgba(255, 255, 255, 0.3);
+      }
+
+      .hero-img:hover img {
+        transform: scale(1.1);
+      }
+
+      .hero-img::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        transform: rotate(45deg);
+        animation: shimmer 3s ease-in-out infinite;
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.6;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      @keyframes rotate-subtle {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%) translateY(-100%) rotate(45deg);
+        }
+        50% {
+          transform: translateX(100%) translateY(100%) rotate(45deg);
+        }
+        100% {
+          transform: translateX(-100%) translateY(-100%) rotate(45deg);
+        }
+      }
+
+      @keyframes float-gentle {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 4rem 0;
+        margin: 0 auto;
+      }
+
+      .feature-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(15px);
+        border-radius: 24px;
+        padding: 3rem 2.5rem;
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.1),
+          0 0 0 1px rgba(255, 255, 255, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-blue),
+          var(--light-blue),
+          var(--accent-purple)
+        );
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+      }
+
+      .feature-card::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.05) 0%,
+          transparent 70%
+        );
+        transform: scale(0);
+        transition: transform 0.4s ease;
+      }
+
+      .feature-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .feature-card:hover::after {
+        transform: scale(1);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-15px) scale(1.02);
+        box-shadow:
+          0 25px 50px rgba(0, 135, 210, 0.3),
+          0 0 0 2px rgba(255, 255, 255, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+
+      .feature-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        display: block;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        transition: transform 0.3s ease;
+      }
+
+      .feature-card:hover .feature-icon {
+        transform: scale(1.1) rotate(5deg);
+      }
+
+      .feature-card:nth-child(1) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 0s;
+      }
+      .feature-card:nth-child(2) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 0.5s;
+      }
+      .feature-card:nth-child(3) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+      .feature-card:nth-child(4) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 1.5s;
+      }
+      .feature-card:nth-child(5) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+      .feature-card:nth-child(6) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 2.5s;
+      }
+
+      @keyframes icon-glow {
+        0%,
+        100% {
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+        50% {
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))
+            drop-shadow(0 0 20px var(--glow-blue));
+        }
+      }
+
+      .feature-card h3 {
+        font-family: "Fredoka", sans-serif;
+        margin: 0 0 1rem 0;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .feature-card p {
+        color: var(--text-light);
+        line-height: 1.6;
         margin: 0;
       }
-      header p {
-        font-size: 1.25rem;
-        margin-top: 0.5rem;
+
+      .feature-card code {
+        background: rgba(0, 135, 210, 0.1);
+        color: var(--primary-blue);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 600;
       }
-      .hero-img {
-        margin: 2rem 0;
-        max-width: 300px;
+
+      .story {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 3rem;
+        font-size: 1.2rem;
+        line-height: 1.8;
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative;
       }
-      .features {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 2rem;
-        padding: 2rem;
+
+      .story::before {
+        content: "";
+        position: absolute;
+        top: -25px;
+        left: 3rem;
+        width: 50px;
+        height: 50px;
+        background: url("images/icon-48.png") no-repeat center;
+        background-size: contain;
+        background-color: var(--background);
+        border-radius: 50%;
+        padding: 5px;
       }
-      .feature-card {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        max-width: 280px;
+
+      .story h2 {
+        font-family: "Fredoka", sans-serif;
+        font-size: 2.2rem;
+        margin: 0 0 1.5rem 0;
+        color: var(--text-dark);
         text-align: center;
       }
-      .feature-card h3 {
-        margin-top: 0;
-        font-size: 1.5rem;
+
+      .story p {
+        margin-bottom: 1.5rem;
+        color: var(--text-light);
       }
-      .story {
-        max-width: 720px;
-        padding: 2rem;
-        font-size: 1.15rem;
-        line-height: 1.6;
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
+
+      .cta-section {
+        text-align: center;
+        padding: 4rem 0;
       }
+
       .cta {
-        background: #0087d2;
+        display: inline-block;
+        background: linear-gradient(
+          135deg,
+          var(--primary-blue),
+          var(--light-blue)
+        );
         color: white;
-        padding: 1.5rem 2rem;
-        border-radius: 1rem;
-        font-size: 1.25rem;
+        padding: 1.5rem 3rem;
+        border-radius: 50px;
+        font-size: 1.3rem;
+        font-weight: 600;
         text-decoration: none;
-        margin: 2rem 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0, 135, 210, 0.4);
+        position: relative;
+        overflow: hidden;
       }
+
+      .cta::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .cta:hover::before {
+        left: 100%;
+      }
+
+      .cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0, 135, 210, 0.6);
+      }
+
       footer {
-        font-size: 0.9rem;
-        padding: 1rem;
-        color: #555;
+        background: var(--text-dark);
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        padding: 2rem;
+        margin-top: 4rem;
+      }
+
+      .scroll-indicator {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-blue),
+          var(--light-blue)
+        );
+        z-index: 1000;
+        transition: width 0.1s ease;
+      }
+
+      /* Animations on scroll */
+      .animate-on-scroll {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.8s ease;
+      }
+
+      .animate-on-scroll.animated {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 768px) {
+        header {
+          padding: 3rem 1rem 2rem 1rem;
+        }
+
+        header h1 {
+          font-size: 2.5rem;
+        }
+
+        .hero-section {
+          padding: 2rem 0;
+        }
+
+        .hero-img {
+          width: 180px;
+          height: 180px;
+        }
+
+        .hero-img img {
+          width: 130px;
+          height: 130px;
+        }
+
+        .logo-glow {
+          width: 220px;
+          height: 220px;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+          padding: 2rem 1rem;
+          gap: 1.5rem;
+        }
+
+        .feature-card {
+          padding: 2rem 1.5rem;
+        }
+
+        .story {
+          margin: 2rem 1rem;
+          padding: 2rem 1.5rem;
+          font-size: 1.1rem;
+        }
+
+        .story h2 {
+          font-size: 1.8rem;
+        }
+
+        .cta {
+          padding: 1.2rem 2rem;
+          font-size: 1.1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero-img {
+          width: 150px;
+          height: 150px;
+        }
+
+        .hero-img img {
+          width: 110px;
+          height: 110px;
+        }
+
+        .logo-glow {
+          width: 180px;
+          height: 180px;
+        }
+
+        .feature-card {
+          padding: 1.5rem 1rem;
+        }
+
+        .feature-icon {
+          font-size: 3rem;
+        }
       }
     </style>
   </head>
   <body>
+    <!-- Floating bubbles background -->
+    <div class="bubbles">
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+    </div>
+
+    <!-- Scroll progress indicator -->
+    <div class="scroll-indicator" id="scrollIndicator"></div>
+
     <header>
       <h1>PuffPuffPaste</h1>
-      <p>Blow up your words, not your time! 🐡💨</p>
+      <p>Blow up your words, expand your productivity! 💨</p>
     </header>
-    <img
-      src="images/logo.png"
-      alt="PuffPuff the pufferfish mascot"
-      class="hero-img"
-    />
-    <section class="features">
-      <div class="feature-card">
-        <h3>Type Less</h3>
-        <p>
-          Turn shortcodes like <code>\addr</code> into full phrases like your
-          full mailing address, instantly! Use any unspaced string as a
-          shortcode to trigger your expansion!
-        </p>
-      </div>
-      <div class="feature-card">
-        <h3>Custom Snippets</h3>
-        <p>
-          Create your own triggers and expansions—perfect for emails, support
-          replies, and repetitive tasks.
-        </p>
-      </div>
-    </section>
 
-    <section class="story">
-      <h2>The Tale of PuffPuff</h2>
-      <p>
-        Once upon a tidepool, PuffPuff was just a small, shy pufferfish living
-        among coral keyboards and kelp cables. One day, while floating through a
-        sea of sticky notes and lost passwords, PuffPuff noticed how much time
-        the other ocean creatures were wasting typing the same things over and
-        over.
-      </p>
-      <p>
-        So PuffPuff came up with a clever trick: he’d take a tiny code—just a
-        puff of text—and blow it up into something big and useful! "\sig" became
-        a full email signature, "\gm" turned into a cheerful morning greeting,
-        and the reef ran smoother than ever. Word spread fast (like a bubble in
-        a current), and soon PuffPuff was helping humans too—with a Chrome
-        extension named in his honor.
-      </p>
-      <p>
-        Now, every time you expand a snippet, you're getting a little help from
-        the puffiest productivity pal on the planet.
-      </p>
-    </section>
+    <div class="container">
+      <section class="hero-section">
+        <div class="logo-container">
+          <div class="logo-glow"></div>
+          <div class="hero-img">
+            <img
+              src="images/icon-128.png"
+              alt="PuffPuff the pufferfish mascot"
+            />
+          </div>
+        </div>
+        <h2
+          style="
+            font-family: &quot;Fredoka&quot;, sans-serif;
+            font-size: 2.5rem;
+            margin: 0 0 1rem 0;
+            color: var(--text-dark);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          "
+        >
+          Meet PuffPuff! 🌊
+        </h2>
+        <p
+          style="
+            font-size: 1.4rem;
+            color: var(--text-light);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-weight: 500;
+          "
+        >
+          Your new productivity companion who transforms tiny shortcuts into
+          full text expansions with the magic of a friendly pufferfish.
+        </p>
+      </section>
 
-    <a
-      class="cta"
-      href="https://chrome.google.com/webstore/detail/puffpuffpaste/YOUR_EXTENSION_ID"
-      target="_blank"
-      >➤ Add to Chrome — It’s Free!</a
-    >
-    <footer>&copy; 2025 PuffPuffPaste. Built with love and bubbles.</footer>
+      <section class="features animate-on-scroll">
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Lightning Fast</h3>
+          <p>
+            Turn shortcuts like <code>;addr</code> into your full mailing
+            address instantly! Type less, accomplish more with smart text
+            expansion.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🎨</span>
+          <h3>Fully Customizable</h3>
+          <p>
+            Create your own triggers and expansions. Perfect for email
+            signatures, support responses, code snippets, and any repetitive
+            text.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">☁️</span>
+          <h3>Cloud Sync</h3>
+          <p>
+            Sync your snippets across devices with Google Drive integration.
+            Access your shortcuts anywhere, anytime.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔒</span>
+          <h3>Privacy First</h3>
+          <p>
+            Your data stays private. All expansions happen locally in your
+            browser, with optional cloud sync under your control.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🚀</span>
+          <h3>Works Everywhere</h3>
+          <p>
+            Compatible with Gmail, Slack, Twitter, Google Docs, and virtually
+            any text field on the web. One extension, endless possibilities.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📝</span>
+          <h3>Smart Variables</h3>
+          <p>
+            Use dynamic placeholders like <code>{date}</code> and
+            <code>{name}</code>
+            in your snippets for even more powerful text expansion.
+          </p>
+        </div>
+      </section>
+
+      <section class="story animate-on-scroll">
+        <h2>The Tale of PuffPuff</h2>
+        <p>
+          Once upon a tidepool, PuffPuff was just a small, shy pufferfish living
+          among coral keyboards and kelp cables. One day, while floating through
+          a sea of sticky notes and lost passwords, PuffPuff noticed how much
+          time the other ocean creatures were wasting typing the same things
+          over and over.
+        </p>
+        <p>
+          So PuffPuff came up with a clever trick: he'd take a short code—just a
+          puff of text—and blow it up into something big and useful!
+          <code>;sig</code> became a full email signature,
+          <code>gm!</code> turned into a cheerful morning greeting, and the reef
+          ran smoother than ever. Word spread fast (like a bubble in a current),
+          and soon PuffPuff was helping humans too—with the first Chrome
+          extension programmed by a fish (PuffPuff considered helping
+          on-location, but most humans lack surrounding water, a fish coworking
+          prerequisite). Having mastered Javascript to make the extension,
+          PuffPuff is now learning Sea++.
+        </p>
+        <p>
+          Now, every time you expand a snippet, you're getting a little help
+          from the puffiest productivity pal on the planet. Ready to join the
+          underwater productivity revolution? 🌊
+        </p>
+      </section>
+
+      <section class="cta-section animate-on-scroll">
+        <a
+          class="cta"
+          href="https://chrome.google.com/webstore/detail/puffpuffpaste/YOUR_EXTENSION_ID"
+          target="_blank"
+          >🚀 Add to Chrome — It's Free!</a
+        >
+        <p style="margin-top: 1rem; color: var(--text-light)">
+          Join thousands of users saving hours every day
+        </p>
+      </section>
+    </div>
+
+    <footer>
+      <p>&copy; 2025 PuffPuffPaste. Built with love and bubbles. 🫧</p>
+      <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 0.5rem">
+        Made by developers, for developers (and everyone who types too much)
+      </p>
+    </footer>
+
+    <script>
+      // Scroll progress indicator
+      window.addEventListener("scroll", () => {
+        const scrolled =
+          (window.scrollY /
+            (document.documentElement.scrollHeight - window.innerHeight)) *
+          100;
+        document.getElementById("scrollIndicator").style.width = scrolled + "%";
+      });
+
+      // Animate elements on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("animated");
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll(".animate-on-scroll").forEach((el) => {
+        observer.observe(el);
+      });
+
+      // Add some playful interactions
+      document
+        .querySelector(".hero-img")
+        .addEventListener("click", function () {
+          this.style.animation = "none";
+          this.offsetHeight; // Trigger reflow
+          this.style.animation = "bounce-in 0.6s ease-out";
+        });
+
+      // Parallax effect for bubbles
+      window.addEventListener("scroll", () => {
+        const scrolled = window.pageYOffset;
+        const bubbles = document.querySelectorAll(".bubble");
+
+        bubbles.forEach((bubble, index) => {
+          const speed = 0.1 + index * 0.05;
+          bubble.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+      });
+    </script>
   </body>
 </html>
