@@ -21,66 +21,103 @@ const REFRESH_TOKEN_CONFIG = {
 };
 
 export class GoogleDriveAuthService {
+  // Store code verifier for PKCE flow
+  private static currentCodeVerifier: string | null = null;
+
   /**
-   * Authenticate with Google Drive using enhanced OAuth flow
+   * Authenticate with Google Drive using Chrome identity API
    */
   static async authenticate(): Promise<CloudCredentials> {
     return new Promise((resolve, reject) => {
-      // Try Chrome's built-in OAuth first
       const scopes = CLOUD_PROVIDERS["google-drive"].scopes;
 
       console.log(
-        "🔐 Attempting Chrome identity.getAuthToken with enhanced configuration...",
+        "🔐 Starting Google Drive authentication with Chrome identity API...",
       );
+      console.log("🔍 Scopes:", scopes);
 
-      chrome.identity.getAuthToken(
-        {
-          interactive: true,
-          scopes: [...scopes], // Convert readonly array to mutable
-        },
-        (token) => {
-          if (chrome.runtime.lastError) {
-            console.log(
-              "🔐 Chrome identity failed, falling back to manual OAuth with refresh token support:",
-              chrome.runtime.lastError.message,
-            );
-            // Enhanced fallback with refresh token support
-            this.authenticateManuallyWithRefreshToken(resolve, reject);
-            return;
-          }
+      // Clear any cached tokens first to ensure fresh authentication
+      chrome.identity.clearAllCachedAuthTokens(() => {
+        console.log("🗑️ Cleared all cached tokens, requesting fresh token...");
 
-          if (!token) {
-            console.error("🚫 No token received from Chrome identity");
-            reject(new Error("Authentication failed - no token"));
-            return;
-          }
+        chrome.identity.getAuthToken(
+          {
+            interactive: true,
+            scopes: [...scopes],
+          },
+          async (token) => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "🚫 Chrome identity authentication failed:",
+                chrome.runtime.lastError.message,
+              );
+              reject(
+                new Error(
+                  `Authentication failed: ${chrome.runtime.lastError.message}`,
+                ),
+              );
+              return;
+            }
 
-          console.log("✅ Chrome identity token received");
+            if (!token) {
+              console.error("🚫 No token received from Chrome identity");
+              reject(new Error("Authentication failed - no token received"));
+              return;
+            }
 
-          // Enhanced credentials object
-          const credentials: CloudCredentials = {
-            provider: "google-drive",
-            accessToken: token,
-            tokenType: "bearer",
-            expiresAt: new Date(Date.now() + 3600 * 1000), // Assume 1 hour
-            issuedAt: new Date(),
-            refreshAttempts: 0,
-          };
+            console.log("✅ Chrome identity token received");
+            console.log("🔍 Token type:", typeof token);
+            console.log("🔍 Token length:", token.length);
+            console.log("🔍 Token preview:", token.substring(0, 20) + "...");
 
-          resolve(credentials);
-        },
-      );
+            // Create credentials object
+            const credentials: CloudCredentials = {
+              provider: "google-drive",
+              accessToken: token,
+              tokenType: "bearer",
+              expiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour default
+              issuedAt: new Date(),
+              refreshAttempts: 0,
+            };
+
+            // Validate the token before completing authentication
+            console.log("🔍 Validating token with Google APIs...");
+            try {
+              const validationResult =
+                await this.validateCredentials(credentials);
+
+              if (validationResult && validationResult.isValid) {
+                console.log("✅ Token validation successful");
+                resolve(credentials);
+              } else {
+                console.error(
+                  "🚫 Token validation failed:",
+                  validationResult?.error || "Unknown error",
+                );
+                reject(
+                  new Error(
+                    validationResult?.error || "Token validation failed",
+                  ),
+                );
+              }
+            } catch (error) {
+              console.error("🚫 Token validation error:", error);
+              reject(error);
+            }
+          },
+        );
+      });
     });
   }
 
   /**
    * Enhanced manual OAuth authentication with refresh token support
    */
-  private static authenticateManuallyWithRefreshToken(
+  private static async authenticateManuallyWithRefreshToken(
     resolve: (value: CloudCredentials) => void,
     reject: (reason?: any) => void,
-  ): void {
-    const authUrl = this.buildEnhancedAuthUrl();
+  ): Promise<void> {
+    const authUrl = await this.buildEnhancedAuthUrl();
     console.log("🔐 Google Drive enhanced manual auth URL:", authUrl);
 
     chrome.identity.launchWebAuthFlow(
@@ -161,6 +198,7 @@ export class GoogleDriveAuthService {
           code: code,
           grant_type: "authorization_code",
           redirect_uri: redirectUri,
+          code_verifier: this.currentCodeVerifier || "", // PKCE code verifier
         }),
       });
 
@@ -200,19 +238,40 @@ export class GoogleDriveAuthService {
   }
 
   /**
-   * Build enhanced OAuth URL for manual authentication with refresh token support
+   * Build enhanced OAuth URL for manual authentication with PKCE support
    */
-  private static buildEnhancedAuthUrl(): string {
+  private static async buildEnhancedAuthUrl(): Promise<string> {
     const manifest = chrome.runtime.getManifest();
     const clientId = manifest.oauth2?.client_id || "";
     const redirectUri = chrome.identity.getRedirectURL();
+    const extensionId = chrome.runtime.id;
 
-    console.log("🔧 Enhanced OAuth configuration:", {
+    // Generate PKCE code verifier and challenge for secure OAuth flow
+    const codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+
+    // Store code verifier for later use in token exchange
+    this.currentCodeVerifier = codeVerifier;
+
+    console.log("🔧 Enhanced OAuth configuration with PKCE:", {
       clientId,
       redirectUri,
+      extensionId,
       authUrl: CLOUD_PROVIDERS["google-drive"].authUrl,
       scopes: CLOUD_PROVIDERS["google-drive"].scopes,
+      codeChallenge,
+      codeVerifier: codeVerifier.substring(0, 10) + "...", // Only show first 10 chars for security
     });
+
+    console.log("🚨 EXTENSION ID MISMATCH CHECK:");
+    console.log("  Current extension ID:", extensionId);
+    console.log(
+      "  Expected extension ID (from GOOGLE-OAUTH-SETUP.md): hlhpgfjffmigppdbhopljldjplpffhmb",
+    );
+    console.log("  Current redirect URI:", redirectUri);
+    console.log(
+      "  Expected redirect URI: https://hlhpgfjffmigppdbhopljldjplpffhmb.chromiumapp.org/",
+    );
 
     const params = new URLSearchParams({
       client_id: clientId,
@@ -222,6 +281,10 @@ export class GoogleDriveAuthService {
       access_type: "offline", // Request offline access for refresh token
       prompt: "consent", // Force consent to ensure refresh token
       include_granted_scopes: "true",
+      // PKCE parameters for secure OAuth flow
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+      state: this.generateStateToken(), // CSRF protection
     });
 
     return `${CLOUD_PROVIDERS["google-drive"].authUrl}?${params.toString()}`;
@@ -269,13 +332,12 @@ export class GoogleDriveAuthService {
       throw new Error("No access token available in credentials");
     }
 
-    const tokenType = credentials.tokenType || "Bearer";
+    // Always use "Bearer" (capital B) as Google APIs are case-sensitive
+    const tokenType = "Bearer";
 
     return {
       Authorization: `${tokenType} ${credentials.accessToken}`,
       "Content-Type": "application/json",
-      // Add useful debugging headers
-      "X-Goog-Auth-User": "0",
     };
   }
 
@@ -296,11 +358,23 @@ export class GoogleDriveAuthService {
         }
       }
 
+      const headers = this.getAuthHeaders(credentials);
+      console.log("🔍 Making validation request with headers:", {
+        Authorization: headers.Authorization.substring(0, 20) + "...",
+        "Content-Type": headers["Content-Type"],
+      });
+
       const response = await fetch(
         "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName)",
         {
-          headers: this.getAuthHeaders(credentials),
+          headers,
         },
+      );
+
+      console.log("🔍 Validation response status:", response.status);
+      console.log(
+        "🔍 Validation response headers:",
+        Object.fromEntries(response.headers.entries()),
       );
 
       if (response.ok) {
@@ -308,6 +382,8 @@ export class GoogleDriveAuthService {
         console.log(
           "✅ Credentials validated for user:",
           data.user?.emailAddress,
+          "| displayName:",
+          data.user?.displayName,
         );
         return { isValid: true };
       } else {
@@ -315,10 +391,24 @@ export class GoogleDriveAuthService {
           "⚠️ Credential validation failed:",
           response.status,
           response.statusText,
+          "| URL:",
+          response.url,
         );
 
         // Enhanced error handling
         if (response.status === 401) {
+          console.log(
+            "🔄 401 Unauthorized - Token needs refresh or re-authentication",
+          );
+
+          // Get detailed error information
+          try {
+            const errorText = await response.text();
+            console.log("🔍 401 Error details:", errorText);
+          } catch (e) {
+            console.log("🔍 Could not read 401 error details");
+          }
+
           return {
             isValid: false,
             needsRefresh: true,
@@ -327,13 +417,25 @@ export class GoogleDriveAuthService {
         } else if (response.status === 403) {
           const errorData = await response.json().catch(() => null);
           if (errorData?.error?.message?.includes("rate")) {
+            console.log("⏱️ Rate limited but token is valid");
             return { isValid: true, error: "Rate limited but token is valid" };
           }
+          console.log("🚫 403 Forbidden - Check API permissions and scopes");
           return {
             isValid: false,
-            error: "Forbidden - insufficient permissions",
+            error: "Forbidden - insufficient permissions or API not enabled",
+          };
+        } else if (response.status === 404) {
+          console.log("🔍 404 Not Found - Check API endpoint availability");
+          return {
+            isValid: false,
+            error:
+              "API endpoint not found - Google Drive API may not be enabled",
           };
         } else {
+          console.log(
+            `🚫 API Error ${response.status} - ${response.statusText}`,
+          );
           return {
             isValid: false,
             error: `API error: ${response.status} ${response.statusText}`,
@@ -361,21 +463,32 @@ export class GoogleDriveAuthService {
         console.log("🗑️ Attempted to clear cached token");
 
         // Clear all cached tokens for this extension
-        chrome.identity.getAuthToken({ interactive: false }, (token) => {
-          if (token) {
-            chrome.identity.removeCachedAuthToken({ token }, () => {
-              console.log("🗑️ Cleared specific cached token");
+        chrome.identity.getAuthToken(
+          { interactive: false },
+          (tokenResponse) => {
+            // Extract token from response object or use as string for backward compatibility
+            const token =
+              typeof tokenResponse === "string"
+                ? tokenResponse
+                : (tokenResponse as any)?.token;
+
+            if (token) {
+              chrome.identity.removeCachedAuthToken({ token }, () => {
+                console.log("🗑️ Cleared specific cached token");
+                this.authenticateWithEnhancedLogging()
+                  .then(resolve)
+                  .catch(reject);
+              });
+            } else {
+              console.log(
+                "🗑️ No cached token found, proceeding with authentication",
+              );
               this.authenticateWithEnhancedLogging()
                 .then(resolve)
                 .catch(reject);
-            });
-          } else {
-            console.log(
-              "🗑️ No cached token found, proceeding with authentication",
-            );
-            this.authenticateWithEnhancedLogging().then(resolve).catch(reject);
-          }
-        });
+            }
+          },
+        );
       });
     });
   }
@@ -393,7 +506,13 @@ export class GoogleDriveAuthService {
           interactive: true,
           scopes: [...scopes],
         },
-        (token) => {
+        (tokenResponse) => {
+          // Extract token from response object or use as string for backward compatibility
+          const token =
+            typeof tokenResponse === "string"
+              ? tokenResponse
+              : (tokenResponse as any)?.token;
+
           if (chrome.runtime.lastError) {
             console.error(
               "🔐 Authentication failed:",
@@ -478,5 +597,306 @@ export class GoogleDriveAuthService {
       console.error("❌ Error testing token scopes:", error);
       return false;
     }
+  }
+
+  /**
+   * Clear cached token and retry authentication with validation
+   */
+  private static clearTokenAndRetryAuthentication(
+    resolve: (value: CloudCredentials) => void,
+    reject: (reason?: any) => void,
+  ): void {
+    console.log("🔄 Clearing cached token and retrying authentication...");
+
+    // Get the cached token first so we can remove it
+    chrome.identity.getAuthToken(
+      { interactive: false },
+      (cachedTokenResponse) => {
+        // Extract token from response object or use as string for backward compatibility
+        const cachedToken =
+          typeof cachedTokenResponse === "string"
+            ? cachedTokenResponse
+            : (cachedTokenResponse as any)?.token;
+
+        if (cachedToken) {
+          console.log("🗑️ Found cached token, removing it...");
+          chrome.identity.removeCachedAuthToken({ token: cachedToken }, () => {
+            console.log("🗑️ Cleared cached token successfully");
+
+            // Also try to clear any other cached tokens
+            chrome.identity.getAuthToken(
+              { interactive: false },
+              (stillCachedTokenResponse) => {
+                // Extract token from response object or use as string for backward compatibility
+                const stillCachedToken =
+                  typeof stillCachedTokenResponse === "string"
+                    ? stillCachedTokenResponse
+                    : (stillCachedTokenResponse as any)?.token;
+
+                if (stillCachedToken) {
+                  console.log(
+                    "🗑️ Found another cached token, removing it too...",
+                  );
+                  chrome.identity.removeCachedAuthToken(
+                    { token: stillCachedToken },
+                    () => {
+                      console.log(
+                        "🗑️ Cleared all cached tokens, forcing interactive authentication",
+                      );
+                      this.authenticateWithValidation(resolve, reject);
+                    },
+                  );
+                } else {
+                  console.log(
+                    "🗑️ No more cached tokens found, forcing interactive authentication",
+                  );
+                  this.authenticateWithValidation(resolve, reject);
+                }
+              },
+            );
+          });
+        } else {
+          console.log(
+            "🗑️ No cached token found, proceeding with fresh authentication",
+          );
+          this.authenticateWithValidation(resolve, reject);
+        }
+      },
+    );
+  }
+
+  /**
+   * Authenticate with forced interactive prompt and validation
+   */
+  private static authenticateWithValidation(
+    resolve: (value: CloudCredentials) => void,
+    reject: (reason?: any) => void,
+  ): void {
+    const scopes = CLOUD_PROVIDERS["google-drive"].scopes;
+    console.log(
+      "🔐 Forcing Chrome identity authentication with scopes:",
+      scopes,
+    );
+
+    // Use Chrome identity API directly instead of manual web auth flow
+    // Chrome extension OAuth clients don't support redirect URIs for manual flows
+    chrome.identity.getAuthToken(
+      {
+        interactive: true,
+        scopes: [...scopes],
+      },
+      async (tokenResponse) => {
+        // Extract token from response object or use as string for backward compatibility
+        const token =
+          typeof tokenResponse === "string"
+            ? tokenResponse
+            : (tokenResponse as any)?.token;
+
+        if (chrome.runtime.lastError) {
+          console.error(
+            "🔐 Interactive Chrome identity failed:",
+            chrome.runtime.lastError.message,
+          );
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!token) {
+          console.error("🚫 No token received from Chrome identity");
+          reject(new Error("Authentication failed - no token"));
+          return;
+        }
+
+        console.log("✅ New token received from Chrome identity");
+        console.log("🔍 Token details:", {
+          tokenLength: token.length,
+          tokenStart: token.substring(0, 20),
+          tokenEnd: token.substring(token.length - 10),
+        });
+
+        // Test the token with a simpler API call first
+        console.log("🧪 Testing token with Google userinfo API...");
+        try {
+          const userinfoResponse = await fetch(
+            "https://www.googleapis.com/oauth2/v1/userinfo",
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          console.log(
+            "🧪 Userinfo API response:",
+            userinfoResponse.status,
+            userinfoResponse.statusText,
+          );
+          if (userinfoResponse.ok) {
+            const userinfo = await userinfoResponse.json();
+            console.log("✅ Userinfo API success:", userinfo.email);
+          } else {
+            console.error(
+              "❌ Userinfo API failed:",
+              await userinfoResponse.text(),
+            );
+          }
+        } catch (userinfoError) {
+          console.error("❌ Userinfo API error:", userinfoError);
+        }
+
+        // Create credentials object
+        const credentials: CloudCredentials = {
+          provider: "google-drive",
+          accessToken: token,
+          tokenType: "bearer",
+          expiresAt: new Date(Date.now() + 3600 * 1000), // Assume 1 hour
+          issuedAt: new Date(),
+          refreshAttempts: 0,
+        };
+
+        // Validate the new token
+        try {
+          const validationResult = await this.validateCredentials(credentials);
+
+          if (validationResult && validationResult.isValid) {
+            console.log("✅ New Chrome identity token validation successful");
+            resolve(credentials);
+          } else {
+            console.error(
+              "🚫 New Chrome identity token validation failed:",
+              validationResult?.error || "Unknown validation error",
+            );
+            reject(
+              new Error(
+                validationResult?.error ||
+                  "Token validation failed after Chrome identity retry",
+              ),
+            );
+          }
+        } catch (error) {
+          console.error(
+            "🚫 New Chrome identity token validation error:",
+            error,
+          );
+          reject(
+            new Error("Token validation failed after Chrome identity retry"),
+          );
+        }
+      },
+    );
+  }
+
+  /**
+   * Authenticate with forced Chrome identity (last resort)
+   */
+  private static authenticateWithChromeIdentityForced(
+    resolve: (value: CloudCredentials) => void,
+    reject: (reason?: any) => void,
+  ): void {
+    const scopes = CLOUD_PROVIDERS["google-drive"].scopes;
+    console.log(
+      "🔐 Forcing Chrome identity authentication with scopes:",
+      scopes,
+    );
+
+    chrome.identity.getAuthToken(
+      {
+        interactive: true,
+        scopes: [...scopes],
+      },
+      async (tokenResponse) => {
+        // Extract token from response object or use as string for backward compatibility
+        const token =
+          typeof tokenResponse === "string"
+            ? tokenResponse
+            : (tokenResponse as any)?.token;
+
+        if (chrome.runtime.lastError) {
+          console.error(
+            "🔐 Interactive authentication failed:",
+            chrome.runtime.lastError.message,
+          );
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!token) {
+          console.error("🚫 No token received from interactive authentication");
+          reject(new Error("Authentication failed - no token"));
+          return;
+        }
+
+        console.log("✅ New token received from interactive authentication");
+
+        // Create credentials object
+        const credentials: CloudCredentials = {
+          provider: "google-drive",
+          accessToken: token,
+          tokenType: "bearer",
+          expiresAt: new Date(Date.now() + 3600 * 1000), // Assume 1 hour
+          issuedAt: new Date(),
+          refreshAttempts: 0,
+        };
+
+        // Validate the new token
+        try {
+          const validationResult = await this.validateCredentials(credentials);
+
+          if (validationResult && validationResult.isValid) {
+            console.log("✅ New token validation successful");
+            resolve(credentials);
+          } else {
+            console.error(
+              "🚫 New token validation failed:",
+              validationResult?.error || "Unknown validation error",
+            );
+            reject(
+              new Error(
+                validationResult?.error ||
+                  "Token validation failed after retry",
+              ),
+            );
+          }
+        } catch (error) {
+          console.error("🚫 New token validation error:", error);
+          reject(new Error("Token validation failed after retry"));
+        }
+      },
+    );
+  }
+
+  /**
+   * Generate a cryptographically secure code verifier for PKCE
+   */
+  private static generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return this.base64URLEncode(array);
+  }
+
+  /**
+   * Generate code challenge from code verifier using SHA256
+   */
+  private static async generateCodeChallenge(
+    codeVerifier: string,
+  ): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return this.base64URLEncode(new Uint8Array(digest));
+  }
+
+  /**
+   * Generate a random state token for CSRF protection
+   */
+  private static generateStateToken(): string {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return this.base64URLEncode(array);
+  }
+
+  /**
+   * Base64URL encode without padding
+   */
+  private static base64URLEncode(array: Uint8Array): string {
+    const base64 = btoa(String.fromCharCode(...array));
+    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
   }
 }

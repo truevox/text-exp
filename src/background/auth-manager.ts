@@ -115,7 +115,7 @@ export class AuthManager {
             interactive: true,
             scopes: [...provider.scopes],
           },
-          (token) => {
+          (tokenResponse) => {
             if (chrome.runtime.lastError) {
               console.log(
                 "Chrome identity limitation:",
@@ -123,6 +123,11 @@ export class AuthManager {
               );
               resolve(null);
             } else {
+              // Extract token from response object or use as string for backward compatibility
+              const token =
+                typeof tokenResponse === "string"
+                  ? tokenResponse
+                  : (tokenResponse as any)?.token;
               resolve(token || null);
             }
           },
