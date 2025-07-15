@@ -53,6 +53,7 @@ export class EnhancedTriggerDetector {
     " ",
     "\t",
     "\n",
+    "\r",
     ".",
     ",",
     "!",
@@ -173,9 +174,10 @@ export class EnhancedTriggerDetector {
 
   private processInputOptimized(input: string): TriggerMatch {
     // For long inputs, search more broadly but still optimize
+    // For non-prefixed triggers, we need to search more broadly since they can appear anywhere
     const searchStart =
       input.length > 100
-        ? Math.max(0, input.length - Math.max(this.maxTriggerLength * 2, 100))
+        ? Math.max(0, input.length - Math.max(this.maxTriggerLength * 2, 600))
         : 0;
 
     // Try to find triggers with prefix first
@@ -234,14 +236,29 @@ export class EnhancedTriggerDetector {
     let hasDelimiter = false;
 
     // Find trigger boundary with early termination
+    // We scan until we find a delimiter that's not part of any valid trigger
     while (
       triggerEnd < input.length &&
       triggerEnd - triggerStart <= this.maxTriggerLength
     ) {
       const char = input[triggerEnd];
+
+      // Check if this character could be part of a trigger
+      // Only stop if it's a delimiter AND it's not part of any valid trigger pattern
       if (this.delimiters.has(char)) {
-        hasDelimiter = true;
-        break;
+        const potentialTrigger = input.slice(triggerStart, triggerEnd + 1);
+
+        // Check if any snippet has this potential trigger as a prefix
+        const hasMatchingTrigger = this.snippets.some(
+          (snippet) =>
+            snippet.trigger.startsWith(potentialTrigger) ||
+            snippet.trigger === potentialTrigger,
+        );
+
+        if (!hasMatchingTrigger) {
+          hasDelimiter = true;
+          break;
+        }
       }
 
       triggerEnd++;
@@ -325,41 +342,88 @@ export class EnhancedTriggerDetector {
     searchStart: number,
   ): TriggerMatch {
     // Find word boundaries from the end of input backwards
+    // This ensures we find the rightmost (most recent) trigger first
     for (let end = input.length; end > searchStart; end--) {
-      // Skip if this position is not at a word boundary (end of word)
-      if (end < input.length && !this.delimiters.has(input[end])) {
-        continue; // Not at end of word
-      }
+      // Check all possible starting positions for this ending position
+      for (
+        let start = Math.max(searchStart, end - this.maxTriggerLength);
+        start < end;
+        start++
+      ) {
+        // Verify proper word boundaries for this potential trigger
+        const beforeChar = start > 0 ? input[start - 1] : null;
+        const afterChar = end < input.length ? input[end] : null;
 
-      // Find start of current word
-      let start = end - 1;
-      while (start >= searchStart && !this.delimiters.has(input[start])) {
-        start--;
-      }
-      start++; // Move to first non-delimiter character
+        // Must be at start of input or after a delimiter
+        // Also treat Unicode characters (like emojis) as delimiters
+        if (
+          beforeChar !== null &&
+          !this.delimiters.has(beforeChar) &&
+          /[a-zA-Z0-9_]/.test(beforeChar)
+        ) {
+          continue;
+        }
 
-      if (start >= end) continue;
+        const potentialTrigger = input.slice(start, end);
 
-      // Also verify this is the start of a word (or beginning of input)
-      if (start > 0 && !this.delimiters.has(input[start - 1])) {
-        continue; // Not at start of word
-      }
+        // Check if this could be a valid trigger (exact match or partial match)
+        const exactMatch = this.snippets.find(
+          (snippet) =>
+            !snippet.trigger.startsWith(this.prefix) &&
+            snippet.trigger === potentialTrigger,
+        );
 
-      const wordText = input.slice(start, end);
+        const partialMatch = this.snippets.find(
+          (snippet) =>
+            !snippet.trigger.startsWith(this.prefix) &&
+            snippet.trigger.startsWith(potentialTrigger) &&
+            snippet.trigger !== potentialTrigger,
+        );
 
-      // Skip if word is too long to be a trigger
-      if (wordText.length > this.maxTriggerLength) continue;
+        if (!exactMatch && !partialMatch) {
+          continue; // Not a valid trigger or partial trigger
+        }
 
-      // Check if this word matches any non-prefixed trigger
-      // isAtEnd is true if this word goes to the end of the input (no delimiter after)
-      const isAtEnd = end === input.length;
-      const matchResult = this.matchNonPrefixedTrigger(
-        wordText,
-        start,
-        isAtEnd,
-      );
-      if (matchResult.isMatch || matchResult.state !== TriggerState.IDLE) {
-        return matchResult;
+        // For exact matches, check proper end boundaries
+        if (exactMatch && afterChar !== null) {
+          // Special handling for triggers ending with punctuation
+          if (
+            potentialTrigger.endsWith("!") ||
+            potentialTrigger.endsWith("?") ||
+            potentialTrigger.endsWith(":") ||
+            potentialTrigger.endsWith(".")
+          ) {
+            // For triggers ending with punctuation, next char must be whitespace or different punctuation
+            // But NOT the same punctuation (e.g., gg!! should not match gg!)
+            if (
+              afterChar === potentialTrigger.charAt(potentialTrigger.length - 1)
+            ) {
+              continue; // Same punctuation repeated
+            }
+            if (
+              !/[\s\t\n\r]/.test(afterChar) &&
+              !this.delimiters.has(afterChar)
+            ) {
+              continue;
+            }
+          } else {
+            // For regular triggers, must not be followed by alphanumeric or underscore
+            if (/[a-zA-Z0-9_]/.test(afterChar)) {
+              continue;
+            }
+          }
+        }
+
+        // Check if this matches any non-prefixed trigger
+        const isAtEnd = end === input.length;
+        const matchResult = this.matchNonPrefixedTrigger(
+          potentialTrigger,
+          start,
+          isAtEnd,
+        );
+        if (matchResult.isMatch || matchResult.state !== TriggerState.IDLE) {
+          return matchResult;
+        }
       }
     }
 
