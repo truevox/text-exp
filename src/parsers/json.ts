@@ -9,6 +9,7 @@ import type {
   SnippetMeta,
   VariableDef,
   LegacySnippet,
+  FlatSnippet,
   ParseOptions,
   SerializeOptions,
 } from "../types/snippet-formats.js";
@@ -46,6 +47,11 @@ export class JSONParser implements FormatParser {
     // Handle legacy format
     if (this.isLegacySnippet(item)) {
       return this.convertLegacySnippet(item);
+    }
+
+    // Handle flat format
+    if (this.isFlatSnippet(item)) {
+      return this.convertFlatSnippet(item);
     }
 
     // Modern format validation
@@ -91,7 +97,23 @@ export class JSONParser implements FormatParser {
       typeof item.id === "string" &&
       typeof item.trigger === "string" &&
       typeof item.content === "string" &&
-      !item.meta // Key indicator that it's legacy format
+      !item.meta && // Key indicator that it's legacy format
+      (item.createdAt instanceof Date ||
+        item.lastModified instanceof Date ||
+        (typeof item.isActive === "boolean" && item.lastModified !== undefined)) // Legacy has isActive and lastModified
+    );
+  }
+
+  private isFlatSnippet(item: any): item is FlatSnippet {
+    return (
+      typeof item === "object" &&
+      item !== null &&
+      typeof item.id === "string" &&
+      typeof item.trigger === "string" &&
+      typeof item.content === "string" &&
+      !item.meta && // Key indicator that it's not modern format
+      !this.isLegacySnippet(item) && // Not legacy format
+      (typeof item.createdAt === "string" || typeof item.updatedAt === "string") // Flat uses ISO strings
     );
   }
 
@@ -129,6 +151,30 @@ export class JSONParser implements FormatParser {
     return {
       meta,
       body: legacy.content,
+      format: "json",
+    };
+  }
+
+  private convertFlatSnippet(flat: FlatSnippet): SnippetDoc {
+    const meta: SnippetMeta = {
+      id: flat.id,
+      trigger: flat.trigger,
+      snipDependencies: [],
+      contentType: this.normalizeContentType(flat.contentType),
+      description: flat.description || `Flat snippet: ${flat.trigger}`,
+      scope: this.normalizeScope(flat.scope),
+      variables: this.normalizeVariables(flat.variables),
+      images: [],
+      tags: Array.isArray(flat.tags) ? flat.tags : [],
+      createdAt: flat.createdAt || new Date().toISOString(),
+      createdBy: "flat-import",
+      updatedAt: flat.updatedAt || flat.createdAt || new Date().toISOString(),
+      updatedBy: "flat-import",
+    };
+
+    return {
+      meta,
+      body: flat.content,
       format: "json",
     };
   }
@@ -236,6 +282,17 @@ export class JSONParser implements FormatParser {
           }
           if (!item.content) {
             errors.push(`Legacy snippet at index ${index} is missing content`);
+          }
+          return;
+        }
+
+        // Check for flat format
+        if (this.isFlatSnippet(item)) {
+          if (!item.trigger) {
+            errors.push(`Flat snippet at index ${index} is missing trigger`);
+          }
+          if (!item.content) {
+            errors.push(`Flat snippet at index ${index} is missing content`);
           }
           return;
         }

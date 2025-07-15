@@ -88,6 +88,170 @@ describe("Multi-Format Parser System", () => {
       expect(serialized).toContain("hello");
       expect(serialized).toContain("signature");
     });
+
+    test("parses flat JSON format correctly", () => {
+      const flatJsonContent = JSON.stringify([
+        {
+          id: "flat-test-1",
+          trigger: ";eata",
+          content: "Bag of Dicks!!",
+          contentType: "text",
+          description: "A farewell greeting",
+          scope: "personal",
+          variables: [],
+          tags: ["greeting"],
+          createdAt: "2025-07-03T17:19:25.098Z",
+          updatedAt: "2025-07-03T17:19:25.098Z",
+          isShared: false,
+          isBuiltIn: false,
+        },
+        {
+          id: "flat-test-2",
+          trigger: ";hello",
+          content: "Hello {name}!",
+          contentType: "text",
+          description: "Simple greeting",
+          scope: "personal",
+          variables: ["name"],
+          tags: ["greeting", "basic"],
+          createdAt: "2025-07-03T17:19:25.098Z",
+          updatedAt: "2025-07-03T17:19:25.098Z",
+          isShared: false,
+          isBuiltIn: false,
+        },
+      ]);
+
+      const result = parser.parseAs(flatJsonContent, "json");
+      expect(Array.isArray(result)).toBe(true);
+
+      const docs = result as SnippetDoc[];
+      expect(docs).toHaveLength(2);
+
+      const firstDoc = docs[0];
+      expect(firstDoc.meta.id).toBe("flat-test-1");
+      expect(firstDoc.meta.trigger).toBe(";eata");
+      expect(firstDoc.meta.description).toBe("A farewell greeting");
+      expect(firstDoc.meta.scope).toBe("personal");
+      expect(firstDoc.meta.tags).toEqual(["greeting"]);
+      expect(firstDoc.meta.contentType).toBe("plainText");
+      expect(firstDoc.body).toBe("Bag of Dicks!!");
+      expect(firstDoc.format).toBe("json");
+
+      const secondDoc = docs[1];
+      expect(secondDoc.meta.trigger).toBe(";hello");
+      expect(secondDoc.meta.variables).toHaveLength(1);
+      expect(secondDoc.meta.variables[0].name).toBe("name");
+      expect(secondDoc.body).toBe("Hello {name}!");
+    });
+
+    test("validates flat JSON format", () => {
+      const flatJsonContent = JSON.stringify([
+        {
+          id: "flat-test-1",
+          trigger: ";test",
+          content: "Test content",
+          createdAt: "2025-07-03T17:19:25.098Z",
+          updatedAt: "2025-07-03T17:19:25.098Z",
+        },
+      ]);
+
+      const validation = parser.validate(flatJsonContent, "json");
+      expect(validation.valid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    test("handles flat JSON with missing optional fields", () => {
+      const minimalFlatJson = JSON.stringify([
+        {
+          id: "minimal-test",
+          trigger: ";min",
+          content: "Minimal content",
+          createdAt: "2025-07-03T17:19:25.098Z",
+        },
+      ]);
+
+      const result = parser.parseAs(minimalFlatJson, "json");
+      const docs = result as SnippetDoc[];
+      expect(docs).toHaveLength(1);
+
+      const doc = docs[0];
+      expect(doc.meta.id).toBe("minimal-test");
+      expect(doc.meta.trigger).toBe(";min");
+      expect(doc.meta.description).toBe("Flat snippet: ;min");
+      expect(doc.meta.scope).toBe("personal");
+      expect(doc.meta.tags).toEqual([]);
+      expect(doc.meta.variables).toEqual([]);
+      expect(doc.body).toBe("Minimal content");
+    });
+
+    test("distinguishes between legacy and flat formats", () => {
+      // Legacy format uses Date objects
+      const legacyJson = JSON.stringify([
+        {
+          id: "legacy-test",
+          trigger: ";legacy",
+          content: "Legacy content",
+          createdAt: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          isActive: true,
+        },
+      ]);
+
+      // Flat format uses ISO strings
+      const flatJson = JSON.stringify([
+        {
+          id: "flat-test",
+          trigger: ";flat",
+          content: "Flat content",
+          createdAt: "2025-07-03T17:19:25.098Z",
+          updatedAt: "2025-07-03T17:19:25.098Z",
+        },
+      ]);
+
+      // Parse legacy format
+      const legacyResult = parser.parseAs(legacyJson, "json") as SnippetDoc[];
+      expect(legacyResult[0].meta.createdBy).toBe("legacy-import");
+
+      // Parse flat format
+      const flatResult = parser.parseAs(flatJson, "json") as SnippetDoc[];
+      expect(flatResult[0].meta.createdBy).toBe("flat-import");
+    });
+
+    test("handles user's exact JSON format", () => {
+      const userJson = JSON.stringify([
+        {
+          id: "unique-uuid-stringfd",
+          trigger: ";eata",
+          content: "Bag of Dicks!!",
+          contentType: "text",
+          description: "A farewell greeting",
+          scope: "personal",
+          variables: [],
+          tags: ["greeting"],
+          createdAt: "2025-07-03T17:19:25.098Z",
+          updatedAt: "2025-07-03T17:19:25.098Z",
+          isShared: false,
+          isBuiltIn: false,
+        },
+      ]);
+
+      const result = parser.parseAs(userJson, "json");
+      expect(Array.isArray(result)).toBe(true);
+
+      const docs = result as SnippetDoc[];
+      expect(docs).toHaveLength(1);
+
+      const doc = docs[0];
+      expect(doc.meta.id).toBe("unique-uuid-stringfd");
+      expect(doc.meta.trigger).toBe(";eata");
+      expect(doc.body).toBe("Bag of Dicks!!");
+      expect(doc.meta.description).toBe("A farewell greeting");
+      expect(doc.meta.scope).toBe("personal");
+      expect(doc.meta.tags).toEqual(["greeting"]);
+      expect(doc.meta.contentType).toBe("plainText");
+      expect(doc.meta.createdBy).toBe("flat-import");
+      expect(doc.format).toBe("json");
+    });
   });
 
   describe("Plain Text Format Parsing", () => {

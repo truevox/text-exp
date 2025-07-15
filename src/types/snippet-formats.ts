@@ -128,6 +128,24 @@ export interface LegacySnippet {
 }
 
 /**
+ * Flat JSON snippet format (modern alternative format)
+ */
+export interface FlatSnippet {
+  id: string;
+  trigger: string;
+  content: string;
+  contentType?: string;
+  description?: string;
+  scope?: string;
+  variables?: any[];
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  isShared?: boolean;
+  isBuiltIn?: boolean;
+}
+
+/**
  * Image reference for HTML and Markdown formats
  */
 export interface ImageReference {
