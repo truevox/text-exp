@@ -107,6 +107,57 @@
           0 0 20px rgba(127, 213, 255, 0.4),
           inset 0 0 20px rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(5px);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+      }
+
+      .bubble:hover {
+        transform: scale(1.2);
+        box-shadow:
+          0 0 30px rgba(127, 213, 255, 0.6),
+          inset 0 0 30px rgba(255, 255, 255, 0.2);
+      }
+
+      .bubble.popping {
+        animation: pop 0.6s ease-out forwards;
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.5);
+          opacity: 0.8;
+        }
+        70% {
+          transform: scale(1.8);
+          opacity: 0.4;
+        }
+        100% {
+          transform: scale(0);
+          opacity: 0;
+        }
+      }
+
+      .bubble-text {
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 80%;
+        text-align: center;
       }
 
       .bubble:nth-child(1) {
@@ -908,29 +959,196 @@
           font-size: 3rem;
         }
       }
+
+      /* Demo Display */
+      .demo-display {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(26, 26, 26, 0.95);
+        border-radius: 12px;
+        padding: 24px;
+        border: 2px solid rgba(127, 213, 255, 0.3);
+        backdrop-filter: blur(15px);
+        z-index: 1000;
+        max-width: 600px;
+        width: 90%;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      }
+
+      .demo-display.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .demo-text {
+        font-family: "Courier New", "Monaco", "Menlo", monospace;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #10b981;
+        min-height: 60px;
+        padding: 16px;
+        background: rgba(16, 185, 129, 0.1);
+        border-radius: 8px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .demo-text::after {
+        content: "█";
+        color: #10b981;
+        animation: blink 1s infinite;
+        opacity: 0;
+        position: absolute;
+      }
+
+      .demo-text.typing::after {
+        opacity: 1;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .trigger-display {
+        color: #fbbf24;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+      }
+
+      .expansion-display {
+        color: #10b981;
+        font-weight: normal;
+      }
+
+      .demo-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .demo-close:hover {
+        color: white;
+      }
     </style>
   </head>
   <body>
     <!-- Floating bubbles background -->
     <div class="bubbles">
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
+      <div
+        class="bubble"
+        data-trigger="/gb"
+        data-expansion="Goodbye! Have a great day!"
+      >
+        <span class="bubble-text">/gb</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger=";brb"
+        data-expansion="Be right back—just a sec!"
+      >
+        <span class="bubble-text">;brb</span>
+      </div>
+      <div class="bubble" data-trigger="ty" data-expansion="Thank you!">
+        <span class="bubble-text">ty</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger="gg!"
+        data-expansion="Good game! Well played!"
+      >
+        <span class="bubble-text">gg!</span>
+      </div>
+      <div class="bubble" data-trigger="/shrug" data-expansion="¯\_(ツ)_/¯">
+        <span class="bubble-text">/shrug</span>
+      </div>
+      <div class="bubble" data-trigger=":smile:" data-expansion="😊">
+        <span class="bubble-text">:smile:</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger="/sig"
+        data-expansion="— Marvin C. Bentley II"
+      >
+        <span class="bubble-text">/sig</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger=";addr"
+        data-expansion="907 Newfane Rd, Wardsboro VT 05355"
+      >
+        <span class="bubble-text">;addr</span>
+      </div>
+      <div class="bubble" data-trigger=";phone" data-expansion="(802) 555‑0123">
+        <span class="bubble-text">;phone</span>
+      </div>
+      <div class="bubble" data-trigger=";gm" data-expansion="Good morning! ☀️">
+        <span class="bubble-text">;gm</span>
+      </div>
+      <div class="bubble" data-trigger=";gn" data-expansion="Good night! 🌙">
+        <span class="bubble-text">;gn</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger=";tyvm"
+        data-expansion="Thank you very much!"
+      >
+        <span class="bubble-text">;tyvm</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger=";np"
+        data-expansion="No problem at all!"
+      >
+        <span class="bubble-text">;np</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger="/help"
+        data-expansion="How can I help you today?"
+      >
+        <span class="bubble-text">/help</span>
+      </div>
+      <div class="bubble" data-trigger=";woot" data-expansion="🎉 Woo‑hoo!">
+        <span class="bubble-text">;woot</span>
+      </div>
+      <div
+        class="bubble"
+        data-trigger=";asap"
+        data-expansion="As soon as possible, please."
+      >
+        <span class="bubble-text">;asap</span>
+      </div>
+      <div class="bubble" data-trigger=";cheers" data-expansion="Cheers! 🥂">
+        <span class="bubble-text">;cheers</span>
+      </div>
+      <div class="bubble" data-trigger="/yeet" data-expansion="✨YEET!✨">
+        <span class="bubble-text">/yeet</span>
+      </div>
+    </div>
+
+    <!-- Demo Display -->
+    <div class="demo-display" id="demoDisplay">
+      <button class="demo-close" onclick="closeDemoDisplay()">&times;</button>
+      <div class="demo-text" id="demoText"></div>
     </div>
 
     <!-- Scroll progress indicator -->
@@ -1141,6 +1359,98 @@
           const speed = 0.1 + index * 0.05;
           bubble.style.transform = `translateY(${scrolled * speed}px)`;
         });
+      });
+
+      // Bubble click functionality
+      let isAnimating = false;
+      const demoDisplay = document.getElementById("demoDisplay");
+      const demoText = document.getElementById("demoText");
+
+      // Add click event listeners to all bubbles
+      document.querySelectorAll(".bubble").forEach((bubble) => {
+        bubble.addEventListener("click", handleBubbleClick);
+      });
+
+      async function handleBubbleClick(event) {
+        if (isAnimating) return;
+
+        const bubble = event.currentTarget;
+        const trigger = bubble.dataset.trigger;
+        const expansion = bubble.dataset.expansion;
+
+        if (!trigger || !expansion) return;
+
+        isAnimating = true;
+
+        // Show demo display
+        demoDisplay.classList.add("active");
+
+        // Start bubble pop animation
+        bubble.classList.add("popping");
+
+        // Clear demo text
+        demoText.textContent = "";
+        demoText.classList.remove("typing");
+
+        // Show trigger first
+        await typeText(trigger, "trigger-display");
+
+        // Wait 500ms
+        await delay(500);
+
+        // Clear and show expansion
+        demoText.textContent = "";
+        await typeText(expansion, "expansion-display");
+
+        // Reset after animation
+        setTimeout(() => {
+          bubble.classList.remove("popping");
+          isAnimating = false;
+        }, 1000);
+      }
+
+      async function typeText(text, className) {
+        demoText.className = `demo-text typing ${className}`;
+
+        return new Promise((resolve) => {
+          let index = 0;
+          const typeChar = () => {
+            if (index < text.length) {
+              demoText.textContent += text[index];
+              index++;
+              setTimeout(typeChar, 50 + Math.random() * 50); // Variable typing speed
+            } else {
+              demoText.classList.remove("typing");
+              resolve();
+            }
+          };
+          typeChar();
+        });
+      }
+
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function closeDemoDisplay() {
+        demoDisplay.classList.remove("active");
+        demoText.textContent = "";
+        demoText.classList.remove("typing");
+        isAnimating = false;
+      }
+
+      // Close demo display when clicking outside
+      demoDisplay.addEventListener("click", (e) => {
+        if (e.target === demoDisplay) {
+          closeDemoDisplay();
+        }
+      });
+
+      // Close demo display with Escape key
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && demoDisplay.classList.contains("active")) {
+          closeDemoDisplay();
+        }
       });
     </script>
   </body>

@@ -498,6 +498,121 @@ _📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md
 
 ---
 
+## 🚨 **CRITICAL: COMPREHENSIVE TRIGGER TESTING** - **HIGHEST PRIORITY**
+
+**Issue**: Inconsistent trigger detection behavior across different patterns. Some triggers work well (prefixed), others work poorly (non-prefixed), and some fail completely. Current test coverage is insufficient for real-world trigger patterns.
+
+**Root Cause**: Test coverage gaps for diverse trigger patterns, position-specific testing, and word boundary validation. Non-prefixed triggers must NEVER match in the middle of words.
+
+### 📋 **Phase 1: Create Comprehensive Test Dataset** - **IMMEDIATE ACTION REQUIRED**
+
+- [ ] **Create realistic trigger test dataset** - **CRITICAL**
+  - **Action**: Add 25+ trigger patterns based on user's actual triggers to `tests/unit/enhanced-trigger-detector.test.ts`
+  - **Patterns**: `;wig`, `;eata`, `punt`, `;pony`, `wub`, `;ur`, `gm!`, `;gm!`, `!urgent`, `/help`, `-note`, `_private`, `@mention`, `#tag`, `hello!`, `ok?`, `done.`, `wow...`, `!done!`, `;quick;`, `/search/`, `-start-`, `?help?`, `+++`
+  - **Priority**: CRITICAL - These are the actual trigger patterns users experience
+  - **Time**: 30 minutes
+
+### 📋 **Phase 2: Position-Specific Testing** - **HIGH PRIORITY**
+
+- [ ] **Test triggers at start of input** - **HIGH PRIORITY**
+  - **Test Cases**: Non-prefixed and prefixed triggers at position 0
+  - **Validation**: Both `punt` and `;wig` should match at start of input
+  - **Time**: 15 minutes
+
+- [ ] **Test triggers after newline variations** - **HIGH PRIORITY**
+  - **Newline Types**: LF (`\n`), CR (`\r`), CRLF (`\r\n`)
+  - **Test Cases**: Triggers after each newline type should match
+  - **Critical**: `hello\nwub` should match `wub`, `text\rpunt` should match `punt`
+  - **Time**: 20 minutes
+
+- [ ] **Test triggers after delimiters** - **HIGH PRIORITY**
+  - **Delimiters**: Space, tab, punctuation (`.`, `,`, `!`, `?`, `:`, `;`, `(`, `)`, `[`, `]`)
+  - **Test Cases**: Triggers after each delimiter should match
+  - **Example**: `word punt` should match `punt`, `text.wub` should match `wub`
+  - **Time**: 15 minutes
+
+### 📋 **Phase 3: Word Boundary Validation** - **CRITICAL PRIORITY**
+
+- [ ] **NEVER match in middle of words** - **CRITICAL**
+  - **Rule**: Non-prefixed triggers must NEVER match inside another word
+  - **Test Cases**:
+    - `punting` should NOT match `punt`
+    - `Wubbalubba` should NOT match `wub`
+    - `wubba` should NOT match `wub`
+    - `subwub` should NOT match `wub`
+    - `testing` should NOT match `test`
+    - `test123` should NOT match `test`
+    - `123test` should NOT match `test`
+    - `test_word` should NOT match `test`
+    - `my_test` should NOT match `test`
+  - **Priority**: CRITICAL - This is the core bug causing unwanted expansions
+  - **Time**: 30 minutes
+
+- [ ] **ONLY match when properly bounded** - **CRITICAL**
+  - **Valid Cases**:
+    - `punt` (end of input)
+    - `punt ` (followed by space)
+    - `punt.` (followed by punctuation)
+    - `hello punt` (after space)
+    - `line\nwub` (after newline)
+    - `word.gm!` (after punctuation)
+  - **Priority**: CRITICAL - Ensures triggers work correctly
+  - **Time**: 20 minutes
+
+### 📋 **Phase 4: Prefix Pattern Testing** - **HIGH PRIORITY**
+
+- [ ] **Test all prefix characters** - **HIGH PRIORITY**
+  - **Prefixes**: `;`, `!`, `/`, `-`, `_`, `@`, `#`, `$`, `%`, `^`, `&`, `*`
+  - **Test Cases**: Each prefix should work with word boundaries
+  - **Example**: `;test`, `!urgent`, `/help`, `-note` should all match correctly
+  - **Time**: 25 minutes
+
+- [ ] **Test mixed prefix/suffix patterns** - **HIGH PRIORITY**
+  - **Patterns**: `;gm!`, `/help/`, `-start-`, `?help?`, `!urgent!`
+  - **Validation**: Complex patterns should work correctly
+  - **Time**: 20 minutes
+
+### 📋 **Phase 5: Performance & Edge Cases** - **MEDIUM PRIORITY**
+
+- [ ] **Performance with diverse trigger set** - **MEDIUM PRIORITY**
+  - **Test**: 25+ triggers with mixed patterns
+  - **Benchmark**: No significant performance degradation
+  - **Time**: 15 minutes
+
+- [ ] **Edge case testing** - **MEDIUM PRIORITY**
+  - **Cases**: Empty strings, unicode characters, very long inputs
+  - **Validation**: Proper handling of edge cases
+  - **Time**: 15 minutes
+
+### 📋 **Phase 6: Specific Bug Regression Tests** - **CRITICAL PRIORITY**
+
+- [ ] **Test specific user-reported issues** - **CRITICAL**
+  - **wub bug**: `Wubbalubba` should NOT match `wub` trigger
+  - **punt bug**: `punting` should NOT match `punt` trigger
+  - **Validation**: Exact scenarios from user reports
+  - **Time**: 10 minutes
+
+### 🎯 **Success Criteria**
+
+- [ ] **100% test coverage** for all 25+ trigger patterns
+- [ ] **Position validation** for start, newlines, delimiters
+- [ ] **Word boundary enforcement** - NEVER match in middle of words
+- [ ] **Performance maintained** with diverse trigger sets
+- [ ] **All existing tests pass** (no regression)
+
+### 📋 **Implementation Timeline - Total: 3 hours**
+
+**Phase 1**: 30 minutes (dataset creation)
+**Phase 2**: 50 minutes (position-specific testing)
+**Phase 3**: 50 minutes (word boundary validation)
+**Phase 4**: 45 minutes (prefix pattern testing)
+**Phase 5**: 30 minutes (performance & edge cases)
+**Phase 6**: 10 minutes (specific bug regression)
+
+**Files to Modify**: `tests/unit/enhanced-trigger-detector.test.ts`
+
+---
+
 ## 🚨 **CRITICAL BUG FIX: Word Boundary Detection** - **HIGHEST PRIORITY**
 
 **Issue**: The "wub" trigger is incorrectly matching inside "Wubbalubba" text, causing unwanted expansions. From the user logs, the trigger detection result shows `{isMatch: true, state: 'complete', trigger: 'wub', content: 'Wubbalubba Dub Dub!!!', matchEnd: 17}` which demonstrates the word boundary detection failure.
