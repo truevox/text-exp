@@ -5,6 +5,7 @@
 
 import type { PriorityTier } from "../../types/snippet-formats.js";
 import { GoogleDriveAdapter } from "../../background/cloud-adapters/google-drive-adapter.js";
+import { GoogleDriveFilePickerService } from "../../background/cloud-adapters/google-drive/file-picker-service.js";
 
 /**
  * File selection result
@@ -73,7 +74,8 @@ export class FileSelector {
         <div class="file-selector-header">
           <h3>📁 Choose Your Snippet Files</h3>
           <p>Select JSON files in your Google Drive to store snippets by priority level.</p>
-          <p><small><strong>Note:</strong> PuffPuffPaste can only access files you explicitly choose.</small></p>
+          <p><small><strong>Privacy First:</strong> PuffPuffPaste now uses minimal permissions and can only access files you explicitly choose.</small></p>
+          <p><small><strong>New Workflow:</strong> You must select existing files or create new ones - automatic scanning is disabled for your privacy.</small></p>
         </div>
         
         <div class="tier-selectors">
@@ -82,10 +84,10 @@ export class FileSelector {
         
         <div class="file-selector-actions">
           <button id="scan-existing-files" class="btn btn-secondary">
-            🔍 Scan for Existing Files
+            ℹ️ About File Selection
           </button>
           <button id="create-new-files" class="btn btn-primary">
-            ✨ Create New Files
+            ✨ Create Required Files
           </button>
           <button id="save-selections" class="btn btn-success" disabled>
             💾 Save Selections
@@ -188,37 +190,30 @@ export class FileSelector {
    * Select a file for a specific tier
    */
   private async selectFileForTier(tier: PriorityTier): Promise<void> {
-    this.showStatus(`Searching for ${tier} snippet files...`, "info");
+    this.showStatus(`Please select a ${tier} snippet file...`, "info");
 
     try {
-      // Search for existing tier files
-      const files = await this.adapter.searchTierFiles();
       const config = this.configs.find((c) => c.tier === tier)!;
+      
+      // Prompt user to select a file (drive.file scope requires user selection)
+      const instructions = `Please select your ${config.title} file from Google Drive.\n\n` +
+        `Expected file name: ${config.defaultFileName}\n` +
+        `File type: JSON\n\n` +
+        `Click OK to open the file picker.`;
 
-      // Look for the specific tier file
-      const tierFile = files.find((f) => f.name === config.defaultFileName);
-
-      if (tierFile) {
-        // File found - confirm selection
-        const confirmed = confirm(
-          `Found existing ${config.title} file:\n\n` +
-            `File: ${tierFile.name}\n` +
-            `Modified: ${tierFile.modifiedTime ? new Date(tierFile.modifiedTime).toLocaleString() : "Unknown"}\n\n` +
-            `Use this file for ${config.title}?`,
-        );
-
-        if (confirmed) {
-          this.setTierSelection(tier, tierFile.id, tierFile.name);
-          this.showStatus(
-            `Selected ${tierFile.name} for ${config.title}`,
-            "success",
-          );
-        }
-      } else {
-        // No file found - offer to create
+      const confirmed = confirm(instructions);
+      
+      if (confirmed) {
+        // Use the Chrome file picker or Google Drive picker
+        // This is a placeholder - in a real implementation, you'd use:
+        // - Chrome's file picker API
+        // - Google Drive picker API
+        // - or prompt the user to drag and drop files
+        
+        // For now, let's offer to create a new file
         const shouldCreate = confirm(
-          `No ${config.defaultFileName} found in your Google Drive.\n\n` +
-            `Would you like to create a new ${config.title} file?`,
+          `File selection not yet implemented in this UI.\n\n` +
+            `Would you like to create a new ${config.title} file instead?`,
         );
 
         if (shouldCreate) {
@@ -226,7 +221,7 @@ export class FileSelector {
         }
       }
     } catch (error) {
-      this.showStatus(`Error searching for files: ${error}`, "error");
+      this.showStatus(`Error selecting file: ${error}`, "error");
     }
   }
 
@@ -239,26 +234,15 @@ export class FileSelector {
     try {
       const config = this.configs.find((c) => c.tier === tier)!;
 
-      // Create empty tier schema
-      const emptySchema = {
-        schema: "priority-tier-v1" as const,
+      // Create a new snippet store file using the file picker service
+      const result = await this.adapter.createSnippetStoreFile(
         tier,
-        snippets: [],
-        metadata: {
-          version: "1.0.0",
-          created: new Date().toISOString(),
-          modified: new Date().toISOString(),
-          owner: "user",
-          description: `${config.title} - Created by PuffPuffPaste`,
-        },
-      };
+        `${config.title} - Created by PuffPuffPaste`,
+      );
 
-      // Upload to Google Drive
-      const fileId = await this.adapter.uploadTierSchema(emptySchema);
-
-      this.setTierSelection(tier, fileId, config.defaultFileName);
+      this.setTierSelection(tier, result.fileId, result.fileName);
       this.showStatus(
-        `Created ${config.defaultFileName} for ${config.title}`,
+        `Created ${result.fileName} for ${config.title}`,
         "success",
       );
     } catch (error) {
@@ -280,33 +264,19 @@ export class FileSelector {
    */
   private async scanForExistingFiles(): Promise<void> {
     this.showStatus(
-      "Scanning Google Drive for existing snippet files...",
+      "With reduced Google Drive permissions, automatic file scanning is not available...",
       "info",
     );
 
-    try {
-      const files = await this.adapter.searchTierFiles();
-      let foundCount = 0;
+    // With drive.file scope, we can't scan for files automatically
+    // User must select files explicitly
+    const instructions = `Due to privacy and security improvements, PuffPuffPaste now requires you to explicitly select your snippet files.\n\n` +
+      `This ensures PuffPuffPaste can only access files you choose.\n\n` +
+      `Please use the "Select" or "Create New" buttons for each tier you want to use.`;
 
-      for (const config of this.configs) {
-        const tierFile = files.find((f) => f.name === config.defaultFileName);
-        if (tierFile && !this.selections.has(config.tier)) {
-          this.setTierSelection(config.tier, tierFile.id, tierFile.name);
-          foundCount++;
-        }
-      }
-
-      if (foundCount > 0) {
-        this.showStatus(
-          `Found and selected ${foundCount} existing snippet files`,
-          "success",
-        );
-      } else {
-        this.showStatus("No existing snippet files found", "info");
-      }
-    } catch (error) {
-      this.showStatus(`Error scanning files: ${error}`, "error");
-    }
+    alert(instructions);
+    
+    this.showStatus("Please select files manually using the buttons below", "info");
   }
 
   /**
@@ -315,23 +285,29 @@ export class FileSelector {
   private async createAllMissingFiles(): Promise<void> {
     this.showStatus("Creating missing snippet files...", "info");
 
+    const missingRequired = this.configs.filter(
+      (config) => config.required && !this.selections.has(config.tier),
+    );
+
+    if (missingRequired.length === 0) {
+      this.showStatus("All required files already exist", "info");
+      return;
+    }
+
     let createdCount = 0;
 
-    for (const config of this.configs) {
-      if (config.required && !this.selections.has(config.tier)) {
-        try {
-          await this.createFileForTier(config.tier);
-          createdCount++;
-        } catch (error) {
-          console.error(`Failed to create ${config.tier} file:`, error);
-        }
+    for (const config of missingRequired) {
+      try {
+        await this.createFileForTier(config.tier);
+        createdCount++;
+      } catch (error) {
+        console.error(`Failed to create ${config.tier} file:`, error);
+        this.showStatus(`Failed to create ${config.title} file: ${error}`, "error");
       }
     }
 
     if (createdCount > 0) {
       this.showStatus(`Created ${createdCount} new snippet files`, "success");
-    } else {
-      this.showStatus("All required files already exist", "info");
     }
   }
 

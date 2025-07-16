@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Selector Demo</title>
+    <link rel="stylesheet" href="../styles/file-selector.css">
+</head>
+<body>
+    <div id="file-selector-container"></div>
+    
+    <script>
+        // Mock implementation for demonstration
+        class MockGoogleDriveAdapter {
+            async createSnippetStoreFile(tier, description) {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                return {
+                    fileId: `mock_${tier}_${Date.now()}`,
+                    fileName: `${tier}.json`
+                };
+            }
+        }
+
+        // Mock the FileSelector class for demo
+        class FileSelector {
+            constructor(adapter, container) {
+                this.adapter = adapter;
+                this.container = container;
+                this.selections = new Map();
+                this.configs = [
+                    {
+                        tier: "personal",
+                        title: "Personal Snippets",
+                        description: "Your private snippet collection",
+                        required: true,
+                        defaultFileName: "personal.json",
+                    },
+                    {
+                        tier: "team",
+                        title: "Team Snippets", 
+                        description: "Shared snippets for your team",
+                        required: false,
+                        defaultFileName: "team.json",
+                    },
+                    {
+                        tier: "org",
+                        title: "Organization Snippets",
+                        description: "Company-wide snippet templates",
+                        required: false,
+                        defaultFileName: "org.json",
+                    },
+                ];
+            }
+
+            async render() {
+                this.container.innerHTML = `
+                    <div class="file-selector">
+                        <div class="file-selector-header">
+                            <h3>📁 Choose Your Snippet Files</h3>
+                            <p>Select JSON files in your Google Drive to store snippets by priority level.</p>
+                            <p><small><strong>Privacy First:</strong> PuffPuffPaste now uses minimal permissions and can only access files you explicitly choose.</small></p>
+                            <p><small><strong>New Workflow:</strong> You must select existing files or create new ones - automatic scanning is disabled for your privacy.</small></p>
+                        </div>
+                        
+                        <div class="tier-selectors">
+                            ${this.configs.map(config => this.renderTierSelector(config)).join('')}
+                        </div>
+                        
+                        <div class="file-selector-actions">
+                            <button id="scan-existing-files" class="btn btn-secondary">
+                                ℹ️ About File Selection
+                            </button>
+                            <button id="create-new-files" class="btn btn-primary">
+                                ✨ Create Required Files
+                            </button>
+                            <button id="save-selections" class="btn btn-success" disabled>
+                                💾 Save Selections
+                            </button>
+                        </div>
+                        
+                        <div class="file-selector-status">
+                            <div id="status-message" class="status-message"></div>
+                        </div>
+                    </div>
+                `;
+
+                this.attachEventListeners();
+            }
+
+            renderTierSelector(config) {
+                const isRequired = config.required ? 'required' : '';
+                const requiredMark = config.required ? ' *' : '';
+
+                return `
+                    <div class="tier-selector" data-tier="${config.tier}">
+                        <div class="tier-header">
+                            <h4>${config.title}${requiredMark}</h4>
+                            <p>${config.description}</p>
+                        </div>
+                        
+                        <div class="file-selection">
+                            <div class="selected-file" id="selected-${config.tier}" style="display: none;">
+                                <div class="file-info">
+                                    <span class="file-name"></span>
+                                    <span class="file-id"></span>
+                                </div>
+                                <button class="btn btn-sm btn-outline" data-action="change" data-tier="${config.tier}">
+                                    Change
+                                </button>
+                            </div>
+                            
+                            <div class="no-file-selected" id="no-file-${config.tier}">
+                                <button class="btn btn-outline" data-action="select" data-tier="${config.tier}">
+                                    📁 Select ${config.defaultFileName}
+                                </button>
+                                <span class="or">or</span>
+                                <button class="btn btn-outline" data-action="create" data-tier="${config.tier}">
+                                    ✨ Create New
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="tier-status ${isRequired}">
+                            ${config.required ? '<small>Required for PuffPuffPaste to work</small>' : '<small>Optional - enable for shared snippets</small>'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            attachEventListeners() {
+                this.container.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    const action = target.dataset.action;
+                    const tier = target.dataset.tier;
+
+                    if (!action || !tier) return;
+
+                    switch (action) {
+                        case 'select':
+                            await this.selectFileForTier(tier);
+                            break;
+                        case 'create':
+                            await this.createFileForTier(tier);
+                            break;
+                        case 'change':
+                            await this.changeFileForTier(tier);
+                            break;
+                    }
+                });
+
+                document.getElementById('scan-existing-files')?.addEventListener('click', () => this.scanForExistingFiles());
+                document.getElementById('create-new-files')?.addEventListener('click', () => this.createAllMissingFiles());
+                document.getElementById('save-selections')?.addEventListener('click', () => this.saveSelections());
+            }
+
+            async selectFileForTier(tier) {
+                const config = this.configs.find(c => c.tier === tier);
+                const confirmed = confirm(`Please select your ${config.title} file from Google Drive.\n\nExpected file name: ${config.defaultFileName}\nFile type: JSON\n\nClick OK to open the file picker.`);
+                
+                if (confirmed) {
+                    const shouldCreate = confirm(`File selection not yet implemented in this demo.\n\nWould you like to create a new ${config.title} file instead?`);
+                    
+                    if (shouldCreate) {
+                        await this.createFileForTier(tier);
+                    }
+                }
+            }
+
+            async createFileForTier(tier) {
+                const config = this.configs.find(c => c.tier === tier);
+                this.showStatus(`Creating new ${tier} snippet file...`, 'info');
+
+                try {
+                    const result = await this.adapter.createSnippetStoreFile(tier, `${config.title} - Created by PuffPuffPaste`);
+                    this.setTierSelection(tier, result.fileId, result.fileName);
+                    this.showStatus(`Created ${result.fileName} for ${config.title}`, 'success');
+                } catch (error) {
+                    this.showStatus(`Error creating file: ${error}`, 'error');
+                }
+            }
+
+            async changeFileForTier(tier) {
+                this.clearTierSelection(tier);
+                this.updateTierDisplay(tier);
+            }
+
+            async scanForExistingFiles() {
+                const instructions = `Due to privacy and security improvements, PuffPuffPaste now requires you to explicitly select your snippet files.\n\nThis ensures PuffPuffPaste can only access files you choose.\n\nPlease use the "Select" or "Create New" buttons for each tier you want to use.`;
+                alert(instructions);
+                this.showStatus('Please select files manually using the buttons below', 'info');
+            }
+
+            async createAllMissingFiles() {
+                const missingRequired = this.configs.filter(config => config.required && !this.selections.has(config.tier));
+                
+                if (missingRequired.length === 0) {
+                    this.showStatus('All required files already exist', 'info');
+                    return;
+                }
+
+                let createdCount = 0;
+                for (const config of missingRequired) {
+                    try {
+                        await this.createFileForTier(config.tier);
+                        createdCount++;
+                    } catch (error) {
+                        console.error(`Failed to create ${config.tier} file:`, error);
+                    }
+                }
+
+                if (createdCount > 0) {
+                    this.showStatus(`Created ${createdCount} new snippet files`, 'success');
+                }
+            }
+
+            async saveSelections() {
+                this.showStatus('Saving file selections...', 'info');
+                
+                try {
+                    const selections = Array.from(this.selections.values());
+                    console.log('Saving selections:', selections);
+                    
+                    // In real implementation, this would use chrome.storage.local.set
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    this.showStatus('File selections saved successfully!', 'success');
+                } catch (error) {
+                    this.showStatus(`Error saving selections: ${error}`, 'error');
+                }
+            }
+
+            setTierSelection(tier, fileId, fileName) {
+                this.selections.set(tier, {
+                    tier,
+                    fileId,
+                    fileName,
+                    selected: true
+                });
+
+                this.updateTierDisplay(tier);
+                this.updateSaveButton();
+            }
+
+            clearTierSelection(tier) {
+                this.selections.delete(tier);
+                this.updateTierDisplay(tier);
+                this.updateSaveButton();
+            }
+
+            updateTierDisplay(tier) {
+                const selection = this.selections.get(tier);
+                const selectedDiv = document.getElementById(`selected-${tier}`);
+                const noFileDiv = document.getElementById(`no-file-${tier}`);
+
+                if (selection && selectedDiv && noFileDiv) {
+                    selectedDiv.style.display = 'block';
+                    noFileDiv.style.display = 'none';
+
+                    const fileNameSpan = selectedDiv.querySelector('.file-name');
+                    const fileIdSpan = selectedDiv.querySelector('.file-id');
+
+                    if (fileNameSpan) fileNameSpan.textContent = selection.fileName;
+                    if (fileIdSpan) fileIdSpan.textContent = `ID: ${selection.fileId.substring(0, 12)}...`;
+                } else if (selectedDiv && noFileDiv) {
+                    selectedDiv.style.display = 'none';
+                    noFileDiv.style.display = 'block';
+                }
+            }
+
+            updateSaveButton() {
+                const saveButton = document.getElementById('save-selections');
+                if (!saveButton) return;
+
+                const requiredTiers = this.configs.filter(c => c.required).map(c => c.tier);
+                const hasAllRequired = requiredTiers.every(tier => this.selections.has(tier));
+
+                saveButton.disabled = !hasAllRequired;
+                saveButton.textContent = hasAllRequired ? '💾 Save Selections' : '💾 Select Required Files First';
+            }
+
+            showStatus(message, type) {
+                const statusElement = document.getElementById('status-message');
+                if (!statusElement) return;
+
+                statusElement.textContent = message;
+                statusElement.className = `status-message ${type}`;
+
+                if (type !== 'error') {
+                    setTimeout(() => {
+                        statusElement.textContent = '';
+                        statusElement.className = 'status-message';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Initialize the demo
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('file-selector-container');
+            const mockAdapter = new MockGoogleDriveAdapter();
+            const fileSelector = new FileSelector(mockAdapter, container);
+            
+            await fileSelector.render();
+        });
+    </script>
+</body>
+</html>
