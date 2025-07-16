@@ -12,736 +12,353 @@
 
 ---
 
-## 🚀 **NEW MAJOR FEATURE: Options Page Redesign & Usage Tracking** - **IN PROGRESS**
+## 🚀 **MAJOR ARCHITECTURE MIGRATION: Priority-Tier Snippet System** - **IN PROGRESS**
 
-**Goal**: Radically redesign options page with Google Drive focus, add usage tracking, and improve snippet handling
+**Goal**: Transform from multi-file-per-snippet to priority-tier JSON architecture with TinyMCE WYSIWYG editing and advanced paste strategies.
 
-### 📋 **Phase 1: Core Architecture Changes** - **✅ COMPLETED**
+### 📋 **Phase 1: Data Architecture Refactor** - **HIGH PRIORITY - STARTED**
 
-**Status**: Successfully completed in v0.37.0 with 100% test coverage
+**Status**: Implementing new data structures and storage system
 
-- All TypeScript interface updates completed
-- New services created and thoroughly tested
-- 536/536 tests passing (100% success rate)
+#### 🏗️ **Schema & Type Updates** - **IMMEDIATE**
 
-**Next**: Continue with Phase 2 - Options Page Redesign
+- [ ] **Update SnippetMeta interface with new required fields** - **CURRENT TASK**
+  - **Action**: Add `snipDependencies: string[]` field to SnippetMeta
+  - **Action**: Update `contentType` to focus on HTML: `'html' | 'plaintext' | 'latex'`
+  - **File**: `src/types/snippet-formats.ts`
+  - **Priority**: HIGH - Foundation for entire migration
+  - **Dependencies**: None
+  - **Time**: 15 minutes
 
-### 📋 **Phase 2: Options Page Redesign** - **� FINAL DEBUGGING - SETTINGS PERSISTENCE**
+- [ ] **Create PriorityTierStore type definitions**
+  - **Action**: Define `PriorityTierStore`, `EnhancedSnippet` interfaces
+  - **Features**: tierName, fileName, ordered snippets array, lastModified
+  - **File**: `src/types/snippet-formats.ts`
+  - **Priority**: HIGH - Core data structure
+  - **Dependencies**: Updated SnippetMeta
+  - **Time**: 20 minutes
 
-**Status**: Nearly complete - folder picker fixed, debugging settings persistence
+- [ ] **Implement array-based snippet storage schema**
+  - **Action**: Define storage format for priority-ordered snippet arrays
+  - **Features**: Descending priority order, metadata preservation
+  - **File**: `src/types/snippet-formats.ts`
+  - **Priority**: HIGH - Storage foundation
+  - **Dependencies**: PriorityTierStore types
+  - **Time**: 15 minutes
 
-#### 🎨 **Options Page Simplification** - **✅ COMPLETED**
+#### 🔧 **Storage System Implementation** - **HIGH PRIORITY**
 
-- [x] **Backup existing options.html** - Create backup before major changes
-- [x] **Create new simplified options.html** - Google Drive auth + dynamic folder pickers only
-- [x] **Add red "Delete all data" button** - Single button for local data + settings reset
-- [x] **Add instruction webpage link** - Link to help documentation
+- [ ] **Create PriorityTierManager class for tier-based storage**
+  - **Action**: Build new storage manager for priority tiers (personal.json, team.json, org.json)
+  - **Features**: Load/save tier files, priority management, tier-specific operations
+  - **File**: `src/storage/priority-tier-manager.ts` (new)
+  - **Priority**: HIGH - Core storage logic
+  - **Dependencies**: Priority types defined
+  - **Time**: 45 minutes
 
-#### ⚙️ **Options Logic Refactoring** - **� FINAL DEBUGGING REQUIRED**
+- [ ] **Build JSON file loader/serializer with field order preservation**
+  - **Action**: Create utilities for reading/writing JSON with preserved field order
+  - **Features**: Array ordering preservation, metadata handling, atomic operations
+  - **File**: `src/storage/json-serializer.ts` (new)
+  - **Priority**: HIGH - Data integrity critical
+  - **Dependencies**: PriorityTierManager interface
+  - **Time**: 30 minutes
 
-- [x] **Refactor options.ts** - Remove complex settings, focus on Google Drive auth + folder management
-- [x] **✅ FIXED FOLDER PICKER MODAL** - **COMPLETED** - Modal now loads folders and allows selection
-  - **Solution**: Added comprehensive folder loading logic with navigation and breadcrumbs
-  - **Result**: Users can browse, navigate, and select Google Drive folders successfully
-  - **Status**: Folder picker fully functional
-- [x] **Implement dynamic folder picker system** - Multiple pickers that appear as previous ones are filled
-- [ ] **🔧 DEBUG SETTINGS PERSISTENCE** - **FINAL ISSUE** - Selected folders not saving to storage
-  - **Issue**: Folder selection works but settings don't persist for sync manager
-  - **Evidence**: Sync manager shows `scoped sources: []` instead of selected folder
-  - **Debug Added**: Console logging in `saveFolderPickerSettings()` and `confirmFolderSelection()`
-  - **Status**: Actively debugging - need to verify settings save correctly
-- [x] **Add priority assignment logic** - Automatically assign priority levels to selected folders
+- [ ] **Implement merge helper for upsert operations by ID**
+  - **Action**: Build merge logic for updating snippets by ID across tiers
+  - **Features**: Conflict resolution, priority handling, deduplication
+  - **File**: `src/storage/merge-helper.ts` (new)
+  - **Priority**: HIGH - Data consistency
+  - **Dependencies**: JSON serializer complete
+  - **Time**: 25 minutes
 
-### 📋 **Phase 3: Popup Modifications** - **MEDIUM PRIORITY**
+#### 🔄 **Migration Infrastructure** - **HIGH PRIORITY**
 
-#### 🔄 **Global Toggle Migration**
+- [ ] **Build migration routine from file-per-snippet to tier-based files**
+  - **Action**: Create converter from current storage to new tier system
+  - **Features**: Scope detection, tier assignment, data backup, rollback capability
+  - **File**: `src/migration/legacy-migrator.ts` (new)
+  - **Priority**: HIGH - User data preservation
+  - **Dependencies**: All Phase 1 storage components
+  - **Time**: 60 minutes
 
-- [ ] **Update popup.html** - Add global toggle switch in header area with visual indicator
-- [ ] **Modify popup.ts** - Add global toggle event handling, remove options page dependencies
-- [ ] **Update popup.css** - Style global toggle switch and layout updates
+### 📋 **Phase 2: Editor Integration** - **MEDIUM PRIORITY**
 
-### 📋 **Phase 4: Enhanced Snippet Handling** - **HIGH PRIORITY**
+**Status**: Pending Phase 1 completion
 
-#### 🔄 **Cyclic Tabbing System**
+#### 🎨 **TinyMCE Integration** - **MEDIUM PRIORITY**
 
-- [ ] **Update enhanced-trigger-detector.ts** - Support multiple matches and integrate with TabCycler
-- [ ] **Implement priority-based sorting** - Sort by folder priority, then usage count
-- [ ] **Add tab navigation between matches** - Allow cycling through matching snippets
+- [ ] **Integrate TinyMCE Community Edition (LGPL 2.1)**
+  - **Action**: Add TinyMCE as dependency, ensure LGPL compliance
+  - **Legal**: Unmodified distribution, proper licensing attribution
+  - **File**: `package.json`, licensing documentation
+  - **Priority**: MEDIUM - Editor foundation
+  - **Dependencies**: Phase 1 complete
+  - **Time**: 30 minutes
 
-#### 📊 **Usage Tracking Implementation**
+- [ ] **Create extension-specific TinyMCE wrapper components**
+  - **Action**: Build React-like wrapper for extension integration
+  - **Features**: Extension context integration, event handling, data binding
+  - **File**: `src/editor/tinymce-wrapper.ts` (new)
+  - **Priority**: MEDIUM - Editor abstraction
+  - **Dependencies**: TinyMCE integrated
+  - **Time**: 45 minutes
 
-- [ ] **Update storage.ts and indexed-db.ts** - Add usage tracking fields and priority-based queries
-- [ ] **Create usage statistics storage** - Store usage data locally and sync to Google Drive
-- [ ] **Create UsageSyncManager** - Sync usage stats to Google Drive in innocuous location
+- [ ] **Implement CSS-based TinyMCE branding customization**
+  - **Action**: Hide TinyMCE branding, customize appearance for extension
+  - **Features**: Custom styling, extension-specific UI elements
+  - **File**: `src/editor/tinymce-styles.css` (new)
+  - **Priority**: MEDIUM - User experience
+  - **Dependencies**: TinyMCE wrapper complete
+  - **Time**: 20 minutes
 
-### 📋 **Phase 5: Testing Updates** - **MEDIUM PRIORITY**
+- [ ] **Design snippet editing interface with TinyMCE**
+  - **Action**: Create snippet editor UI incorporating TinyMCE
+  - **Features**: Variable handling, preview mode, validation
+  - **File**: `src/ui/components/snippet-editor.ts` (new)
+  - **Priority**: MEDIUM - Core editing experience
+  - **Dependencies**: All TinyMCE components ready
+  - **Time**: 50 minutes
 
-#### 🧪 **Test Coverage Maintenance**
+#### 🔧 **Multi-Content Type Support** - **MEDIUM PRIORITY**
 
-- [ ] **Update options.test.ts** - Modify for new simplified options structure
-- [ ] **Update popup UI integration tests** - Add global toggle functionality testing
-- [ ] **Create usage tracking tests** - Comprehensive test coverage for new features
-- [ ] **Update existing tests** - Ensure compatibility with new architecture
+- [ ] **Enhance editor for HTML, plaintext, and LaTeX content types**
+  - **Action**: Add content type switcher and format-specific editing
+  - **Features**: Type detection, conversion utilities, preview modes
+  - **File**: `src/editor/content-type-manager.ts` (new)
+  - **Priority**: MEDIUM - Content flexibility
+  - **Dependencies**: Snippet editor complete
+  - **Time**: 40 minutes
 
-### 📋 **Phase 6: UI/UX Polish** - **LOW PRIORITY**
+### 📋 **Phase 3: Paste Engine Refactor** - **MEDIUM PRIORITY**
 
-#### 🎨 **Styling Updates**
+**Status**: Pending Phase 2 completion
 
-- [ ] **Update options.css** - Simplified layout and dynamic folder picker styling
-- [ ] **Polish folder picker UI** - Smooth animations and clear visual hierarchy
-- [ ] **Add loading states** - For folder loading and authentication processes
+#### 🎯 **Target Detection System** - **MEDIUM PRIORITY**
+
+- [ ] **Build advanced target surface detection system**
+  - **Action**: Create detection for plain-text fields, Gmail, TinyMCE instances, etc.
+  - **Features**: Context-aware detection, fallback mechanisms
+  - **File**: `src/content/target-detector.ts` (new)
+  - **Priority**: MEDIUM - Paste strategy foundation
+  - **Dependencies**: Phase 2 editor work
+  - **Time**: 35 minutes
+
+#### 🔄 **Transformation Pipeline** - **MEDIUM PRIORITY**
+
+- [ ] **Implement plain-text field transformation (strip markup or HTML→AsciiDoc)**
+  - **Action**: Create transformation for plain-text target surfaces
+  - **Features**: HTML stripping, AsciiDoc conversion option, user preference
+  - **File**: `src/content/paste-strategies/plaintext-strategy.ts` (new)
+  - **Priority**: MEDIUM - Core paste functionality
+  - **Dependencies**: Target detection complete
+  - **Time**: 25 minutes
+
+- [ ] **Implement Gmail composer transformation (HTML→Gmail-tuned)**
+  - **Action**: Create Gmail-specific HTML transformation
+  - **Features**: Inline styles, <br> optimization, Gmail CSS compatibility
+  - **File**: `src/content/paste-strategies/gmail-strategy.ts` (new)
+  - **Priority**: MEDIUM - Gmail integration
+  - **Dependencies**: Target detection complete
+  - **Time**: 30 minutes
+
+- [ ] **Implement TinyMCE instance transformation (schema-valid markup)**
+  - **Action**: Create TinyMCE-compatible HTML injection
+  - **Features**: mceInsertContent integration, schema validation
+  - **File**: `src/content/paste-strategies/tinymce-strategy.ts` (new)
+  - **Priority**: MEDIUM - Editor integration
+  - **Dependencies**: Target detection complete
+  - **Time**: 25 minutes
+
+- [ ] **Implement fallback clipboard strategy (dual text/html write)**
+  - **Action**: Create fallback for unrecognized target surfaces
+  - **Features**: Dual clipboard write, browser selection optimization
+  - **File**: `src/content/paste-strategies/fallback-strategy.ts` (new)
+  - **Priority**: MEDIUM - Compatibility safety net
+  - **Dependencies**: All other strategies complete
+  - **Time**: 20 minutes
+
+### 📋 **Phase 4: Google Drive Permissions Refactor** - **HIGH PRIORITY**
+
+**Status**: Pending Phase 3 completion
+
+#### 🔐 **Scope Reduction** - **HIGH PRIORITY**
+
+- [ ] **Update manifest.json for drive.file + drive.appdata scopes only**
+  - **Action**: Remove broad `drive` scope, request only specific scopes
+  - **Security**: Reduce permissions to minimum required
+  - **File**: `manifest.json`
+  - **Priority**: HIGH - Security and user trust
+  - **Dependencies**: Phase 3 complete
+  - **Time**: 10 minutes
+
+- [ ] **Modify Google Drive adapter for reduced scope limitations**
+  - **Action**: Update adapter to work within new scope constraints
+  - **Features**: File-specific access, appdata handling
+  - **File**: `src/background/cloud-adapters/google-drive-adapter.ts`
+  - **Priority**: HIGH - Core functionality preservation
+  - **Dependencies**: Manifest updated
+  - **Time**: 40 minutes
+
+- [ ] **Implement user file selection workflow for snippet stores**
+  - **Action**: Create UI for users to select which files to use as snippet stores
+  - **Features**: File picker, permission management, user choice preservation
+  - **File**: `src/ui/components/file-selector.ts` (new)
+  - **Priority**: HIGH - User control over data
+  - **Dependencies**: Drive adapter updated
+  - **Time**: 45 minutes
+
+### 📋 **Phase 5: UI/UX Enhancements** - **LOW PRIORITY**
+
+**Status**: Pending Phase 4 completion
+
+#### 🎨 **Priority Management Interface** - **LOW PRIORITY**
+
+- [ ] **Create priority picker UI for JSON stores in snippet editor**
+  - **Action**: Build interface for selecting priority tiers when editing snippets
+  - **Features**: Visual priority indicators, tier selection, preview
+  - **File**: `src/ui/components/priority-picker.ts` (new)
+  - **Priority**: LOW - UX enhancement
+  - **Dependencies**: Phase 4 complete
+  - **Time**: 35 minutes
+
+- [ ] **Design multi-file selection interface for snippet creation**
+  - **Action**: Create interface for selecting multiple tiers when creating snippets
+  - **Features**: Checkbox interface, tier visualization, bulk operations
+  - **File**: `src/ui/components/multi-tier-selector.ts` (new)
+  - **Priority**: LOW - Advanced feature
+  - **Dependencies**: Priority picker complete
+  - **Time**: 30 minutes
+
+#### 🔄 **Mirroring Workflow** - **LOW PRIORITY**
+
+- [ ] **Create mirroring checkboxes in snippet editor**
+  - **Action**: Add checkboxes for mirroring snippets across multiple tiers
+  - **Features**: Visual feedback, dependency tracking, conflict warnings
+  - **File**: `src/ui/components/mirror-selector.ts` (new)
+  - **Priority**: LOW - Advanced collaboration feature
+  - **Dependencies**: Multi-file interface complete
+  - **Time**: 25 minutes
+
+- [ ] **Implement batch update system for mirrored snippets**
+  - **Action**: Create system for updating snippets across multiple tier files
+  - **Features**: Atomic updates, conflict resolution, timestamp management
+  - **File**: `src/storage/batch-updater.ts` (new)
+  - **Priority**: LOW - Advanced data management
+  - **Dependencies**: Mirror selector complete
+  - **Time**: 40 minutes
+
+### 📋 **Phase 6: Migration & Testing** - **MEDIUM PRIORITY**
+
+**Status**: Pending Phase 5 completion
+
+#### 🔄 **Data Migration** - **MEDIUM PRIORITY**
+
+- [ ] **Run migration routine on first launch after update**
+  - **Action**: Implement automatic migration trigger and progress indication
+  - **Features**: Version detection, user notification, progress tracking
+  - **File**: `src/background/service-worker.ts` (update)
+  - **Priority**: MEDIUM - User experience
+  - **Dependencies**: All migration components ready
+  - **Time**: 30 minutes
+
+#### 🧪 **Testing & Validation** - **MEDIUM PRIORITY**
+
+- [ ] **Test paste behavior across different target surfaces**
+  - **Action**: Comprehensive testing of paste strategies
+  - **Features**: Automated testing, manual validation, edge case coverage
+  - **File**: `tests/integration/paste-strategies.test.ts` (new)
+  - **Priority**: MEDIUM - Quality assurance
+  - **Dependencies**: All paste strategies implemented
+  - **Time**: 45 minutes
+
+- [ ] **Validate priority ordering and merging logic**
+  - **Action**: Test priority-based snippet ordering and conflict resolution
+  - **Features**: Edge case testing, performance validation
+  - **File**: `tests/unit/priority-tier-manager.test.ts` (new)
+  - **Priority**: MEDIUM - Data integrity
+  - **Dependencies**: Priority system complete
+  - **Time**: 35 minutes
+
+- [ ] **Test TinyMCE integration in various contexts**
+  - **Action**: Test editor integration across different websites and contexts
+  - **Features**: Cross-site testing, performance validation
+  - **File**: `tests/e2e/tinymce-integration.test.ts` (new)
+  - **Priority**: MEDIUM - Editor reliability
+  - **Dependencies**: TinyMCE integration complete
+  - **Time**: 40 minutes
+
+- [ ] **Verify Google Drive scope limitations work correctly**
+  - **Action**: Test reduced permissions work as expected
+  - **Features**: Permission validation, scope testing, error handling
+  - **File**: `tests/integration/drive-scope-limits.test.ts` (new)
+  - **Priority**: MEDIUM - Security validation
+  - **Dependencies**: Drive scope refactor complete
+  - **Time**: 25 minutes
 
 ---
 
-### 🎯 Current Project Status - v0.41.0
+### 🎯 Current Project Status - v0.73.1
 
-**� FINAL DEBUG**: Phase 2 nearly complete - folder picker fixed, debugging settings persistence
+**🚀 MAJOR MIGRATION**: Architecture transformation to priority-tier system with TinyMCE integration
 
-- **Version**: v0.41.0
-- **Test Success**: 536/536 tests passing (100% success rate) - **ALL TESTS PASSING**
-- **Cloud Providers**: All 3 major providers fully tested (Google Drive, Dropbox, OneDrive)
-- **Code Quality**: 0 TypeScript errors, minimal ESLint warnings (clean codebase)
-- **Features**: Complete multi-format support, global toggle, cloud sync, browser automation, usage tracking
-- **Architecture**: Clean service-oriented design with proper separation of concerns, new usage tracking services
-- **Documentation**: Complete with README.md + FORMAT_GUIDE.md
-- **✅ FOLDER PICKER FIXED**: Modal loads folders, users can navigate and select successfully
-- **🔧 DEBUGGING**: Settings persistence - selected folders not saving properly for sync manager
+- **Version**: v0.73.1
+- **Test Success**: High coverage maintained
+- **Architecture**: Transforming to tier-based snippet management
+- **Next Phase**: Phase 1 - Data Architecture Refactor
+- **Current Focus**: Updating SnippetMeta interface and creating priority types
 
 **📖 See [CLAUDE-TODONE.md](./CLAUDE-TODONE.md) for complete list of all accomplished work.**
 
 ---
 
-## ✅ **Phase 1: Test Stability & Quality Assurance** - **COMPLETED**
+## 📊 **Implementation Timeline**
 
-**Goal**: Achieve 100% test success rate for true production readiness ✅
+### **Phase 1**: ~3 hours (Data Architecture)
+- Schema updates: 50 minutes
+- Storage system: 100 minutes  
+- Migration routine: 60 minutes
 
-- [x] **Fixed all test failures** - All issues resolved
-  - **Status**: All 536/536 tests now passing (100% success rate)
-  - **Achievement**: Exceeded target with robust test coverage
-  - **Quality**: Zero TypeScript errors, clean builds
+### **Phase 2**: ~3 hours (Editor Integration)
+- TinyMCE integration: 95 minutes
+- Multi-content support: 40 minutes
+- UI components: 50 minutes
 
-- [x] **Content Script Refactoring** - Major architectural improvement
-  - **Extracted**: ContentMessageService, ContentSnippetManager, ContentTriggerProcessor
-  - **Reduced**: content-script.ts from 646 to 250 lines (61% reduction)
-  - **Architecture**: Clean service-oriented design with dependency injection
-  - **Maintained**: 100% test success rate throughout refactoring
+### **Phase 3**: ~2.5 hours (Paste Engine)
+- Target detection: 35 minutes
+- Transformation strategies: 100 minutes
 
-- [x] **Folder Picker Implementation** - Comprehensive folder selection system
-  - **Fixed**: Modal loading (was stuck on "Loading folders...")
-  - **Added**: Full folder navigation with breadcrumbs
-  - **Features**: Folder creation, selection, priority assignment
-  - **Status**: Complete folder selection workflow functional
+### **Phase 4**: ~1.5 hours (Permissions)
+- Scope reduction: 50 minutes
+- File selection: 45 minutes
 
----
+### **Phase 5**: ~2 hours (UI/UX)
+- Priority interface: 65 minutes
+- Mirroring workflow: 65 minutes
 
-## 🟡 **Phase 2: Code Quality Polish** - **MEDIUM PRIORITY**
+### **Phase 6**: ~2.5 hours (Migration & Testing)
+- Migration implementation: 30 minutes
+- Testing and validation: 145 minutes
 
-**Goal**: Clean codebase ready for production deployment
-
-- [ ] **ESLint Warning Cleanup**
-  - **Status**: Address 58 non-critical ESLint warnings
-  - **Priority**: Code consistency and best practices
-  - **Target**: Minimal warnings, maintain zero errors
-
-- [ ] **Code Review & Refactoring**
-  - **Action**: Ensure all files stay under 300 lines (per CLAUDE.md guidelines)
-  - **Check**: Verify separation of concerns is maintained
-  - **Review**: Check for any technical debt accumulation
+**Total Estimated Time**: ~14.5 hours
 
 ---
 
-## 🟢 **Phase 3: Production Deployment Preparation** - **LOW PRIORITY**
+## 🎯 **Success Criteria**
 
-**Goal**: Prepare for Chrome Web Store submission
-
-- [ ] **Build & Packaging Verification**
-  - **Test**: `npm run build` produces clean production bundle
-  - **Verify**: manifest.json is properly configured
-  - **Test**: Extension installation and basic functionality
-
-- [ ] **Documentation Review**
-  - **Update**: Version numbers and status in all docs
-  - **Ensure**: README reflects current feature set
-  - **Verify**: Installation and usage instructions
+- [ ] All existing snippets migrated to tier-based JSON files without data loss
+- [ ] TinyMCE editor integrated and functional across different contexts
+- [ ] Paste behavior works correctly across all target surfaces (plain-text, Gmail, TinyMCE, fallback)
+- [ ] Google Drive integration works with reduced permissions (drive.file + drive.appdata only)
+- [ ] Mirroring workflow allows multi-file snippet management
+- [ ] Priority ordering functions correctly with descending priority
+- [ ] Migration routine preserves all existing data with rollback capability
+- [ ] Performance maintained or improved vs current system
+- [ ] All existing tests continue to pass (no regressions)
 
 ---
 
-## 🔧 **Development Infrastructure Improvements** - **MEDIUM PRIORITY**
-
-### 📋 **Precommit Hook Enhancement**
-
-- [ ] **Improve version bump logic in precommit hook**
-  - **Current Issue**: Hook auto-bumps version on every commit, even if already bumped
-  - **Required Logic**:
-    - If current version == last commit version: Auto-bump as usual
-    - If current version > last commit version: Accept without bumping
-    - If current version < last commit version: Throw error (invalid downgrade)
-  - **Files to modify**: `.husky/pre-commit`, version bump scripts
-  - **Benefit**: Prevents unnecessary version bumps on already-bumped commits
-  - **Priority**: MEDIUM - Improves development workflow efficiency
-
----
-
-## 🔧 **Phase 4: Comprehensive Code Refactoring** - **MEDIUM PRIORITY**
-
-**Goal**: Refactor 10 large files (300+ lines) to improve maintainability and follow Single Responsibility Principle. **No internal logic changes - only reorganization.**
-
-### 📊 **Phase 4.1: Critical Files Refactoring** (>600 lines)
-
-#### **options.ts Refactoring** (1708 lines → ~200 lines)
-
-- [ ] **Create directory structure**
-  - Action: `mkdir -p src/options/{services,components,utils}`
-  - Priority: HIGH - Required for all subsequent steps
-
-- [ ] **Extract DOM Elements Map**
-  - New file: `src/options/utils/dom-elements.ts`
-  - Move: All `elements` object properties from options.ts
-  - Test: Unit test to verify all elements exist in DOM
-
-- [ ] **Extract Settings Service**
-  - New file: `src/options/services/settings-service.ts`
-  - Move: `loadSettings()`, `saveSettings()`, `handleSettingsChange()`
-  - Test: Unit tests for settings load/save operations
-
-- [ ] **Extract Sync Service**
-  - New file: `src/options/services/sync-service.ts`
-  - Move: `syncNow()`, `connectToCloudProvider()`, `disconnectFromCloudProvider()`
-  - Test: Unit tests for sync operations (mocked)
-
-- [ ] **Extract Data Management Service**
-  - New file: `src/options/services/data-management-service.ts`
-  - Move: `exportData()`, `importData()`, `clearAllData()`, `getStorageStats()`
-  - Test: Unit tests for import/export functionality
-
-- [ ] **Extract Folder Picker Component**
-  - New file: `src/options/components/folder-picker.ts`
-  - Move: All folder picker modal logic, `folderPickerModal` state
-  - Test: Component integration tests for folder selection
-
-- [ ] **Extract UI Manager**
-  - New file: `src/options/options-ui.ts`
-  - Move: All DOM manipulation, event listeners, status updates
-  - Test: UI interaction tests
-
-- [ ] **Extract Global Toggle Component**
-  - New file: `src/options/components/global-toggle.ts`
-  - Move: Global toggle shortcut logic, keyboard event handling
-  - Test: Unit tests for keyboard shortcut functionality
-
-- [ ] **Refactor Main Options File**
-  - Update: `src/options/options.ts` (~200 lines)
-  - Keep only: Main OptionsApp class as orchestrator
-  - Test: Integration tests for complete workflows
-
-#### **content-script.ts Refactoring** (897 lines → ~250 lines)
-
-- [ ] **Extract Event Handler**
-  - New file: `src/content/event-handler.ts`
-  - Move: All DOM event listeners (`input`, `keydown`, `focusin`, `focusout`)
-  - Test: Event handling unit tests
-
-- [ ] **Extract DOM Utilities**
-  - New file: `src/content/utils/dom-utils.ts`
-  - Move: `isTextInput()`, `getElementText()`, `getCursorPosition()`, `isContentEditable()`
-  - Test: DOM utility function tests
-
-- [ ] **Extract Test Snippet Modal**
-  - New file: `src/content/ui/test-snippet-modal.ts`
-  - Move: Test snippet customization modal logic
-  - Test: Modal component tests
-
-- [ ] **Refactor Main Content Script**
-  - Update: `src/content/content-script.ts` (~250 lines)
-  - Keep only: Main ContentScript class as orchestrator
-  - Test: End-to-end content script integration tests
-
-#### **sync-manager.ts Refactoring** (666 lines → ~400 lines)
-
-- [ ] **Extract Authentication Service**
-  - New file: `src/background/services/auth-service.ts`
-  - Move: All authentication flows for cloud providers
-  - Test: Authentication unit tests with mocked OAuth
-
-- [ ] **Extract Sync State Manager**
-  - New file: `src/background/sync-state.ts`
-  - Move: `syncInProgress`, `syncInterval` state management
-  - Test: State management unit tests
-
-- [ ] **Extract Notification Service**
-  - New file: `src/background/services/notification-service.ts`
-  - Move: `showNotification()` and related notification logic
-  - Test: Notification service unit tests
-
-- [ ] **Move Provider-Specific Logic**
-  - Update: `src/background/cloud-adapters/google-drive-adapter.ts`
-  - Move: `getGoogleDriveFolders()`, `createGoogleDriveFolder()` from sync-manager
-  - Test: Update cloud adapter tests
-
-#### **popup.ts Refactoring** (620 lines → ~200 lines)
-
-- [ ] **Extract Snippet Service**
-  - New file: `src/popup/services/snippet-service.ts`
-  - Move: All background script communication for snippets
-  - Test: Service communication unit tests
-
-- [ ] **Extract Snippet Modal Component**
-  - New file: `src/popup/components/snippet-modal.ts`
-  - Move: Add/edit snippet modal logic and DOM manipulation
-  - Test: Modal component tests
-
-- [ ] **Extract UI Manager**
-  - New file: `src/popup/popup-ui.ts`
-  - Move: All DOM rendering, search functionality, list updates
-  - Test: UI rendering and interaction tests
-
-- [ ] **Refactor Main Popup**
-  - Update: `src/popup/popup.ts` (~200 lines)
-  - Keep only: Main PopupApp class as orchestrator
-  - Test: Complete popup workflow integration tests
-
-### 📊 **Phase 4.2: Large Files Refactoring** (400-600 lines)
-
-#### **Parser Consolidation** (html.ts, tex.ts, md.ts)
-
-- [ ] **Create Base Parser Infrastructure**
-  - New file: `src/parsers/base-parser.ts`
-  - Create abstract BaseParser class with common methods
-  - Move: `normalizeContentType()`, `normalizeScope()`, `normalizeVariables()`
-
-- [ ] **Extract Parser Utils**
-  - New file: `src/parsers/utils/parser-utils.ts`
-  - Move: `extractYAMLFrontmatter()`, `hasYAMLFrontmatter()`
-  - Test: Parser utility unit tests
-
-- [ ] **Refactor Individual Parsers**
-  - Update files: `src/parsers/html-parser.ts`, `src/parsers/md-parser.ts`, `src/parsers/tex-parser.ts`
-  - Extend BaseParser, implement format-specific logic only
-  - Test: Parser-specific unit tests
-
-- [ ] **Create Parser Factory**
-  - Update file: `src/parsers/index.ts`
-  - Implement ParserFactory pattern for parser instantiation
-  - Test: Factory pattern unit tests
-
-#### **text-replacer.ts Refactoring** (503 lines → ~200 lines)
-
-- [ ] **Implement Strategy Pattern**
-  - New files: `src/content/replacement-strategies/{form-input-strategy.ts,content-editable-strategy.ts}`
-  - Create abstract interface for replacement strategies
-  - Test: Strategy pattern unit tests
-
-- [ ] **Extract Undo Manager**
-  - New file: `src/content/undo-manager.ts`
-  - Move: `_lastReplacement` state and `undoLastReplacement()` logic
-  - Test: Undo functionality unit tests
-
-- [ ] **Extract Cursor Manager**
-  - New file: `src/content/cursor-manager.ts`
-  - Move: `getCursorPosition()`, `setCursorPosition()` cursor logic
-  - Test: Cursor management unit tests
-
-#### **placeholder-handler.ts Refactoring** (432 lines → ~250 lines)
-
-- [ ] **Extract Variable Modal**
-  - New file: `src/content/ui/variable-modal.ts`
-  - Move: Variable prompt modal DOM and event logic
-  - Test: Variable modal component tests
-
-- [ ] **Extract Placeholder Service**
-  - New file: `src/content/services/placeholder-service.ts`
-  - Move: Variable replacement logic for built-in and custom variables
-  - Test: Placeholder replacement unit tests
-
-- [ ] **Extract Validation Service**
-  - New file: `src/content/services/validation-service.ts`
-  - Move: `validateVariables()` and related validation logic
-  - Test: Validation unit tests
-
-#### **enhanced-trigger-detector.ts Refactoring** (414 lines → ~250 lines)
-
-- [ ] **Extract Trie Data Structure**
-  - New file: `src/content/utils/trie.ts`
-  - Move: All trie-related logic (node creation, insertion, traversal)
-  - Test: Trie data structure unit tests
-
-- [ ] **Extract Performance Monitor**
-  - New file: `src/content/utils/performance-monitor.ts`
-  - Move: `getPerformanceStats()` and performance calculations
-  - Test: Performance monitoring unit tests
-
-- [ ] **Create Match Value Object**
-  - New file: `src/content/utils/match.ts`
-  - Create TriggerMatch value object and creation logic
-  - Test: Match object unit tests
-
-### 🔍 **Phase 4.3: Refactoring Verification**
-
-- [ ] **Verify All Tests Pass**
-  - Target: 505/505 tests passing (maintain 100% execution)
-  - Action: Run complete test validation after each refactoring step
-
-- [ ] **Verify File Size Targets**
-  - Target: All files under 300 lines
-  - Action: Check line counts with `wc -l src/**/*.ts | sort -nr`
-
-- [ ] **Verify No Behavior Changes**
-  - Test: Extension functionality unchanged
-  - Test: UI behavior identical
-  - Test: All cloud providers still work
-
-- [ ] **Update Documentation**
-  - Update: Import/export statements in all affected files
-  - Update: Any architectural documentation
-  - Update: Test documentation if test structure changes
-
----
-
-## 🤖 **CI/CD Enhancements** - **FUTURE GOALS**
-
-**Priority**: Optional improvements for development workflow
-
-### 1. Automated Code Quality & Consistency
-
-- [ ] **Linting and Formatting Checks**: Add CI step to run `eslint` and `prettier --check .`
-- [ ] **Pre-commit Hooks**: Use `husky` to run checks locally before commits
-
-### 2. Automated Building & Versioning
-
-- [ ] **Build Verification**: Add CI step that runs `npm run build`
-- [ ] **Automated Version Bump Check**: Enforce version bump in PRs
-
----
-
-## 🚀 **Future Enhancements** - **STRETCH GOALS**
-
-**Priority**: Implement when all core functionality is 100% complete
-
-### 🔐 Encrypted Snippets Support
-
-- [ ] **Local Key Pairs**: SSH-style encryption with public/private keys
-- [ ] **Password-based**: User-provided password with PBKDF2/Argon2
-- [ ] **WebAuthn Integration**: Biometric/hardware key authentication
-- [ ] **Selective Encryption**: Per-snippet or per-folder encryption levels
-
-### 📦 Advanced CI/CD
-
-- [ ] **Automated Releases**: GitHub Action to create versioned releases
-- [ ] **Chrome Web Store Publishing**: Automated extension deployment
-- [ ] **Test Coverage Reporting**: Upload coverage reports as CI artifacts
-
-### 🌐 Additional Cloud Providers
-
-- [ ] **GitAdapter**: Sync snippets from Git repositories
-- [ ] **Enterprise Providers**: Box, AWS S3, Azure Blob Storage
-
----
-
-## 📅 **Version Planning**
-
-### v0.16.0+ - Advanced Features
-
-**Target**: Optional enhancements and stretch goals
-
-- CI/CD pipeline improvements
-- Encrypted snippets support
-- Additional cloud providers
-
----
-
-## 🛠️ **Technical Debt & Maintenance**
-
-### Current Technical Health: **EXCELLENT**
-
-- ✅ **Architecture**: Clean, modular design with CloudAdapter pattern
-- ✅ **Testing**: 96.3% success rate with comprehensive coverage
-- ✅ **Documentation**: Complete and up-to-date
-- ✅ **Security**: Password exclusion, XSS protection, sanitization
-- ✅ **Performance**: Offline-first, IndexedDB caching, efficient sync
-
-### Maintenance Items: **MINIMAL**
-
-- Optional warning cleanup for code polish (58 non-critical warnings)
-
----
-
-## 📊 **Success Metrics & Targets**
-
-### 🎯 **Phase 1 Success Criteria** (HIGH PRIORITY)
-
-- ✅ 514/514 tests passing (100% success rate)
-- ✅ All test failures resolved
-- ✅ Reliable test suite for production confidence
-
-### 🎯 **Phase 2 Success Criteria** (MEDIUM PRIORITY)
-
-- ✅ 0 ESLint errors, minimal warnings
-- ✅ All files under 300 lines
-- ✅ Clean, maintainable codebase
-
-### 🎯 **Phase 3 Success Criteria** (LOW PRIORITY)
-
-- ✅ Clean production build
-- ✅ Extension ready for Chrome Web Store submission
-- ✅ Complete documentation and installation guides
-
-### ✅ Current Achievement: **97.3% Success Rate**
-
-- **Unit Tests**: Excellent coverage of core functionality
-- **Integration Tests**: All 3 cloud providers comprehensively tested
-- **E2E Tests**: Real browser automation framework established
-- **Code Quality**: Clean codebase with 0 ESLint errors, 58 warnings
-
----
-
-_📝 Note: This TODO list focuses only on remaining work. See [CLAUDE-TODONE.md](./CLAUDE-TODONE.md) for the comprehensive record of all completed achievements from v0.6.0 → v0.14.0._
-
----
-
-## 🚨 **CRITICAL: COMPREHENSIVE TRIGGER TESTING** - **HIGHEST PRIORITY**
-
-**Issue**: Inconsistent trigger detection behavior across different patterns. Some triggers work well (prefixed), others work poorly (non-prefixed), and some fail completely. Current test coverage is insufficient for real-world trigger patterns.
-
-**Root Cause**: Test coverage gaps for diverse trigger patterns, position-specific testing, and word boundary validation. Non-prefixed triggers must NEVER match in the middle of words.
-
-### 📋 **Phase 1: Create Comprehensive Test Dataset** - **IMMEDIATE ACTION REQUIRED**
-
-- [ ] **Create realistic trigger test dataset** - **CRITICAL**
-  - **Action**: Add 25+ trigger patterns based on user's actual triggers to `tests/unit/enhanced-trigger-detector.test.ts`
-  - **Patterns**: `;wig`, `;eata`, `punt`, `;pony`, `wub`, `;ur`, `gm!`, `;gm!`, `!urgent`, `/help`, `-note`, `_private`, `@mention`, `#tag`, `hello!`, `ok?`, `done.`, `wow...`, `!done!`, `;quick;`, `/search/`, `-start-`, `?help?`, `+++`
-  - **Priority**: CRITICAL - These are the actual trigger patterns users experience
-  - **Time**: 30 minutes
-
-### 📋 **Phase 2: Position-Specific Testing** - **HIGH PRIORITY**
-
-- [ ] **Test triggers at start of input** - **HIGH PRIORITY**
-  - **Test Cases**: Non-prefixed and prefixed triggers at position 0
-  - **Validation**: Both `punt` and `;wig` should match at start of input
-  - **Time**: 15 minutes
-
-- [ ] **Test triggers after newline variations** - **HIGH PRIORITY**
-  - **Newline Types**: LF (`\n`), CR (`\r`), CRLF (`\r\n`)
-  - **Test Cases**: Triggers after each newline type should match
-  - **Critical**: `hello\nwub` should match `wub`, `text\rpunt` should match `punt`
-  - **Time**: 20 minutes
-
-- [ ] **Test triggers after delimiters** - **HIGH PRIORITY**
-  - **Delimiters**: Space, tab, punctuation (`.`, `,`, `!`, `?`, `:`, `;`, `(`, `)`, `[`, `]`)
-  - **Test Cases**: Triggers after each delimiter should match
-  - **Example**: `word punt` should match `punt`, `text.wub` should match `wub`
-  - **Time**: 15 minutes
-
-### 📋 **Phase 3: Word Boundary Validation** - **CRITICAL PRIORITY**
-
-- [ ] **NEVER match in middle of words** - **CRITICAL**
-  - **Rule**: Non-prefixed triggers must NEVER match inside another word
-  - **Test Cases**:
-    - `punting` should NOT match `punt`
-    - `Wubbalubba` should NOT match `wub`
-    - `wubba` should NOT match `wub`
-    - `subwub` should NOT match `wub`
-    - `testing` should NOT match `test`
-    - `test123` should NOT match `test`
-    - `123test` should NOT match `test`
-    - `test_word` should NOT match `test`
-    - `my_test` should NOT match `test`
-  - **Priority**: CRITICAL - This is the core bug causing unwanted expansions
-  - **Time**: 30 minutes
-
-- [ ] **ONLY match when properly bounded** - **CRITICAL**
-  - **Valid Cases**:
-    - `punt` (end of input)
-    - `punt ` (followed by space)
-    - `punt.` (followed by punctuation)
-    - `hello punt` (after space)
-    - `line\nwub` (after newline)
-    - `word.gm!` (after punctuation)
-  - **Priority**: CRITICAL - Ensures triggers work correctly
-  - **Time**: 20 minutes
-
-### 📋 **Phase 4: Prefix Pattern Testing** - **HIGH PRIORITY**
-
-- [ ] **Test all prefix characters** - **HIGH PRIORITY**
-  - **Prefixes**: `;`, `!`, `/`, `-`, `_`, `@`, `#`, `$`, `%`, `^`, `&`, `*`
-  - **Test Cases**: Each prefix should work with word boundaries
-  - **Example**: `;test`, `!urgent`, `/help`, `-note` should all match correctly
-  - **Time**: 25 minutes
-
-- [ ] **Test mixed prefix/suffix patterns** - **HIGH PRIORITY**
-  - **Patterns**: `;gm!`, `/help/`, `-start-`, `?help?`, `!urgent!`
-  - **Validation**: Complex patterns should work correctly
-  - **Time**: 20 minutes
-
-### 📋 **Phase 5: Performance & Edge Cases** - **MEDIUM PRIORITY**
-
-- [ ] **Performance with diverse trigger set** - **MEDIUM PRIORITY**
-  - **Test**: 25+ triggers with mixed patterns
-  - **Benchmark**: No significant performance degradation
-  - **Time**: 15 minutes
-
-- [ ] **Edge case testing** - **MEDIUM PRIORITY**
-  - **Cases**: Empty strings, unicode characters, very long inputs
-  - **Validation**: Proper handling of edge cases
-  - **Time**: 15 minutes
-
-### 📋 **Phase 6: Specific Bug Regression Tests** - **CRITICAL PRIORITY**
-
-- [ ] **Test specific user-reported issues** - **CRITICAL**
-  - **wub bug**: `Wubbalubba` should NOT match `wub` trigger
-  - **punt bug**: `punting` should NOT match `punt` trigger
-  - **Validation**: Exact scenarios from user reports
-  - **Time**: 10 minutes
-
-### 🎯 **Success Criteria**
-
-- [ ] **100% test coverage** for all 25+ trigger patterns
-- [ ] **Position validation** for start, newlines, delimiters
-- [ ] **Word boundary enforcement** - NEVER match in middle of words
-- [ ] **Performance maintained** with diverse trigger sets
-- [ ] **All existing tests pass** (no regression)
-
-### 📋 **Implementation Timeline - Total: 3 hours**
-
-**Phase 1**: 30 minutes (dataset creation)
-**Phase 2**: 50 minutes (position-specific testing)
-**Phase 3**: 50 minutes (word boundary validation)
-**Phase 4**: 45 minutes (prefix pattern testing)
-**Phase 5**: 30 minutes (performance & edge cases)
-**Phase 6**: 10 minutes (specific bug regression)
-
-**Files to Modify**: `tests/unit/enhanced-trigger-detector.test.ts`
-
----
-
-## 🚨 **CRITICAL BUG FIX: Word Boundary Detection** - **HIGHEST PRIORITY**
-
-**Issue**: The "wub" trigger is incorrectly matching inside "Wubbalubba" text, causing unwanted expansions. From the user logs, the trigger detection result shows `{isMatch: true, state: 'complete', trigger: 'wub', content: 'Wubbalubba Dub Dub!!!', matchEnd: 17}` which demonstrates the word boundary detection failure.
-
-**Root Cause**: The enhanced trigger detector's `findNonPrefixedTrigger` method only validates the start of word boundaries but not the end boundaries for non-prefixed triggers. It's finding "wub" at position 0 inside "Wubbalubba" without checking if the character following the match is a valid word delimiter.
-
-### 📋 **Phase A: Critical Word Boundary Fix** - **IMMEDIATE ACTION REQUIRED**
-
-#### 🔧 **A.1: Enhanced Trigger Detector Modification** - **URGENT**
-
-- [ ] **Locate and analyze enhanced-trigger-detector.ts** - **IMMEDIATE**
-  - **Action**: Read the current implementation of `findNonPrefixedTrigger` method
-  - **Focus**: Understand how word boundary validation currently works
-  - **File**: `src/content/enhanced-trigger-detector.ts`
-  - **Priority**: CRITICAL - This is the core issue causing the bug
-
-- [ ] **Fix word boundary validation logic** - **CRITICAL IMPLEMENTATION**
-  - **Issue**: Method finds "wub" inside "Wubbalubba" because it doesn't check end boundaries
-  - **Required Fix**: Modify `findNonPrefixedTrigger` to validate BOTH start AND end word boundaries
-  - **Logic**: When a potential trigger is found, verify that the character immediately following the match is either:
-    - A delimiter (space, punctuation, etc.)
-    - End of input string
-    - A non-alphanumeric character
-  - **Example**: "wub" in "Wubbalubba" should fail because it's followed by "b" (alphanumeric)
-  - **Example**: "wub" in "wub " should pass because it's followed by space (delimiter)
-
-#### 🧪 **A.2: Comprehensive Test Coverage** - **HIGH PRIORITY**
-
-- [ ] **Add word boundary edge case tests** - **CRITICAL TESTING**
-  - **Purpose**: Ensure the fix works correctly and prevents regressions
-  - **File**: `tests/unit/enhanced-trigger-detector.test.ts`
-  - **Test Cases Required**:
-    - `"wub"` → should match (end of input)
-    - `"wub "` → should match (followed by space)
-    - `"wub."` → should match (followed by punctuation)
-    - `"Wubbalubba"` → should NOT match "wub" (followed by alphanumeric)
-    - `"wubba"` → should NOT match "wub" (followed by alphanumeric)
-    - `"subwub"` → should NOT match "wub" (preceded by alphanumeric)
-    - `" wub "` → should match "wub" (proper word boundaries)
-    - `"test wub test"` → should match "wub" (proper word boundaries)
-
-- [ ] **Add non-prefixed trigger test coverage** - **HIGH PRIORITY**
-  - **Current Gap**: Non-prefixed triggers like "punt" and "wub" lack comprehensive test coverage
-  - **Required Tests**: Based on existing test structure in enhanced-trigger-detector.test.ts
-  - **Test Categories**:
-    - Basic non-prefixed trigger detection
-    - Word boundary validation for non-prefixed triggers
-    - Mixed scenarios with both prefixed and non-prefixed triggers
-    - Partial matching states for non-prefixed triggers
-    - Performance tests with non-prefixed triggers
-
-#### 🔍 **A.3: Verification and Validation** - **MEDIUM PRIORITY**
-
-- [ ] **Run existing test suite** - **COMPATIBILITY CHECK**
-  - **Command**: `npm test`
-  - **Purpose**: Ensure the fix doesn't break existing functionality
-  - **Expected**: All 536/536 tests should still pass
-  - **Files**: All existing test files should remain green
-
-- [ ] **Test the specific wub scenario** - **BUG VALIDATION**
-  - **Manual Test**: Create test scenario that reproduces the exact log issue
-  - **Input**: Text containing "Wubbalubba Dub Dub!!!" with "wub" trigger defined
-  - **Expected**: "wub" trigger should NOT match inside "Wubbalubba"
-  - **Validation**: Verify the fix resolves the user's reported issue
-
-- [ ] **Performance impact assessment** - **OPTIMIZATION CHECK**
-  - **Concern**: Additional boundary checking might impact performance
-  - **Test**: Run performance tests before and after the fix
-  - **Benchmark**: Ensure minimal performance degradation (<5ms increase)
-  - **Files**: Use existing performance tests in fuzz testing suite
-
-### 📋 **Implementation Timeline**
-
-**Immediate (Next 30 minutes)**:
-
-1. Read and analyze enhanced-trigger-detector.ts file
-2. Identify the exact location of the word boundary issue
-3. Implement the fix to validate end word boundaries
-
-**Next Hour**:
-
-1. Add comprehensive test cases for word boundary edge cases
-2. Run full test suite to ensure compatibility
-3. Test the specific "wub" scenario to validate the fix
-
-**Final Validation**:
-
-1. Performance testing to ensure no significant impact
-2. Update version number as per CLAUDE.md guidelines
-3. Commit the fix with proper commit message format
-
-### 🎯 **Success Criteria**
-
-- [ ] **Bug Resolution**: "wub" trigger no longer matches inside "Wubbalubba"
-- [ ] **Test Coverage**: All edge cases properly tested and passing
-- [ ] **Compatibility**: All existing tests continue to pass
-- [ ] **Performance**: No significant performance degradation
-- [ ] **Documentation**: Fix properly documented and committed
-
----
-
-## 🔧 **Technical Improvements** - **LOW PRIORITY**
-
-### 🎯 **Snippet ID System Enhancement**
-
-- [ ] **Improve snippet ID system to prevent conflicts** - **LOW PRIORITY**
-  - **Issue**: Current system can cause ID collisions between local and Google Drive snippets
-  - **Solution**: Implement namespace prefixing (e.g., "gdrive*", "local*", "dropbox\_")
-  - **Benefits**: Prevents database constraint errors, cleaner data separation
-  - **Priority**: LOW - Current workarounds are sufficient for now
-  - **Files**: `src/shared/types.ts`, `src/background/sync-manager.ts`, storage utilities
-
-### 🧪 **Test Coverage Improvements** - **HIGH PRIORITY**
-
-- [ ] **Add comprehensive test coverage for trigger detection** - **HIGH PRIORITY**
-  - **Issue**: Non-prefixed trigger detection (like "punt" trigger) not covered by tests
-  - **Solution**: Write tests for both prefixed and non-prefixed trigger detection scenarios
-  - **Why Important**: These are EASY tests to write and should have been covered from the start
-  - **Files**: `tests/unit/enhanced-trigger-detector.test.ts`, `tests/unit/trigger-detector.test.ts`
-  - **Test Cases**:
-    - Non-prefixed triggers (e.g., "punt" → "PUNT! LETS GOOOOOO!!!!")
-    - Prefixed triggers (e.g., ";pony" → "Peanut **BUTTER** Pony Time!")
-    - Mixed scenarios with both types of triggers
-    - Word boundary detection for non-prefixed triggers
-    - Partial matching states for both types
-
----
-
-_Last updated: 2025-07-11_  
+_Last updated: 2025-07-16_  
 _Project: PuffPuffPaste - Collaborative Text Expander_  
-_Current Version: 0.44.0_  
-_Status: Debugging Google Drive snippet expansion issue_
+_Current Version: 0.73.1_  
+_Status: Major Architecture Migration - Priority-Tier System Implementation_

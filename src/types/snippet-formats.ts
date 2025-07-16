@@ -22,12 +22,12 @@ export interface SnippetMeta {
   trigger: string;
   /** Array of dependent snippet triggers (e.g., [";gb"]) */
   snipDependencies: string[];
-  /** Content type - canonical values only */
-  contentType: "plainText" | "markdown" | "html" | "latex";
+  /** Content type - HTML-focused for new architecture */
+  contentType: "html" | "plaintext" | "latex";
   /** Human-readable description */
   description: string;
   /** Scope for priority system */
-  scope: "personal" | "group" | "org";
+  scope: "personal" | "team" | "org";
   /** Variable definitions with prompts */
   variables: VariableDef[];
   /** Drive fileIds, data URIs, etc. */
@@ -158,4 +158,63 @@ export interface ImageReference {
   size?: number; // Size in bytes
   cached?: boolean; // Whether image is cached locally
   cacheKey?: string; // Cache identifier
+}
+
+/**
+ * Priority tier names for the new tier-based architecture
+ */
+export type PriorityTier = "personal" | "team" | "org";
+
+/**
+ * Enhanced snippet for the new priority-tier architecture
+ */
+export interface EnhancedSnippet {
+  id: string;
+  trigger: string;
+  content: string; // HTML content by default
+  contentType: "html" | "plaintext" | "latex";
+  snipDependencies: string[];
+  description: string;
+  scope: PriorityTier;
+  variables: VariableDef[];
+  images: string[];
+  tags: string[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+/**
+ * Priority tier store - represents a single JSON file containing snippets
+ */
+export interface PriorityTierStore {
+  tierName: PriorityTier;
+  fileName: string; // e.g., 'personal.json'
+  snippets: EnhancedSnippet[]; // Ordered by descending priority
+  lastModified: string;
+  version: string; // Schema version for migration support
+  metadata: {
+    totalSnippets: number;
+    averagePriority: number;
+    lastSync?: string;
+    owner?: string;
+    permissions?: string[];
+  };
+}
+
+/**
+ * Array-based snippet storage schema for tier files
+ */
+export interface TierStorageSchema {
+  schema: "priority-tier-v1";
+  tier: PriorityTier;
+  snippets: EnhancedSnippet[];
+  metadata: {
+    version: string;
+    created: string;
+    modified: string;
+    owner: string;
+    description?: string;
+  };
 }

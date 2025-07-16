@@ -5,6 +5,7 @@
 
 import { BaseCloudAdapter } from "./base-adapter.js";
 import type { CloudCredentials, TextSnippet } from "../../shared/types.js";
+import type { TierStorageSchema, PriorityTier } from "../../types/snippet-formats.js";
 import { SYNC_CONFIG } from "../../shared/constants.js";
 import {
   GoogleDriveAuthService,
@@ -292,5 +293,201 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         error: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  // === NEW TIER-BASED METHODS FOR PRIORITY-TIER ARCHITECTURE ===
+
+  /**
+   * Upload tier schema to Google Drive (works with drive.file scope)
+   */
+  async uploadTierSchema(schema: TierStorageSchema, fileId?: string): Promise<string> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    const fileName = `${schema.tier}.json`;
+    const content = JSON.stringify(schema, null, 2);
+
+    console.log(`📤 Uploading ${fileName} to Google Drive (${content.length} bytes)`);
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      // Use the file service to upload tier JSON file
+      const uploadedFileId = await GoogleDriveFileService.uploadJsonFile(
+        this.credentials!,
+        fileName,
+        content,
+        fileId,
+      );
+
+      console.log(`✅ Successfully uploaded ${fileName} with ID: ${uploadedFileId}`);
+      return uploadedFileId;
+    });
+  }
+
+  /**
+   * Download tier schema from Google Drive (works with drive.file scope)
+   */
+  async downloadTierSchema(tier: PriorityTier, fileId?: string): Promise<TierStorageSchema | null> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    const fileName = `${tier}.json`;
+    console.log(`📥 Downloading ${fileName} from Google Drive`);
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      try {
+        let targetFileId = fileId;
+
+        // If no specific file ID provided, search for the tier file
+        if (!targetFileId) {
+          const files = await this.searchTierFiles();
+          const tierFile = files.find(f => f.name === fileName);
+          if (!tierFile) {
+            console.log(`📭 No ${fileName} found on Google Drive`);
+            return null;
+          }
+          targetFileId = tierFile.id;
+        }
+
+        // Download the file content
+        const content = await GoogleDriveFileService.downloadFileContent(
+          this.credentials!,
+          targetFileId,
+        );
+
+        // Parse and validate the schema
+        const schema = JSON.parse(content) as TierStorageSchema;
+        
+        if (schema.tier !== tier) {
+          throw new Error(`Schema tier mismatch: expected ${tier}, got ${schema.tier}`);
+        }
+
+        console.log(`✅ Successfully downloaded ${fileName} with ${schema.snippets.length} snippets`);
+        return schema;
+      } catch (error) {
+        console.error(`❌ Failed to download ${fileName}:`, error);
+        return null;
+      }
+    });
+  }
+
+  /**
+   * Search for tier files in Google Drive (works with drive.file scope)
+   */
+  async searchTierFiles(): Promise<Array<{ id: string; name: string; modifiedTime?: string }>> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    console.log("🔍 Searching for tier files on Google Drive");
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      // Search for JSON files that match tier naming pattern
+      const query = "name contains '.json' and (name contains 'personal' or name contains 'team' or name contains 'org')";
+      
+      const files = await GoogleDriveFileService.searchFiles(
+        this.credentials!,
+        query,
+      );
+
+      // Filter to only tier files
+      const tierFiles = files.filter(file => 
+        file.name === "personal.json" || 
+        file.name === "team.json" || 
+        file.name === "org.json"
+      );
+
+      console.log(`📋 Found ${tierFiles.length} tier files:`, tierFiles.map(f => f.name));
+      return tierFiles;
+    });
+  }
+
+  /**
+   * Delete tier file from Google Drive (works with drive.file scope)
+   */
+  async deleteTierFile(tier: PriorityTier, fileId?: string): Promise<boolean> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    const fileName = `${tier}.json`;
+    console.log(`🗑️ Deleting ${fileName} from Google Drive`);
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      try {
+        let targetFileId = fileId;
+
+        // If no specific file ID provided, search for the tier file
+        if (!targetFileId) {
+          const files = await this.searchTierFiles();
+          const tierFile = files.find(f => f.name === fileName);
+          if (!tierFile) {
+            console.log(`📭 No ${fileName} found to delete`);
+            return false;
+          }
+          targetFileId = tierFile.id;
+        }
+
+        // Delete the file
+        await GoogleDriveFileService.deleteFile(this.credentials!, targetFileId);
+        console.log(`✅ Successfully deleted ${fileName}`);
+        return true;
+      } catch (error) {
+        console.error(`❌ Failed to delete ${fileName}:`, error);
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Store user preferences in appdata (works with drive.appdata scope)
+   */
+  async storeUserPreferences(preferences: any): Promise<void> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    console.log("💾 Storing user preferences in Drive appdata");
+
+    await GoogleDriveUtils.retryOperation(async () => {
+      const content = JSON.stringify(preferences, null, 2);
+      
+      // Upload to appdata folder (private application data)
+      await GoogleDriveFileService.uploadToAppData(
+        this.credentials!,
+        "puffpuffpaste-preferences.json",
+        content,
+      );
+
+      console.log("✅ User preferences stored successfully");
+    });
+  }
+
+  /**
+   * Retrieve user preferences from appdata (works with drive.appdata scope)
+   */
+  async getUserPreferences(): Promise<any | null> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    console.log("📥 Retrieving user preferences from Drive appdata");
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      try {
+        const content = await GoogleDriveFileService.downloadFromAppData(
+          this.credentials!,
+          "puffpuffpaste-preferences.json",
+        );
+
+        const preferences = JSON.parse(content);
+        console.log("✅ User preferences retrieved successfully");
+        return preferences;
+      } catch (error) {
+        console.log("📭 No user preferences found in appdata");
+        return null;
+      }
+    });
   }
 }
