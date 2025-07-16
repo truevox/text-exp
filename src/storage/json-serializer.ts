@@ -35,7 +35,7 @@ export interface JsonOperationResult {
  */
 const SNIPPET_FIELD_ORDER = [
   "id",
-  "trigger", 
+  "trigger",
   "content",
   "contentType",
   "snipDependencies",
@@ -50,17 +50,12 @@ const SNIPPET_FIELD_ORDER = [
   "updatedBy",
 ];
 
-const SCHEMA_FIELD_ORDER = [
-  "schema",
-  "tier",
-  "snippets",
-  "metadata",
-];
+const SCHEMA_FIELD_ORDER = ["schema", "tier", "snippets", "metadata"];
 
 const METADATA_FIELD_ORDER = [
   "version",
   "created",
-  "modified", 
+  "modified",
   "owner",
   "description",
 ];
@@ -74,7 +69,7 @@ export class JsonSerializer {
    */
   static serialize(
     schema: TierStorageSchema,
-    options: JsonSerializationOptions = {}
+    options: JsonSerializationOptions = {},
   ): string {
     const opts = {
       pretty: true,
@@ -100,7 +95,7 @@ export class JsonSerializer {
   static deserialize(jsonString: string): JsonOperationResult {
     try {
       const data = JSON.parse(jsonString);
-      
+
       // Validate schema structure
       const validation = this.validateSchema(data);
       if (!validation.success) {
@@ -128,7 +123,7 @@ export class JsonSerializer {
    */
   static serializeSnippets(
     snippets: EnhancedSnippet[],
-    options: JsonSerializationOptions = {}
+    options: JsonSerializationOptions = {},
   ): string {
     const opts = {
       pretty: true,
@@ -138,8 +133,14 @@ export class JsonSerializer {
 
     try {
       if (opts.preserveOrder) {
-        const orderedSnippets = snippets.map(snippet => this.orderSnippetFields(snippet));
-        return JSON.stringify(orderedSnippets, null, opts.pretty ? 2 : undefined);
+        const orderedSnippets = snippets.map((snippet) =>
+          this.orderSnippetFields(snippet),
+        );
+        return JSON.stringify(
+          orderedSnippets,
+          null,
+          opts.pretty ? 2 : undefined,
+        );
       } else {
         return JSON.stringify(snippets, null, opts.pretty ? 2 : undefined);
       }
@@ -151,9 +152,12 @@ export class JsonSerializer {
   /**
    * Create a minimal schema for a new tier
    */
-  static createEmptySchema(tier: PriorityTier, owner: string = "user"): TierStorageSchema {
+  static createEmptySchema(
+    tier: PriorityTier,
+    owner: string = "user",
+  ): TierStorageSchema {
     const now = new Date().toISOString();
-    
+
     return this.orderSchemaFields({
       schema: "priority-tier-v1",
       tier,
@@ -171,15 +175,17 @@ export class JsonSerializer {
   /**
    * Order schema fields according to predefined order
    */
-  private static orderSchemaFields(schema: TierStorageSchema): TierStorageSchema {
+  private static orderSchemaFields(
+    schema: TierStorageSchema,
+  ): TierStorageSchema {
     const ordered: any = {};
 
     // Order top-level fields
     for (const field of SCHEMA_FIELD_ORDER) {
       if (field in schema) {
         if (field === "snippets") {
-          ordered[field] = (schema[field] as EnhancedSnippet[]).map(snippet => 
-            this.orderSnippetFields(snippet)
+          ordered[field] = (schema[field] as EnhancedSnippet[]).map((snippet) =>
+            this.orderSnippetFields(snippet),
           );
         } else if (field === "metadata") {
           ordered[field] = this.orderMetadataFields(schema[field]);
@@ -288,7 +294,9 @@ export class JsonSerializer {
         };
       }
       if (snippetValidation.warnings) {
-        warnings.push(...snippetValidation.warnings.map(w => `Snippet ${i}: ${w}`));
+        warnings.push(
+          ...snippetValidation.warnings.map((w) => `Snippet ${i}: ${w}`),
+        );
       }
     }
 
@@ -301,7 +309,10 @@ export class JsonSerializer {
   /**
    * Validate individual snippet structure
    */
-  private static validateSnippet(snippet: any, index: number): JsonOperationResult {
+  private static validateSnippet(
+    snippet: any,
+    index: number,
+  ): JsonOperationResult {
     const warnings: string[] = [];
 
     // Check required fields
@@ -346,10 +357,19 @@ export class JsonSerializer {
   /**
    * Compare two schemas for equality (useful for detecting changes)
    */
-  static schemasEqual(schema1: TierStorageSchema, schema2: TierStorageSchema): boolean {
+  static schemasEqual(
+    schema1: TierStorageSchema,
+    schema2: TierStorageSchema,
+  ): boolean {
     try {
-      const json1 = this.serialize(schema1, { pretty: false, preserveOrder: true });
-      const json2 = this.serialize(schema2, { pretty: false, preserveOrder: true });
+      const json1 = this.serialize(schema1, {
+        pretty: false,
+        preserveOrder: true,
+      });
+      const json2 = this.serialize(schema2, {
+        pretty: false,
+        preserveOrder: true,
+      });
       return json1 === json2;
     } catch (error) {
       return false;

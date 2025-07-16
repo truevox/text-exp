@@ -12,12 +12,12 @@ import type {
 /**
  * Conflict resolution strategies
  */
-export type ConflictResolutionStrategy = 
-  | "local-wins"      // Local changes take priority
-  | "remote-wins"     // Remote changes take priority  
-  | "newest-wins"     // Most recent updatedAt wins
-  | "manual"          // Require manual resolution
-  | "merge-content";  // Attempt to merge content
+export type ConflictResolutionStrategy =
+  | "local-wins" // Local changes take priority
+  | "remote-wins" // Remote changes take priority
+  | "newest-wins" // Most recent updatedAt wins
+  | "manual" // Require manual resolution
+  | "merge-content"; // Attempt to merge content
 
 /**
  * Merge conflict information
@@ -69,7 +69,7 @@ export class MergeHelper {
   static merge(
     localSnippets: EnhancedSnippet[],
     remoteSnippets: EnhancedSnippet[],
-    options: MergeOptions
+    options: MergeOptions,
   ): MergeResult {
     try {
       const conflicts: MergeConflict[] = [];
@@ -92,8 +92,12 @@ export class MergeHelper {
           stats.added++;
         } else {
           // Existing snippet - check for conflicts
-          const conflict = this.detectConflict(localSnippet, remoteSnippet, options);
-          
+          const conflict = this.detectConflict(
+            localSnippet,
+            remoteSnippet,
+            options,
+          );
+
           if (conflict) {
             conflicts.push(conflict);
             stats.conflicts++;
@@ -113,7 +117,10 @@ export class MergeHelper {
       }
 
       // Check for trigger duplicates across all snippets
-      const triggerConflicts = this.detectTriggerDuplicates(Array.from(merged.values()), options);
+      const triggerConflicts = this.detectTriggerDuplicates(
+        Array.from(merged.values()),
+        options,
+      );
       if (triggerConflicts.length > 0) {
         conflicts.push(...triggerConflicts);
         stats.conflicts += triggerConflicts.length;
@@ -143,24 +150,28 @@ export class MergeHelper {
   static upsertSnippet(
     snippets: EnhancedSnippet[],
     snippet: EnhancedSnippet,
-    options: MergeOptions
+    options: MergeOptions,
   ): MergeResult {
-    const existingIndex = snippets.findIndex(s => s.id === snippet.id);
-    
+    const existingIndex = snippets.findIndex((s) => s.id === snippet.id);
+
     if (existingIndex === -1) {
       // New snippet - check for trigger conflicts
-      const triggerConflict = snippets.find(s => s.trigger === snippet.trigger);
+      const triggerConflict = snippets.find(
+        (s) => s.trigger === snippet.trigger,
+      );
       if (triggerConflict && !options.allowTriggerDuplicates) {
         return {
           success: false,
           mergedSnippets: snippets,
-          conflicts: [{
-            snippetId: snippet.id,
-            trigger: snippet.trigger,
-            conflictType: "duplicate-trigger",
-            localSnippet: triggerConflict,
-            remoteSnippet: snippet,
-          }],
+          conflicts: [
+            {
+              snippetId: snippet.id,
+              trigger: snippet.trigger,
+              conflictType: "duplicate-trigger",
+              localSnippet: triggerConflict,
+              remoteSnippet: snippet,
+            },
+          ],
           stats: { added: 0, updated: 0, removed: 0, conflicts: 1 },
         };
       }
@@ -216,10 +227,10 @@ export class MergeHelper {
    */
   static removeSnippets(
     snippets: EnhancedSnippet[],
-    idsToRemove: string[]
+    idsToRemove: string[],
   ): MergeResult {
     const before = snippets.length;
-    const filtered = snippets.filter(s => !idsToRemove.includes(s.id));
+    const filtered = snippets.filter((s) => !idsToRemove.includes(s.id));
     const removed = before - filtered.length;
 
     return {
@@ -236,10 +247,14 @@ export class MergeHelper {
   private static detectConflict(
     local: EnhancedSnippet,
     remote: EnhancedSnippet,
-    options: MergeOptions
+    options: MergeOptions,
   ): MergeConflict | null {
     // Different IDs but same trigger
-    if (local.id !== remote.id && local.trigger === remote.trigger && !options.allowTriggerDuplicates) {
+    if (
+      local.id !== remote.id &&
+      local.trigger === remote.trigger &&
+      !options.allowTriggerDuplicates
+    ) {
       return {
         snippetId: local.id,
         trigger: local.trigger,
@@ -251,10 +266,11 @@ export class MergeHelper {
 
     // Same ID but different content
     if (local.id === remote.id && options.detectContentChanges) {
-      if (local.content !== remote.content || 
-          local.trigger !== remote.trigger ||
-          local.description !== remote.description) {
-        
+      if (
+        local.content !== remote.content ||
+        local.trigger !== remote.trigger ||
+        local.description !== remote.description
+      ) {
         // Check timestamps to suggest resolution
         const localTime = new Date(local.updatedAt).getTime();
         const remoteTime = new Date(remote.updatedAt).getTime();
@@ -279,7 +295,7 @@ export class MergeHelper {
    */
   private static detectTriggerDuplicates(
     snippets: EnhancedSnippet[],
-    options: MergeOptions
+    options: MergeOptions,
   ): MergeConflict[] {
     if (options.allowTriggerDuplicates) {
       return [];
@@ -320,7 +336,7 @@ export class MergeHelper {
    */
   private static resolveConflict(
     conflict: MergeConflict,
-    options: MergeOptions
+    options: MergeOptions,
   ): EnhancedSnippet | null {
     switch (options.strategy) {
       case "local-wins":
@@ -336,10 +352,15 @@ export class MergeHelper {
         // Fall back to timestamp comparison
         const localTime = new Date(conflict.localSnippet.updatedAt).getTime();
         const remoteTime = new Date(conflict.remoteSnippet.updatedAt).getTime();
-        return localTime > remoteTime ? conflict.localSnippet : conflict.remoteSnippet;
+        return localTime > remoteTime
+          ? conflict.localSnippet
+          : conflict.remoteSnippet;
 
       case "merge-content":
-        return this.mergeSnippetContent(conflict.localSnippet, conflict.remoteSnippet);
+        return this.mergeSnippetContent(
+          conflict.localSnippet,
+          conflict.remoteSnippet,
+        );
 
       case "manual":
         return null; // Require manual resolution
@@ -354,26 +375,30 @@ export class MergeHelper {
    */
   private static mergeSnippetContent(
     local: EnhancedSnippet,
-    remote: EnhancedSnippet
+    remote: EnhancedSnippet,
   ): EnhancedSnippet {
     // Simple merge strategy - combine fields intelligently
     const merged: EnhancedSnippet = {
       ...local, // Start with local as base
-      
+
       // Use newer updatedAt
-      updatedAt: new Date(local.updatedAt).getTime() > new Date(remote.updatedAt).getTime() 
-        ? local.updatedAt 
-        : remote.updatedAt,
+      updatedAt:
+        new Date(local.updatedAt).getTime() >
+        new Date(remote.updatedAt).getTime()
+          ? local.updatedAt
+          : remote.updatedAt,
 
       // Merge arrays (tags, images, variables)
       tags: [...new Set([...local.tags, ...remote.tags])],
       images: [...new Set([...local.images, ...remote.images])],
-      
+
       // For variables, prefer local but add any new remote variables
       variables: this.mergeVariables(local.variables, remote.variables),
 
       // For snipDependencies, merge unique values
-      snipDependencies: [...new Set([...local.snipDependencies, ...remote.snipDependencies])],
+      snipDependencies: [
+        ...new Set([...local.snipDependencies, ...remote.snipDependencies]),
+      ],
     };
 
     return merged;
@@ -382,10 +407,7 @@ export class MergeHelper {
   /**
    * Merge variable arrays intelligently
    */
-  private static mergeVariables(
-    localVars: any[],
-    remoteVars: any[]
-  ): any[] {
+  private static mergeVariables(localVars: any[], remoteVars: any[]): any[] {
     const merged = new Map<string, any>();
 
     // Add local variables first
@@ -412,7 +434,7 @@ export class MergeHelper {
       const tierPriority = { personal: 1, team: 2, org: 3 };
       const aPriority = tierPriority[a.scope] || 999;
       const bPriority = tierPriority[b.scope] || 999;
-      
+
       if (aPriority !== bPriority) {
         return aPriority - bPriority;
       }
@@ -427,7 +449,10 @@ export class MergeHelper {
   /**
    * Validate merge result
    */
-  static validateMergeResult(result: MergeResult): { valid: boolean; errors: string[] } {
+  static validateMergeResult(result: MergeResult): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     // Check for trigger duplicates if not allowed

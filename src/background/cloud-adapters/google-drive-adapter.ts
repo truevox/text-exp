@@ -5,7 +5,10 @@
 
 import { BaseCloudAdapter } from "./base-adapter.js";
 import type { CloudCredentials, TextSnippet } from "../../shared/types.js";
-import type { TierStorageSchema, PriorityTier } from "../../types/snippet-formats.js";
+import type {
+  TierStorageSchema,
+  PriorityTier,
+} from "../../types/snippet-formats.js";
 import { SYNC_CONFIG } from "../../shared/constants.js";
 import {
   GoogleDriveAuthService,
@@ -300,7 +303,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Upload tier schema to Google Drive (works with drive.file scope)
    */
-  async uploadTierSchema(schema: TierStorageSchema, fileId?: string): Promise<string> {
+  async uploadTierSchema(
+    schema: TierStorageSchema,
+    fileId?: string,
+  ): Promise<string> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
@@ -308,7 +314,9 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     const fileName = `${schema.tier}.json`;
     const content = JSON.stringify(schema, null, 2);
 
-    console.log(`📤 Uploading ${fileName} to Google Drive (${content.length} bytes)`);
+    console.log(
+      `📤 Uploading ${fileName} to Google Drive (${content.length} bytes)`,
+    );
 
     return GoogleDriveUtils.retryOperation(async () => {
       // Use the file service to upload tier JSON file
@@ -319,7 +327,9 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         fileId,
       );
 
-      console.log(`✅ Successfully uploaded ${fileName} with ID: ${uploadedFileId}`);
+      console.log(
+        `✅ Successfully uploaded ${fileName} with ID: ${uploadedFileId}`,
+      );
       return uploadedFileId;
     });
   }
@@ -327,7 +337,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Download tier schema from Google Drive (works with drive.file scope)
    */
-  async downloadTierSchema(tier: PriorityTier, fileId?: string): Promise<TierStorageSchema | null> {
+  async downloadTierSchema(
+    tier: PriorityTier,
+    fileId?: string,
+  ): Promise<TierStorageSchema | null> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
@@ -342,7 +355,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         // If no specific file ID provided, search for the tier file
         if (!targetFileId) {
           const files = await this.searchTierFiles();
-          const tierFile = files.find(f => f.name === fileName);
+          const tierFile = files.find((f) => f.name === fileName);
           if (!tierFile) {
             console.log(`📭 No ${fileName} found on Google Drive`);
             return null;
@@ -358,12 +371,16 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
 
         // Parse and validate the schema
         const schema = JSON.parse(content) as TierStorageSchema;
-        
+
         if (schema.tier !== tier) {
-          throw new Error(`Schema tier mismatch: expected ${tier}, got ${schema.tier}`);
+          throw new Error(
+            `Schema tier mismatch: expected ${tier}, got ${schema.tier}`,
+          );
         }
 
-        console.log(`✅ Successfully downloaded ${fileName} with ${schema.snippets.length} snippets`);
+        console.log(
+          `✅ Successfully downloaded ${fileName} with ${schema.snippets.length} snippets`,
+        );
         return schema;
       } catch (error) {
         console.error(`❌ Failed to download ${fileName}:`, error);
@@ -375,7 +392,9 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   /**
    * Search for tier files in Google Drive (works with drive.file scope)
    */
-  async searchTierFiles(): Promise<Array<{ id: string; name: string; modifiedTime?: string }>> {
+  async searchTierFiles(): Promise<
+    Array<{ id: string; name: string; modifiedTime?: string }>
+  > {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
@@ -384,21 +403,26 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
 
     return GoogleDriveUtils.retryOperation(async () => {
       // Search for JSON files that match tier naming pattern
-      const query = "name contains '.json' and (name contains 'personal' or name contains 'team' or name contains 'org')";
-      
+      const query =
+        "name contains '.json' and (name contains 'personal' or name contains 'team' or name contains 'org')";
+
       const files = await GoogleDriveFileService.searchFiles(
         this.credentials!,
         query,
       );
 
       // Filter to only tier files
-      const tierFiles = files.filter(file => 
-        file.name === "personal.json" || 
-        file.name === "team.json" || 
-        file.name === "org.json"
+      const tierFiles = files.filter(
+        (file) =>
+          file.name === "personal.json" ||
+          file.name === "team.json" ||
+          file.name === "org.json",
       );
 
-      console.log(`📋 Found ${tierFiles.length} tier files:`, tierFiles.map(f => f.name));
+      console.log(
+        `📋 Found ${tierFiles.length} tier files:`,
+        tierFiles.map((f) => f.name),
+      );
       return tierFiles;
     });
   }
@@ -421,7 +445,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         // If no specific file ID provided, search for the tier file
         if (!targetFileId) {
           const files = await this.searchTierFiles();
-          const tierFile = files.find(f => f.name === fileName);
+          const tierFile = files.find((f) => f.name === fileName);
           if (!tierFile) {
             console.log(`📭 No ${fileName} found to delete`);
             return false;
@@ -430,7 +454,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         }
 
         // Delete the file
-        await GoogleDriveFileService.deleteFile(this.credentials!, targetFileId);
+        await GoogleDriveFileService.deleteFile(
+          this.credentials!,
+          targetFileId,
+        );
         console.log(`✅ Successfully deleted ${fileName}`);
         return true;
       } catch (error) {
@@ -452,7 +479,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
 
     await GoogleDriveUtils.retryOperation(async () => {
       const content = JSON.stringify(preferences, null, 2);
-      
+
       // Upload to appdata folder (private application data)
       await GoogleDriveFileService.uploadToAppData(
         this.credentials!,

@@ -77,7 +77,7 @@ export class FileSelector {
         </div>
         
         <div class="tier-selectors">
-          ${this.configs.map(config => this.renderTierSelector(config)).join('')}
+          ${this.configs.map((config) => this.renderTierSelector(config)).join("")}
         </div>
         
         <div class="file-selector-actions">
@@ -106,8 +106,8 @@ export class FileSelector {
    * Render tier selector for a specific tier
    */
   private renderTierSelector(config: FileSelectorConfig): string {
-    const isRequired = config.required ? 'required' : '';
-    const requiredMark = config.required ? ' *' : '';
+    const isRequired = config.required ? "required" : "";
+    const requiredMark = config.required ? " *" : "";
 
     return `
       <div class="tier-selector" data-tier="${config.tier}">
@@ -139,7 +139,7 @@ export class FileSelector {
         </div>
         
         <div class="tier-status ${isRequired}">
-          ${config.required ? '<small>Required for PuffPuffPaste to work</small>' : '<small>Optional - enable for shared snippets</small>'}
+          ${config.required ? "<small>Required for PuffPuffPaste to work</small>" : "<small>Optional - enable for shared snippets</small>"}
         </div>
       </div>
     `;
@@ -150,7 +150,7 @@ export class FileSelector {
    */
   private attachEventListeners(): void {
     // Tier-specific actions
-    this.container.addEventListener('click', async (e) => {
+    this.container.addEventListener("click", async (e) => {
       const target = e.target as HTMLElement;
       const action = target.dataset.action;
       const tier = target.dataset.tier as PriorityTier;
@@ -158,64 +158,67 @@ export class FileSelector {
       if (!action || !tier) return;
 
       switch (action) {
-        case 'select':
+        case "select":
           await this.selectFileForTier(tier);
           break;
-        case 'create':
+        case "create":
           await this.createFileForTier(tier);
           break;
-        case 'change':
+        case "change":
           await this.changeFileForTier(tier);
           break;
       }
     });
 
     // Global actions
-    document.getElementById('scan-existing-files')?.addEventListener('click', 
-      () => this.scanForExistingFiles()
-    );
-    
-    document.getElementById('create-new-files')?.addEventListener('click', 
-      () => this.createAllMissingFiles()
-    );
-    
-    document.getElementById('save-selections')?.addEventListener('click', 
-      () => this.saveSelections()
-    );
+    document
+      .getElementById("scan-existing-files")
+      ?.addEventListener("click", () => this.scanForExistingFiles());
+
+    document
+      .getElementById("create-new-files")
+      ?.addEventListener("click", () => this.createAllMissingFiles());
+
+    document
+      .getElementById("save-selections")
+      ?.addEventListener("click", () => this.saveSelections());
   }
 
   /**
    * Select a file for a specific tier
    */
   private async selectFileForTier(tier: PriorityTier): Promise<void> {
-    this.showStatus(`Searching for ${tier} snippet files...`, 'info');
+    this.showStatus(`Searching for ${tier} snippet files...`, "info");
 
     try {
       // Search for existing tier files
       const files = await this.adapter.searchTierFiles();
-      const config = this.configs.find(c => c.tier === tier)!;
-      
+      const config = this.configs.find((c) => c.tier === tier)!;
+
       // Look for the specific tier file
-      const tierFile = files.find(f => f.name === config.defaultFileName);
-      
+      const tierFile = files.find((f) => f.name === config.defaultFileName);
+
       if (tierFile) {
         // File found - confirm selection
         const confirmed = confirm(
           `Found existing ${config.title} file:\n\n` +
-          `File: ${tierFile.name}\n` +
-          `Modified: ${tierFile.modifiedTime ? new Date(tierFile.modifiedTime).toLocaleString() : 'Unknown'}\n\n` +
-          `Use this file for ${config.title}?`
+            `File: ${tierFile.name}\n` +
+            `Modified: ${tierFile.modifiedTime ? new Date(tierFile.modifiedTime).toLocaleString() : "Unknown"}\n\n` +
+            `Use this file for ${config.title}?`,
         );
 
         if (confirmed) {
           this.setTierSelection(tier, tierFile.id, tierFile.name);
-          this.showStatus(`Selected ${tierFile.name} for ${config.title}`, 'success');
+          this.showStatus(
+            `Selected ${tierFile.name} for ${config.title}`,
+            "success",
+          );
         }
       } else {
         // No file found - offer to create
         const shouldCreate = confirm(
           `No ${config.defaultFileName} found in your Google Drive.\n\n` +
-          `Would you like to create a new ${config.title} file?`
+            `Would you like to create a new ${config.title} file?`,
         );
 
         if (shouldCreate) {
@@ -223,7 +226,7 @@ export class FileSelector {
         }
       }
     } catch (error) {
-      this.showStatus(`Error searching for files: ${error}`, 'error');
+      this.showStatus(`Error searching for files: ${error}`, "error");
     }
   }
 
@@ -231,11 +234,11 @@ export class FileSelector {
    * Create a new file for a specific tier
    */
   private async createFileForTier(tier: PriorityTier): Promise<void> {
-    this.showStatus(`Creating new ${tier} snippet file...`, 'info');
+    this.showStatus(`Creating new ${tier} snippet file...`, "info");
 
     try {
-      const config = this.configs.find(c => c.tier === tier)!;
-      
+      const config = this.configs.find((c) => c.tier === tier)!;
+
       // Create empty tier schema
       const emptySchema = {
         schema: "priority-tier-v1" as const,
@@ -252,11 +255,14 @@ export class FileSelector {
 
       // Upload to Google Drive
       const fileId = await this.adapter.uploadTierSchema(emptySchema);
-      
+
       this.setTierSelection(tier, fileId, config.defaultFileName);
-      this.showStatus(`Created ${config.defaultFileName} for ${config.title}`, 'success');
+      this.showStatus(
+        `Created ${config.defaultFileName} for ${config.title}`,
+        "success",
+      );
     } catch (error) {
-      this.showStatus(`Error creating file: ${error}`, 'error');
+      this.showStatus(`Error creating file: ${error}`, "error");
     }
   }
 
@@ -273,14 +279,17 @@ export class FileSelector {
    * Scan for existing tier files automatically
    */
   private async scanForExistingFiles(): Promise<void> {
-    this.showStatus('Scanning Google Drive for existing snippet files...', 'info');
+    this.showStatus(
+      "Scanning Google Drive for existing snippet files...",
+      "info",
+    );
 
     try {
       const files = await this.adapter.searchTierFiles();
       let foundCount = 0;
 
       for (const config of this.configs) {
-        const tierFile = files.find(f => f.name === config.defaultFileName);
+        const tierFile = files.find((f) => f.name === config.defaultFileName);
         if (tierFile && !this.selections.has(config.tier)) {
           this.setTierSelection(config.tier, tierFile.id, tierFile.name);
           foundCount++;
@@ -288,12 +297,15 @@ export class FileSelector {
       }
 
       if (foundCount > 0) {
-        this.showStatus(`Found and selected ${foundCount} existing snippet files`, 'success');
+        this.showStatus(
+          `Found and selected ${foundCount} existing snippet files`,
+          "success",
+        );
       } else {
-        this.showStatus('No existing snippet files found', 'info');
+        this.showStatus("No existing snippet files found", "info");
       }
     } catch (error) {
-      this.showStatus(`Error scanning files: ${error}`, 'error');
+      this.showStatus(`Error scanning files: ${error}`, "error");
     }
   }
 
@@ -301,7 +313,7 @@ export class FileSelector {
    * Create all missing required files
    */
   private async createAllMissingFiles(): Promise<void> {
-    this.showStatus('Creating missing snippet files...', 'info');
+    this.showStatus("Creating missing snippet files...", "info");
 
     let createdCount = 0;
 
@@ -317,9 +329,9 @@ export class FileSelector {
     }
 
     if (createdCount > 0) {
-      this.showStatus(`Created ${createdCount} new snippet files`, 'success');
+      this.showStatus(`Created ${createdCount} new snippet files`, "success");
     } else {
-      this.showStatus('All required files already exist', 'info');
+      this.showStatus("All required files already exist", "info");
     }
   }
 
@@ -327,25 +339,27 @@ export class FileSelector {
    * Save the current selections
    */
   private async saveSelections(): Promise<void> {
-    this.showStatus('Saving file selections...', 'info');
+    this.showStatus("Saving file selections...", "info");
 
     try {
       const selections = Array.from(this.selections.values());
-      
+
       // Store selections in extension storage
       await chrome.storage.local.set({
         tier_file_selections: selections,
         tier_selection_date: new Date().toISOString(),
       });
 
-      this.showStatus('File selections saved successfully!', 'success');
-      
+      this.showStatus("File selections saved successfully!", "success");
+
       // Dispatch event to notify other components
-      window.dispatchEvent(new CustomEvent('tier-files-selected', { 
-        detail: selections 
-      }));
+      window.dispatchEvent(
+        new CustomEvent("tier-files-selected", {
+          detail: selections,
+        }),
+      );
     } catch (error) {
-      this.showStatus(`Error saving selections: ${error}`, 'error');
+      this.showStatus(`Error saving selections: ${error}`, "error");
     }
   }
 
@@ -354,7 +368,7 @@ export class FileSelector {
    */
   private async loadExistingSelections(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get('tier_file_selections');
+      const result = await chrome.storage.local.get("tier_file_selections");
       const selections = result.tier_file_selections as FileSelectionResult[];
 
       if (selections) {
@@ -367,21 +381,25 @@ export class FileSelector {
         this.updateSaveButton();
       }
     } catch (error) {
-      console.error('Error loading existing selections:', error);
+      console.error("Error loading existing selections:", error);
     }
   }
 
   /**
    * Set selection for a tier
    */
-  private setTierSelection(tier: PriorityTier, fileId: string, fileName: string): void {
+  private setTierSelection(
+    tier: PriorityTier,
+    fileId: string,
+    fileName: string,
+  ): void {
     this.selections.set(tier, {
       tier,
       fileId,
       fileName,
       selected: true,
     });
-    
+
     this.updateTierDisplay(tier);
     this.updateSaveButton();
   }
@@ -405,18 +423,19 @@ export class FileSelector {
 
     if (selection && selectedDiv && noFileDiv) {
       // Show selected file
-      selectedDiv.style.display = 'block';
-      noFileDiv.style.display = 'none';
-      
-      const fileNameSpan = selectedDiv.querySelector('.file-name');
-      const fileIdSpan = selectedDiv.querySelector('.file-id');
-      
+      selectedDiv.style.display = "block";
+      noFileDiv.style.display = "none";
+
+      const fileNameSpan = selectedDiv.querySelector(".file-name");
+      const fileIdSpan = selectedDiv.querySelector(".file-id");
+
       if (fileNameSpan) fileNameSpan.textContent = selection.fileName;
-      if (fileIdSpan) fileIdSpan.textContent = `ID: ${selection.fileId.substring(0, 12)}...`;
+      if (fileIdSpan)
+        fileIdSpan.textContent = `ID: ${selection.fileId.substring(0, 12)}...`;
     } else if (selectedDiv && noFileDiv) {
       // Show no file selected
-      selectedDiv.style.display = 'none';
-      noFileDiv.style.display = 'block';
+      selectedDiv.style.display = "none";
+      noFileDiv.style.display = "block";
     }
   }
 
@@ -424,32 +443,43 @@ export class FileSelector {
    * Update the save button state
    */
   private updateSaveButton(): void {
-    const saveButton = document.getElementById('save-selections') as HTMLButtonElement;
+    const saveButton = document.getElementById(
+      "save-selections",
+    ) as HTMLButtonElement;
     if (!saveButton) return;
 
     // Check if all required tiers are selected
-    const requiredTiers = this.configs.filter(c => c.required).map(c => c.tier);
-    const hasAllRequired = requiredTiers.every(tier => this.selections.has(tier));
+    const requiredTiers = this.configs
+      .filter((c) => c.required)
+      .map((c) => c.tier);
+    const hasAllRequired = requiredTiers.every((tier) =>
+      this.selections.has(tier),
+    );
 
     saveButton.disabled = !hasAllRequired;
-    saveButton.textContent = hasAllRequired ? '💾 Save Selections' : '💾 Select Required Files First';
+    saveButton.textContent = hasAllRequired
+      ? "💾 Save Selections"
+      : "💾 Select Required Files First";
   }
 
   /**
    * Show status message
    */
-  private showStatus(message: string, type: 'info' | 'success' | 'error'): void {
-    const statusElement = document.getElementById('status-message');
+  private showStatus(
+    message: string,
+    type: "info" | "success" | "error",
+  ): void {
+    const statusElement = document.getElementById("status-message");
     if (!statusElement) return;
 
     statusElement.textContent = message;
     statusElement.className = `status-message ${type}`;
 
     // Auto-clear after 5 seconds for non-error messages
-    if (type !== 'error') {
+    if (type !== "error") {
       setTimeout(() => {
-        statusElement.textContent = '';
-        statusElement.className = 'status-message';
+        statusElement.textContent = "";
+        statusElement.className = "status-message";
       }, 5000);
     }
   }

@@ -32,14 +32,14 @@ export const TIER_CONFIGS: Record<PriorityTier, TierConfig> = {
     defaultEnabled: true,
   },
   team: {
-    fileName: "team.json", 
+    fileName: "team.json",
     displayName: "Team Snippets",
     priority: 2,
     defaultEnabled: false,
   },
   org: {
     fileName: "org.json",
-    displayName: "Organization Snippets", 
+    displayName: "Organization Snippets",
     priority: 3,
     defaultEnabled: false,
   },
@@ -68,7 +68,7 @@ export class PriorityTierManager {
    */
   async initialize(): Promise<void> {
     console.log("🏗️ Initializing PriorityTierManager...");
-    
+
     // Clear existing stores
     this.tierStores.clear();
 
@@ -77,7 +77,9 @@ export class PriorityTierManager {
       try {
         const store = await this.createEmptyTierStore(tier);
         this.tierStores.set(tier, store);
-        console.log(`✅ Initialized tier: ${tier} (${TIER_CONFIGS[tier].fileName})`);
+        console.log(
+          `✅ Initialized tier: ${tier} (${TIER_CONFIGS[tier].fileName})`,
+        );
       } catch (error) {
         console.error(`❌ Failed to initialize tier ${tier}:`, error);
         throw new Error(`Failed to initialize tier ${tier}: ${error}`);
@@ -91,7 +93,9 @@ export class PriorityTierManager {
   /**
    * Load tier data from storage (implemented by subclasses)
    */
-  protected async loadTierFromStorage(tier: PriorityTier): Promise<TierStorageSchema | null> {
+  protected async loadTierFromStorage(
+    tier: PriorityTier,
+  ): Promise<TierStorageSchema | null> {
     // This will be implemented by specific storage adapters (CloudAdapter, LocalStorage, etc.)
     // For now, return null to indicate no existing data
     return null;
@@ -100,15 +104,22 @@ export class PriorityTierManager {
   /**
    * Save tier data to storage (implemented by subclasses)
    */
-  protected async saveTierToStorage(tier: PriorityTier, schema: TierStorageSchema): Promise<void> {
+  protected async saveTierToStorage(
+    tier: PriorityTier,
+    schema: TierStorageSchema,
+  ): Promise<void> {
     // This will be implemented by specific storage adapters
-    console.log(`💾 Saving tier ${tier} with ${schema.snippets.length} snippets`);
+    console.log(
+      `💾 Saving tier ${tier} with ${schema.snippets.length} snippets`,
+    );
   }
 
   /**
    * Create an empty tier store
    */
-  private async createEmptyTierStore(tier: PriorityTier): Promise<PriorityTierStore> {
+  private async createEmptyTierStore(
+    tier: PriorityTier,
+  ): Promise<PriorityTierStore> {
     const config = TIER_CONFIGS[tier];
     const now = new Date().toISOString();
 
@@ -132,7 +143,7 @@ export class PriorityTierManager {
    */
   async getTierSnippets(tier: PriorityTier): Promise<EnhancedSnippet[]> {
     this.ensureInitialized();
-    
+
     const store = this.tierStores.get(tier);
     if (!store) {
       throw new Error(`Tier ${tier} not found`);
@@ -144,7 +155,10 @@ export class PriorityTierManager {
   /**
    * Add snippet to a specific tier
    */
-  async addSnippetToTier(tier: PriorityTier, snippet: EnhancedSnippet): Promise<TierOperationResult> {
+  async addSnippetToTier(
+    tier: PriorityTier,
+    snippet: EnhancedSnippet,
+  ): Promise<TierOperationResult> {
     this.ensureInitialized();
 
     try {
@@ -154,7 +168,9 @@ export class PriorityTierManager {
       }
 
       // Check for duplicate trigger within tier
-      const existingIndex = store.snippets.findIndex(s => s.trigger === snippet.trigger);
+      const existingIndex = store.snippets.findIndex(
+        (s) => s.trigger === snippet.trigger,
+      );
       if (existingIndex !== -1) {
         return {
           success: false,
@@ -172,7 +188,10 @@ export class PriorityTierManager {
       };
 
       // Add to store (maintain descending priority order by inserting at correct position)
-      const insertIndex = this.findInsertionIndex(store.snippets, enhancedSnippet);
+      const insertIndex = this.findInsertionIndex(
+        store.snippets,
+        enhancedSnippet,
+      );
       store.snippets.splice(insertIndex, 0, enhancedSnippet);
 
       // Update metadata
@@ -200,7 +219,11 @@ export class PriorityTierManager {
   /**
    * Update snippet in a specific tier
    */
-  async updateSnippetInTier(tier: PriorityTier, snippetId: string, updates: Partial<EnhancedSnippet>): Promise<TierOperationResult> {
+  async updateSnippetInTier(
+    tier: PriorityTier,
+    snippetId: string,
+    updates: Partial<EnhancedSnippet>,
+  ): Promise<TierOperationResult> {
     this.ensureInitialized();
 
     try {
@@ -209,7 +232,7 @@ export class PriorityTierManager {
         throw new Error(`Tier ${tier} not found`);
       }
 
-      const snippetIndex = store.snippets.findIndex(s => s.id === snippetId);
+      const snippetIndex = store.snippets.findIndex((s) => s.id === snippetId);
       if (snippetIndex === -1) {
         return {
           success: false,
@@ -231,8 +254,8 @@ export class PriorityTierManager {
 
       // If trigger changed, check for duplicates
       if (updates.trigger && updates.trigger !== currentSnippet.trigger) {
-        const duplicateIndex = store.snippets.findIndex((s, i) => 
-          i !== snippetIndex && s.trigger === updates.trigger
+        const duplicateIndex = store.snippets.findIndex(
+          (s, i) => i !== snippetIndex && s.trigger === updates.trigger,
         );
         if (duplicateIndex !== -1) {
           return {
@@ -274,7 +297,10 @@ export class PriorityTierManager {
   /**
    * Remove snippet from a specific tier
    */
-  async removeSnippetFromTier(tier: PriorityTier, snippetId: string): Promise<TierOperationResult> {
+  async removeSnippetFromTier(
+    tier: PriorityTier,
+    snippetId: string,
+  ): Promise<TierOperationResult> {
     this.ensureInitialized();
 
     try {
@@ -283,7 +309,7 @@ export class PriorityTierManager {
         throw new Error(`Tier ${tier} not found`);
       }
 
-      const snippetIndex = store.snippets.findIndex(s => s.id === snippetId);
+      const snippetIndex = store.snippets.findIndex((s) => s.id === snippetId);
       if (snippetIndex === -1) {
         return {
           success: false,
@@ -340,16 +366,21 @@ export class PriorityTierManager {
    */
   async findSnippetByTrigger(trigger: string): Promise<EnhancedSnippet | null> {
     const allSnippets = await this.getAllSnippetsOrderedByPriority();
-    return allSnippets.find(snippet => snippet.trigger === trigger) || null;
+    return allSnippets.find((snippet) => snippet.trigger === trigger) || null;
   }
 
   /**
    * Get tier statistics
    */
-  async getTierStats(): Promise<Record<PriorityTier, { snippetsCount: number; lastModified: string }>> {
+  async getTierStats(): Promise<
+    Record<PriorityTier, { snippetsCount: number; lastModified: string }>
+  > {
     this.ensureInitialized();
 
-    const stats: Record<PriorityTier, { snippetsCount: number; lastModified: string }> = {} as any;
+    const stats: Record<
+      PriorityTier,
+      { snippetsCount: number; lastModified: string }
+    > = {} as any;
 
     for (const tier of Object.keys(TIER_CONFIGS) as PriorityTier[]) {
       const store = this.tierStores.get(tier);
@@ -367,7 +398,10 @@ export class PriorityTierManager {
   /**
    * Save tier store to storage
    */
-  private async saveTierStore(tier: PriorityTier, store: PriorityTierStore): Promise<void> {
+  private async saveTierStore(
+    tier: PriorityTier,
+    store: PriorityTierStore,
+  ): Promise<void> {
     const schema: TierStorageSchema = {
       schema: "priority-tier-v1",
       tier,
@@ -387,7 +421,10 @@ export class PriorityTierManager {
   /**
    * Find the correct insertion index to maintain priority order
    */
-  private findInsertionIndex(snippets: EnhancedSnippet[], newSnippet: EnhancedSnippet): number {
+  private findInsertionIndex(
+    snippets: EnhancedSnippet[],
+    newSnippet: EnhancedSnippet,
+  ): number {
     // For now, simply append to the end (maintain order of insertion within tier)
     // This can be enhanced later with actual priority scoring
     return snippets.length;
@@ -407,7 +444,9 @@ export class PriorityTierManager {
    */
   private ensureInitialized(): void {
     if (!this.initialized) {
-      throw new Error("PriorityTierManager not initialized. Call initialize() first.");
+      throw new Error(
+        "PriorityTierManager not initialized. Call initialize() first.",
+      );
     }
   }
 

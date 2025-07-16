@@ -54,18 +54,22 @@ export class LegacyMigrator {
   /**
    * Perform complete migration from legacy to tier-based system
    */
-  static async migrate(options: MigrationOptions = {
-    createBackup: true,
-    preserveOriginalFiles: false,
-    defaultTier: "personal",
-    dryRun: false,
-  }): Promise<MigrationResult> {
+  static async migrate(
+    options: MigrationOptions = {
+      createBackup: true,
+      preserveOriginalFiles: false,
+      defaultTier: "personal",
+      dryRun: false,
+    },
+  ): Promise<MigrationResult> {
     console.log("🚀 Starting legacy migration to priority-tier system...");
 
     try {
       // Step 1: Load existing snippets
       const existingSnippets = await ExtensionStorage.getSnippets();
-      console.log(`📋 Found ${existingSnippets.length} existing snippets to migrate`);
+      console.log(
+        `📋 Found ${existingSnippets.length} existing snippets to migrate`,
+      );
 
       if (existingSnippets.length === 0) {
         return {
@@ -86,17 +90,26 @@ export class LegacyMigrator {
 
       // Step 3: Convert legacy snippets to enhanced snippets
       const enhancedSnippets = this.convertToEnhancedSnippets(existingSnippets);
-      console.log(`🔄 Converted ${enhancedSnippets.length} snippets to enhanced format`);
+      console.log(
+        `🔄 Converted ${enhancedSnippets.length} snippets to enhanced format`,
+      );
 
       // Step 4: Assign snippets to tiers
-      const tierAssignments = this.assignToTiers(enhancedSnippets, options.defaultTier);
-      console.log("📁 Tier assignments:", Object.keys(tierAssignments).map(tier => 
-        `${tier}: ${tierAssignments[tier as PriorityTier].length} snippets`
-      ));
+      const tierAssignments = this.assignToTiers(
+        enhancedSnippets,
+        options.defaultTier,
+      );
+      console.log(
+        "📁 Tier assignments:",
+        Object.keys(tierAssignments).map(
+          (tier) =>
+            `${tier}: ${tierAssignments[tier as PriorityTier].length} snippets`,
+        ),
+      );
 
       // Step 5: Create tier schemas
       const tierSchemas = this.createTierSchemas(tierAssignments);
-      
+
       if (options.dryRun) {
         console.log("🔍 Dry run complete - no changes made");
         return {
@@ -121,7 +134,6 @@ export class LegacyMigrator {
         tiersCreated,
         backupCreated,
       };
-
     } catch (error) {
       console.error("❌ Migration failed:", error);
       return {
@@ -137,13 +149,15 @@ export class LegacyMigrator {
   /**
    * Convert legacy TextSnippet to EnhancedSnippet
    */
-  private static convertToEnhancedSnippets(legacySnippets: TextSnippet[]): EnhancedSnippet[] {
-    return legacySnippets.map(legacy => {
+  private static convertToEnhancedSnippets(
+    legacySnippets: TextSnippet[],
+  ): EnhancedSnippet[] {
+    return legacySnippets.map((legacy) => {
       const now = new Date().toISOString();
-      
+
       // Determine content type from existing content
       const contentType = this.detectContentType(legacy.content);
-      
+
       // Extract variables from content (look for {variable} patterns)
       const variables = this.extractVariables(legacy.content);
 
@@ -153,7 +167,8 @@ export class LegacyMigrator {
         content: legacy.content,
         contentType,
         snipDependencies: [], // Legacy didn't have dependencies
-        description: legacy.description || `Migrated snippet: ${legacy.trigger}`,
+        description:
+          legacy.description || `Migrated snippet: ${legacy.trigger}`,
         scope: "personal", // Will be assigned properly later
         variables,
         images: [], // Extract from content if needed
@@ -171,12 +186,17 @@ export class LegacyMigrator {
   /**
    * Detect content type from snippet content
    */
-  private static detectContentType(content: string): "html" | "plaintext" | "latex" {
+  private static detectContentType(
+    content: string,
+  ): "html" | "plaintext" | "latex" {
     // Simple heuristic-based detection
-    if (content.includes('<') && content.includes('>')) {
+    if (content.includes("<") && content.includes(">")) {
       return "html";
     }
-    if (content.includes('\\') && (content.includes('\\begin') || content.includes('\\end'))) {
+    if (
+      content.includes("\\") &&
+      (content.includes("\\begin") || content.includes("\\end"))
+    ) {
       return "latex";
     }
     return "plaintext";
@@ -210,7 +230,7 @@ export class LegacyMigrator {
    */
   private static assignToTiers(
     snippets: EnhancedSnippet[],
-    defaultTier: PriorityTier
+    defaultTier: PriorityTier,
   ): Record<PriorityTier, EnhancedSnippet[]> {
     const assignments: Record<PriorityTier, EnhancedSnippet[]> = {
       personal: [],
@@ -221,14 +241,18 @@ export class LegacyMigrator {
     // Define tier assignment rules (can be extended)
     const rules: TierRule[] = [
       {
-        condition: (s) => s.tags?.includes("team") || s.description?.toLowerCase().includes("team"),
+        condition: (s) =>
+          s.tags?.includes("team") ||
+          s.description?.toLowerCase().includes("team"),
         tier: "team",
         priority: 2,
       },
       {
-        condition: (s) => s.tags?.includes("org") || s.tags?.includes("organization") || 
-                           s.description?.toLowerCase().includes("organization"),
-        tier: "org", 
+        condition: (s) =>
+          s.tags?.includes("org") ||
+          s.tags?.includes("organization") ||
+          s.description?.toLowerCase().includes("organization"),
+        tier: "org",
         priority: 3,
       },
       {
@@ -241,11 +265,11 @@ export class LegacyMigrator {
     for (const snippet of snippets) {
       // Find the highest priority matching rule
       const matchingRule = rules
-        .filter(rule => rule.condition(snippet))
+        .filter((rule) => rule.condition(snippet))
         .sort((a, b) => b.priority - a.priority)[0];
 
       const assignedTier = matchingRule?.tier || defaultTier;
-      
+
       // Update snippet scope to match assigned tier
       snippet.scope = assignedTier;
       assignments[assignedTier].push(snippet);
@@ -258,17 +282,20 @@ export class LegacyMigrator {
    * Create tier storage schemas
    */
   private static createTierSchemas(
-    tierAssignments: Record<PriorityTier, EnhancedSnippet[]>
+    tierAssignments: Record<PriorityTier, EnhancedSnippet[]>,
   ): TierStorageSchema[] {
     const schemas: TierStorageSchema[] = [];
 
-    for (const [tier, snippets] of Object.entries(tierAssignments) as [PriorityTier, EnhancedSnippet[]][]) {
+    for (const [tier, snippets] of Object.entries(tierAssignments) as [
+      PriorityTier,
+      EnhancedSnippet[],
+    ][]) {
       if (snippets.length > 0) {
         const schema = JsonSerializer.createEmptySchema(tier, "migration");
         schema.snippets = snippets;
         schema.metadata.modified = new Date().toISOString();
         schema.metadata.description = `Migrated ${tier} snippets (${snippets.length} total)`;
-        
+
         schemas.push(schema);
       }
     }
@@ -279,7 +306,9 @@ export class LegacyMigrator {
   /**
    * Save tier schemas to storage (works within drive.file scope)
    */
-  private static async saveTierSchemas(schemas: TierStorageSchema[]): Promise<PriorityTier[]> {
+  private static async saveTierSchemas(
+    schemas: TierStorageSchema[],
+  ): Promise<PriorityTier[]> {
     const savedTiers: PriorityTier[] = [];
 
     for (const schema of schemas) {
@@ -287,12 +316,14 @@ export class LegacyMigrator {
         // For now, save to local storage - will be synced to drive.file later
         const serialized = JsonSerializer.serialize(schema);
         const key = `tier_${schema.tier}`;
-        
+
         // Save to chrome storage (will be picked up by drive sync)
         await chrome.storage.local.set({ [key]: serialized });
-        
+
         savedTiers.push(schema.tier);
-        console.log(`💾 Saved ${schema.tier} tier with ${schema.snippets.length} snippets`);
+        console.log(
+          `💾 Saved ${schema.tier} tier with ${schema.snippets.length} snippets`,
+        );
       } catch (error) {
         console.error(`Failed to save ${schema.tier} tier:`, error);
         throw error;
@@ -305,7 +336,9 @@ export class LegacyMigrator {
   /**
    * Update storage system to use tier-based format
    */
-  private static async updateStorageToTierBased(schemas: TierStorageSchema[]): Promise<void> {
+  private static async updateStorageToTierBased(
+    schemas: TierStorageSchema[],
+  ): Promise<void> {
     // Mark migration as complete
     await chrome.storage.local.set({
       migration_completed: true,
@@ -357,7 +390,7 @@ export class LegacyMigrator {
       // Clear migration flags
       await chrome.storage.local.remove([
         "migration_completed",
-        "migration_version", 
+        "migration_version",
         "migration_date",
         "tier_count",
         "tier_personal",
@@ -365,7 +398,9 @@ export class LegacyMigrator {
         "tier_org",
       ]);
 
-      console.log(`✅ Rollback complete - restored ${snippets.length} snippets`);
+      console.log(
+        `✅ Rollback complete - restored ${snippets.length} snippets`,
+      );
 
       return {
         success: true,
@@ -406,7 +441,7 @@ export class LegacyMigrator {
     const result = await chrome.storage.local.get([
       "migration_completed",
       "migration_version",
-      "migration_date", 
+      "migration_date",
       "tier_count",
       this.BACKUP_KEY,
     ]);
