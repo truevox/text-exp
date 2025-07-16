@@ -28,6 +28,7 @@ export interface TextSnippet {
   priority?: number; // Priority level from folder hierarchy (1 = highest)
   sourceFolder?: string; // ID of the folder this snippet came from
   fileHash?: string; // Hash prefix to prevent name collisions
+  storeFileName?: string; // Which JSON store file this snippet belongs to
 }
 
 /**
@@ -71,7 +72,7 @@ export type CloudProvider =
 /**
  * Snippet scopes for multi-tier sync architecture
  */
-export type SnippetScope = "personal" | "department" | "team" | "org";
+export type SnippetScope = "priority-0" | "personal" | "department" | "team" | "org";
 
 /**
  * Scoped source configuration

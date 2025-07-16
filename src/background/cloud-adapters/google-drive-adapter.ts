@@ -13,9 +13,10 @@ import { SYNC_CONFIG } from "../../shared/constants.js";
 import {
   GoogleDriveAuthService,
   GoogleDriveFileService,
-  GoogleDriveFolderService,
   GoogleDriveUtils,
 } from "./google-drive/index.js";
+import { GoogleDriveAppDataManager } from "./google-drive-appdata-manager.js";
+import { GoogleDriveFilePickerService } from "./google-drive/file-picker-service.js";
 
 /**
  * Google Drive adapter for cloud synchronization
@@ -86,29 +87,81 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
-   * Get list of available folders without selecting one
+   * Create a new snippet store file (replaces folder-based storage)
+   * Works with drive.file scope
    */
-  async getFolders(
-    parentId?: string,
-  ): Promise<
-    Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
-  > {
+  async createSnippetStoreFile(
+    tierName: string,
+    description?: string,
+  ): Promise<{ fileId: string; fileName: string }> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
 
-    return GoogleDriveFolderService.getFolders(this.credentials, parentId);
+    console.log(`📝 Creating snippet store file for tier: ${tierName}`);
+
+    const result =
+      await GoogleDriveFilePickerService.createStructuredSnippetStore(
+        this.credentials,
+        tierName,
+        description,
+      );
+
+    return {
+      fileId: result.fileId,
+      fileName: result.fileName,
+    };
   }
 
   /**
-   * Select a folder for storing snippets
+   * Validate that a file can be used as a snippet store
+   * Works with drive.file scope
    */
-  async selectFolder(): Promise<{ folderId: string; folderName: string }> {
+  async validateSnippetStoreFile(
+    fileId: string,
+  ): Promise<{ isValid: boolean; reason?: string; canWrite: boolean }> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
 
-    return GoogleDriveFolderService.selectFolder(this.credentials);
+    return GoogleDriveFilePickerService.validateSnippetStoreFile(
+      this.credentials,
+      fileId,
+    );
+  }
+
+  /**
+   * Test access to a specific file
+   * Works with drive.file scope
+   */
+  async testFileAccess(
+    fileId: string,
+  ): Promise<{ canRead: boolean; canWrite: boolean; error?: string }> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    return GoogleDriveFilePickerService.testFileAccess(
+      this.credentials,
+      fileId,
+    );
+  }
+
+  /**
+   * Get file information for a specific file
+   * Works with drive.file scope
+   */
+  async getFileInfo(fileId: string): Promise<{
+    id: string;
+    name: string;
+    mimeType?: string;
+    permissions: string[];
+  }> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    return GoogleDriveFilePickerService.getFileInfo(this.credentials, fileId);
   }
 
   /**
@@ -152,6 +205,53 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     // This would compare local storage timestamp with last sync
     // For now, assume there are always changes to sync
     return true;
+  }
+
+  /**
+   * Discover and retrieve Priority #0 snippet store from appdata
+   * This store is automatically discovered without user selection
+   */
+  async discoverAppDataStore(): Promise<{
+    hasStore: boolean;
+    snippets: TextSnippet[];
+    storeInfo?: {
+      name: string;
+      tier: PriorityTier;
+      lastModified: string;
+    };
+  }> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    try {
+      const priorityStore = await GoogleDriveAppDataManager.getPriorityZeroSnippets(
+        this.credentials,
+      );
+
+      if (!priorityStore) {
+        return {
+          hasStore: false,
+          snippets: [],
+        };
+      }
+
+      return {
+        hasStore: true,
+        snippets: priorityStore.snippets,
+        storeInfo: {
+          name: "Priority #0 Store",
+          tier: "priority-0",
+          lastModified: priorityStore.lastModified,
+        },
+      };
+    } catch (error) {
+      console.error("❌ Failed to discover appdata store:", error);
+      return {
+        hasStore: false,
+        snippets: [],
+      };
+    }
   }
 
   /**
@@ -201,21 +301,35 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
-   * Create a new folder in Google Drive
+   * Create default snippet store files for all tiers
+   * Works with drive.file scope
    */
-  async createFolder(
-    name: string,
-    parentId?: string,
-  ): Promise<{ id: string; name: string }> {
+  async createDefaultSnippetStores(): Promise<
+    Array<{ fileId: string; fileName: string; tier: string }>
+  > {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
 
-    return GoogleDriveFolderService.createFolder(
-      this.credentials,
-      name,
-      parentId,
-    );
+    console.log("📝 Creating default snippet store files");
+
+    const results =
+      await GoogleDriveFilePickerService.createDefaultSnippetStores(
+        this.credentials,
+      );
+
+    return results.map((result) => ({
+      fileId: result.fileId,
+      fileName: result.fileName,
+      tier: result.fileName.replace(".json", ""),
+    }));
+  }
+
+  /**
+   * Get file picker instructions for users
+   */
+  getFilePickerInstructions(): string {
+    return GoogleDriveFilePickerService.getFilePickerInstructions();
   }
 
   /**
@@ -468,53 +582,110 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
-   * Store user preferences in appdata (works with drive.appdata scope)
+   * Store user configuration in appdata (works with drive.appdata scope)
    */
-  async storeUserPreferences(preferences: any): Promise<void> {
+  async storeUserConfiguration(configuration: any): Promise<void> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
 
-    console.log("💾 Storing user preferences in Drive appdata");
+    console.log("💾 Storing user configuration in Drive appdata");
 
     await GoogleDriveUtils.retryOperation(async () => {
-      const content = JSON.stringify(preferences, null, 2);
-
-      // Upload to appdata folder (private application data)
-      await GoogleDriveFileService.uploadToAppData(
+      await GoogleDriveAppDataManager.storeUserConfiguration(
         this.credentials!,
-        "puffpuffpaste-preferences.json",
-        content,
+        configuration,
       );
-
-      console.log("✅ User preferences stored successfully");
+      console.log("✅ User configuration stored successfully");
     });
   }
 
   /**
-   * Retrieve user preferences from appdata (works with drive.appdata scope)
+   * Retrieve user configuration from appdata (works with drive.appdata scope)
    */
-  async getUserPreferences(): Promise<any | null> {
+  async getUserConfiguration(): Promise<any | null> {
     if (!this.credentials) {
       throw new Error("Not authenticated");
     }
 
-    console.log("📥 Retrieving user preferences from Drive appdata");
+    console.log("📥 Retrieving user configuration from Drive appdata");
 
     return GoogleDriveUtils.retryOperation(async () => {
-      try {
-        const content = await GoogleDriveFileService.downloadFromAppData(
-          this.credentials!,
-          "puffpuffpaste-preferences.json",
-        );
-
-        const preferences = JSON.parse(content);
-        console.log("✅ User preferences retrieved successfully");
-        return preferences;
-      } catch (error) {
-        console.log("📭 No user preferences found in appdata");
-        return null;
+      const config = await GoogleDriveAppDataManager.getUserConfiguration(
+        this.credentials!,
+      );
+      if (config) {
+        console.log("✅ User configuration retrieved successfully");
+      } else {
+        console.log("📭 No user configuration found in appdata");
       }
+      return config;
     });
+  }
+
+  /**
+   * Store Priority #0 snippet store in appdata (works with drive.appdata scope)
+   */
+  async storePriorityZeroSnippets(
+    snippetStore: TierStorageSchema,
+  ): Promise<void> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    console.log("💾 Storing Priority #0 snippets in Drive appdata");
+
+    await GoogleDriveUtils.retryOperation(async () => {
+      await GoogleDriveAppDataManager.storePriorityZeroSnippets(
+        this.credentials!,
+        snippetStore,
+      );
+      console.log("✅ Priority #0 snippets stored successfully");
+    });
+  }
+
+  /**
+   * Retrieve Priority #0 snippet store from appdata (works with drive.appdata scope)
+   */
+  async getPriorityZeroSnippets(): Promise<TierStorageSchema | null> {
+    if (!this.credentials) {
+      throw new Error("Not authenticated");
+    }
+
+    console.log("📥 Retrieving Priority #0 snippets from Drive appdata");
+
+    return GoogleDriveUtils.retryOperation(async () => {
+      const snippets = await GoogleDriveAppDataManager.getPriorityZeroSnippets(
+        this.credentials!,
+      );
+      if (snippets) {
+        console.log("✅ Priority #0 snippets retrieved successfully");
+      } else {
+        console.log("📭 No Priority #0 snippets found in appdata");
+      }
+      return snippets;
+    });
+  }
+
+  /**
+   * Legacy method: Store user preferences (for backwards compatibility)
+   * @deprecated Use storeUserConfiguration instead
+   */
+  async storeUserPreferences(preferences: any): Promise<void> {
+    console.warn(
+      "⚠️ storeUserPreferences is deprecated, use storeUserConfiguration",
+    );
+    await this.storeUserConfiguration(preferences);
+  }
+
+  /**
+   * Legacy method: Get user preferences (for backwards compatibility)
+   * @deprecated Use getUserConfiguration instead
+   */
+  async getUserPreferences(): Promise<any | null> {
+    console.warn(
+      "⚠️ getUserPreferences is deprecated, use getUserConfiguration",
+    );
+    return await this.getUserConfiguration();
   }
 }

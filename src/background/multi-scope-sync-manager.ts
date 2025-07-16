@@ -8,6 +8,7 @@ import type { Snippet, SyncedSource, SnippetScope } from "../shared/types";
 import { multiFormatSyncService } from "./multi-format-sync-service.js";
 
 const scopePriority: Record<SnippetScope, number> = {
+  "priority-0": 5, // Highest priority for appdata store
   personal: 4,
   team: 3,
   department: 2,
@@ -67,32 +68,48 @@ export class MultiScopeSyncManager {
         `🔍 Fetching snippets from ${source.displayName} (scope: ${source.name}, folderId: ${source.folderId})`,
       );
 
-      // Use multi-format sync service if supported, otherwise fallback to original method
-      const snippets = await multiFormatSyncService.downloadSnippetsWithFormats(
-        source.adapter,
-        source.folderId,
-      );
+      let snippets: Snippet[] = [];
 
-      console.log(
-        `📥 Downloaded ${snippets.length} snippets from ${source.displayName}`,
-      );
-      console.log(
-        `📋 Snippets:`,
-        snippets.map((s) => ({
-          trigger: s.trigger,
-          content: s.content.substring(0, 50) + "...",
-        })),
-      );
-
-      // Log format support info
-      if (multiFormatSyncService.supportsMultiFormat(source.adapter)) {
-        console.log(
-          `✨ Multi-format support enabled for ${source.displayName}`,
-        );
+      // Handle appdata store specially
+      if (source.name === "priority-0" && source.folderId === "appdata-priority-0") {
+        console.log("🔍 Fetching Priority #0 store from appdata");
+        const appdataStore = await (source.adapter as any).discoverAppDataStore();
+        if (appdataStore.hasStore) {
+          snippets = appdataStore.snippets;
+          console.log(
+            `📥 Downloaded ${snippets.length} snippets from Priority #0 store`,
+          );
+        } else {
+          console.log("📭 No Priority #0 store found in appdata");
+        }
       } else {
-        console.log(
-          `📄 Using legacy single-file sync for ${source.displayName}`,
+        // Use multi-format sync service if supported, otherwise fallback to original method
+        snippets = await multiFormatSyncService.downloadSnippetsWithFormats(
+          source.adapter,
+          source.folderId,
         );
+
+        console.log(
+          `📥 Downloaded ${snippets.length} snippets from ${source.displayName}`,
+        );
+        console.log(
+          `📋 Snippets:`,
+          snippets.map((s) => ({
+            trigger: s.trigger,
+            content: s.content.substring(0, 50) + "...",
+          })),
+        );
+
+        // Log format support info
+        if (multiFormatSyncService.supportsMultiFormat(source.adapter)) {
+          console.log(
+            `✨ Multi-format support enabled for ${source.displayName}`,
+          );
+        } else {
+          console.log(
+            `📄 Using legacy single-file sync for ${source.displayName}`,
+          );
+        }
       }
 
       return { source, snippets };

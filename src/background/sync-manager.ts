@@ -251,6 +251,26 @@ export class SyncManager {
         }
       }
 
+      // Check for appdata-based Priority #0 store (automatic discovery)
+      if (this.currentAdapter && this.currentAdapter.provider === "google-drive") {
+        try {
+          const appdataStore = await (this.currentAdapter as any).discoverAppDataStore();
+          if (appdataStore.hasStore) {
+            console.log("✨ Discovered Priority #0 store in appdata");
+            sources.unshift({
+              name: "priority-0" as SnippetScope,
+              adapter: this.currentAdapter,
+              folderId: "appdata-priority-0",
+              displayName: "Priority #0 Store",
+            });
+          } else {
+            console.log("📭 No Priority #0 store found in appdata");
+          }
+        } catch (error) {
+          console.error("❌ Failed to discover appdata store:", error);
+        }
+      }
+
       // TODO: Add department and org sources based on user settings
 
       console.log(
