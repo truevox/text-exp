@@ -20,10 +20,12 @@ export interface SnippetMeta {
   id: string;
   /** Trigger text (e.g., ";eata") */
   trigger: string;
+  /** HTML-formatted snippet body */
+  content: string;
   /** Array of dependent snippet triggers (e.g., [";gb"]) */
   snipDependencies: string[];
   /** Content type - HTML-focused for new architecture */
-  contentType: "html" | "plaintext" | "latex";
+  contentType: "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX";
   /** Human-readable description */
   description: string;
   /** Scope for priority system */
@@ -172,7 +174,7 @@ export interface EnhancedSnippet {
   id: string;
   trigger: string;
   content: string; // HTML content by default
-  contentType: "html" | "plaintext" | "latex";
+  contentType: "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX";
   snipDependencies: string[];
   description: string;
   scope: PriorityTier;
@@ -186,12 +188,12 @@ export interface EnhancedSnippet {
 }
 
 /**
- * Priority tier store - represents a single JSON file containing snippets
+ * Priority tier store - represents a single JSON file containing 1 or more snippets
  */
 export interface PriorityTierStore {
   tierName: PriorityTier;
   fileName: string; // e.g., 'personal.json'
-  snippets: EnhancedSnippet[]; // Ordered by descending priority
+  snippets: EnhancedSnippet[]; // Array of 1 or more snippets, ordered by descending priority
   lastModified: string;
   version: string; // Schema version for migration support
   metadata: {
@@ -204,12 +206,12 @@ export interface PriorityTierStore {
 }
 
 /**
- * Array-based snippet storage schema for tier files
+ * Array-based snippet storage schema for tier files (stores 1 or more snippets)
  */
 export interface TierStorageSchema {
   schema: "priority-tier-v1";
   tier: PriorityTier;
-  snippets: EnhancedSnippet[];
+  snippets: EnhancedSnippet[]; // Array of 1 or more snippets with complete field specification
   metadata: {
     version: string;
     created: string;
