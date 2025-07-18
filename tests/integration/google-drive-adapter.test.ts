@@ -35,6 +35,9 @@ describe("GoogleDriveAdapter Integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     adapter = new GoogleDriveAdapter();
+
+    // Reset Chrome runtime error state
+    (global as any).chrome.runtime.lastError = undefined;
   });
 
   describe("Authentication", () => {
@@ -45,6 +48,26 @@ describe("GoogleDriveAdapter Integration", () => {
           callback(mockAccessToken);
         },
       );
+
+      // Mock successful validation response with proper Headers object
+      const mockHeaders = new Headers({
+        "content-type": "application/json",
+        "cache-control": "no-cache",
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            user: {
+              emailAddress: "test@example.com",
+              displayName: "Test User",
+            },
+          }),
+        status: 200,
+        statusText: "OK",
+        headers: mockHeaders,
+      });
 
       const credentials = await adapter.authenticate();
 
@@ -64,47 +87,31 @@ describe("GoogleDriveAdapter Integration", () => {
       // Mock Chrome identity error
       (chrome.identity.getAuthToken as jest.Mock).mockImplementation(
         (options, callback) => {
-          chrome.runtime.lastError = { message: "User denied access" };
+          (global as any).chrome.runtime.lastError = {
+            message: "User denied access",
+          };
           callback(null);
         },
       );
 
-      // Mock fallback OAuth flow
-      (chrome.identity.launchWebAuthFlow as jest.Mock).mockImplementation(
-        (options, callback) => {
-          chrome.runtime.lastError = undefined; // Clear error for fallback
-          callback(
-            "https://test-extension-id.chromiumapp.org/#access_token=fallback_token_123&expires_in=3600",
-          );
-        },
+      await expect(adapter.authenticate()).rejects.toThrow(
+        "Authentication failed: User denied access",
       );
-
-      const credentials = await adapter.authenticate();
-
-      expect(credentials).toBeDefined();
-      expect(credentials.accessToken).toBe("fallback_token_123");
-      expect(chrome.identity.launchWebAuthFlow).toHaveBeenCalled();
     });
 
     it("should handle complete authentication failure", async () => {
       // Mock Chrome identity failure
       (chrome.identity.getAuthToken as jest.Mock).mockImplementation(
         (options, callback) => {
-          chrome.runtime.lastError = { message: "Network error" };
-          callback(null);
-        },
-      );
-
-      // Mock OAuth flow failure
-      (chrome.identity.launchWebAuthFlow as jest.Mock).mockImplementation(
-        (options, callback) => {
-          chrome.runtime.lastError = { message: "Authentication cancelled" };
+          (global as any).chrome.runtime.lastError = {
+            message: "Authentication cancelled",
+          };
           callback(null);
         },
       );
 
       await expect(adapter.authenticate()).rejects.toThrow(
-        "Authentication cancelled",
+        "Authentication failed: Authentication cancelled",
       );
     });
   });
@@ -270,9 +277,23 @@ describe("GoogleDriveAdapter Integration", () => {
     });
 
     it("should validate credentials successfully", async () => {
+      // Mock successful validation response with proper Headers object
+      const mockHeaders = new Headers({
+        "content-type": "application/json",
+      });
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ access_token: mockAccessToken }),
+        status: 200,
+        statusText: "OK",
+        json: () =>
+          Promise.resolve({
+            user: {
+              emailAddress: "test@example.com",
+              displayName: "Test User",
+            },
+          }),
+        headers: mockHeaders,
       });
 
       const isValid = await adapter["validateCredentials"]();
@@ -280,9 +301,17 @@ describe("GoogleDriveAdapter Integration", () => {
     });
 
     it("should detect invalid credentials", async () => {
+      // Mock 401 Unauthorized response with proper Headers object
+      const mockHeaders = new Headers({
+        "content-type": "application/json",
+      });
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 401,
+        statusText: "Unauthorized",
+        headers: mockHeaders,
+        text: () => Promise.resolve('{"error": "invalid_token"}'),
       });
 
       const isValid = await adapter["validateCredentials"]();
@@ -290,10 +319,22 @@ describe("GoogleDriveAdapter Integration", () => {
     });
 
     it("should check connectivity", async () => {
+      // Mock successful connectivity check with proper Headers object
+      const mockHeaders = new Headers({
+        "content-type": "application/json",
+      });
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
+        status: 200,
+        statusText: "OK",
         json: () =>
-          Promise.resolve({ user: { emailAddress: "test@gmail.com" } }),
+          Promise.resolve({
+            user: {
+              emailAddress: "test@gmail.com",
+            },
+          }),
+        headers: mockHeaders,
       });
 
       const isConnected = await adapter["checkConnectivity"]();

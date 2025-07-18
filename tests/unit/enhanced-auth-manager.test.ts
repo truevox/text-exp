@@ -453,15 +453,17 @@ describe("Enhanced AuthManager", () => {
       );
 
       // Mock successful OAuth flow
-      mockChrome.identity.launchWebAuthFlow.mockImplementation(async (config) => {
-        const authUrl = config.url;
-        expect(authUrl).toContain("access_type=offline");
-        expect(authUrl).toContain("prompt=consent");
-        expect(authUrl).toContain("include_granted_scopes=true");
+      mockChrome.identity.launchWebAuthFlow.mockImplementation(
+        async (config) => {
+          const authUrl = config.url;
+          expect(authUrl).toContain("access_type=offline");
+          expect(authUrl).toContain("prompt=consent");
+          expect(authUrl).toContain("include_granted_scopes=true");
 
-        // Simulate auth code response
-        return "https://test-extension-id.chromiumapp.org/?code=auth_code_123";
-      });
+          // Simulate auth code response
+          return "https://test-extension-id.chromiumapp.org/?code=auth_code_123";
+        },
+      );
 
       // Mock token exchange
       mockFetch.mockResolvedValueOnce(
