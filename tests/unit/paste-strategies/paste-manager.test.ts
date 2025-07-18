@@ -120,7 +120,14 @@ describe("PasteManager", () => {
 
     mockTarget = {
       type: "test-target",
-      element: {} as any,
+      element: {
+        classList: {
+          contains: jest.fn().mockReturnValue(false),
+        },
+        closest: jest.fn().mockReturnValue(null),
+        id: "",
+        tagName: "DIV",
+      } as any,
       context: {
         domain: "test.com",
         url: "https://test.com/page",
@@ -147,6 +154,14 @@ describe("PasteManager", () => {
     mockUnsupportedTarget = {
       ...mockTarget,
       type: "unsupported-target",
+      element: {
+        classList: {
+          contains: jest.fn().mockReturnValue(false),
+        },
+        closest: jest.fn().mockReturnValue(null),
+        id: "",
+        tagName: "DIV",
+      } as any,
     };
 
     mockContent = {
@@ -251,7 +266,19 @@ describe("PasteManager", () => {
     });
 
     test("should return null when no strategy can handle target", () => {
-      const bestStrategy = manager.getBestStrategy(mockUnsupportedTarget);
+      // Create a manager without fallback strategy for this test
+      const noFallbackManager = new PasteManager({
+        enableLogging: false,
+        fallbackDelay: 0,
+        maxRetries: 2,
+      });
+
+      // Remove fallback strategy
+      noFallbackManager.removeStrategy("fallback-paste");
+
+      const bestStrategy = noFallbackManager.getBestStrategy(
+        mockUnsupportedTarget,
+      );
       expect(bestStrategy).toBeNull();
     });
 
@@ -266,9 +293,11 @@ describe("PasteManager", () => {
 
       const applicableStrategies = manager.getApplicableStrategies(mockTarget);
 
-      expect(applicableStrategies).toHaveLength(2);
+      // Should include 2 mock strategies + fallback strategy (which handles everything)
+      expect(applicableStrategies).toHaveLength(3);
       expect(applicableStrategies[0].strategy).toBe(highPriorityStrategy);
       expect(applicableStrategies[1].strategy).toBe(lowPriorityStrategy);
+      expect(applicableStrategies[2].strategy.name).toBe("fallback-paste");
     });
   });
 
@@ -306,7 +335,17 @@ describe("PasteManager", () => {
     });
 
     test("should fail when no strategy can handle target", async () => {
-      const result = await manager.executePaste(
+      // Create a manager without fallback strategy for this test
+      const noFallbackManager = new PasteManager({
+        enableLogging: false,
+        fallbackDelay: 0,
+        maxRetries: 2,
+      });
+
+      // Remove fallback strategy
+      noFallbackManager.removeStrategy("fallback-paste");
+
+      const result = await noFallbackManager.executePaste(
         mockContent,
         mockUnsupportedTarget,
         {},
@@ -403,12 +442,25 @@ describe("PasteManager", () => {
       strategy.executePaste = jest
         .fn()
         .mockResolvedValue(
-          strategy.createResult(false, "custom", [], "Validation error"),
+          strategy.createResult(false, "custom", [], "validation error"),
         );
 
-      manager.addStrategy(strategy);
+      // Create a manager without fallback strategy for this test
+      const noFallbackManager = new PasteManager({
+        enableLogging: false,
+        fallbackDelay: 0,
+        maxRetries: 2,
+      });
 
-      const result = await manager.executePaste(mockContent, mockTarget, {});
+      // Remove fallback strategy and add our test strategy
+      noFallbackManager.removeStrategy("fallback-paste");
+      noFallbackManager.addStrategy(strategy);
+
+      const result = await noFallbackManager.executePaste(
+        mockContent,
+        mockTarget,
+        {},
+      );
 
       expect(result.success).toBe(false);
       expect(strategy.executePaste).toHaveBeenCalledTimes(1);
