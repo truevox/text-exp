@@ -74,7 +74,9 @@
   border: 1px dashed #f59e0b !important;
   padding: 2px 6px !important;
   border-radius: 4px !important;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New",
+    monospace !important;
   font-size: 13px !important;
   color: #92400e !important;
   font-weight: 500 !important;
@@ -83,12 +85,12 @@
 }
 
 .tox-tinymce .variable-placeholder::before {
-  content: '${' !important;
+  content: "${" !important;
   color: #d97706 !important;
 }
 
 .tox-tinymce .variable-placeholder::after {
-  content: '}' !important;
+  content: "}" !important;
   color: #d97706 !important;
 }
 
@@ -215,27 +217,27 @@
     background: #1f2937;
     border-color: #374151;
   }
-  
+
   .tox .tox-toolbar {
     background: #374151 !important;
     border-bottom-color: #4b5563 !important;
   }
-  
+
   .tox .tox-tbtn {
     color: #e5e7eb !important;
   }
-  
+
   .tox .tox-tbtn:hover {
     background: #4b5563 !important;
     border-color: #6b7280 !important;
   }
-  
+
   .tox .tox-statusbar {
     background: #374151 !important;
     border-top-color: #4b5563 !important;
     color: #9ca3af !important;
   }
-  
+
   .tox .tox-edit-area iframe {
     background: #1f2937 !important;
   }
@@ -265,7 +267,7 @@
 }
 
 .puffpuffpaste-editor.loading::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -290,11 +292,11 @@
     flex-wrap: wrap !important;
     padding: 4px !important;
   }
-  
+
   .tox .tox-toolbar__group {
     margin: 2px 4px !important;
   }
-  
+
   .tox .tox-tbtn {
     margin: 1px !important;
     padding: 6px 8px !important;
@@ -315,4 +317,120 @@
 .puffpuffpaste-editor.success {
   border-color: #10b981 !important;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Variable autocomplete dropdown styling */
+.variable-autocomplete-dropdown {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    San Francisco,
+    Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    sans-serif;
+  font-size: 14px;
+  z-index: 10000;
+}
+
+.variable-autocomplete-dropdown .autocomplete-header {
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.variable-autocomplete-dropdown .autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+}
+
+.variable-autocomplete-dropdown .autocomplete-item:hover {
+  background: #f3f4f6;
+}
+
+.variable-autocomplete-dropdown .autocomplete-item:active {
+  background: #e5e7eb;
+}
+
+.variable-autocomplete-dropdown .autocomplete-item code {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family:
+    "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New",
+    monospace;
+  font-size: 13px;
+  border: 1px solid #e5e7eb;
+}
+
+.variable-autocomplete-dropdown .autocomplete-item:hover code {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.variable-autocomplete-dropdown .autocomplete-footer {
+  padding: 6px 12px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 8px 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Dark mode support for autocomplete */
+@media (prefers-color-scheme: dark) {
+  .variable-autocomplete-dropdown {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-header {
+    background: #374151;
+    border-bottom-color: #4b5563;
+    color: #9ca3af;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-item {
+    border-bottom-color: #374151;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-item:hover {
+    background: #374151;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-item:active {
+    background: #4b5563;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-item code {
+    background: #374151;
+    color: #e5e7eb;
+    border-color: #4b5563;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-item:hover code {
+    background: #4b5563;
+    border-color: #6b7280;
+  }
+
+  .variable-autocomplete-dropdown .autocomplete-footer {
+    background: #374151;
+    border-top-color: #4b5563;
+    color: #6b7280;
+  }
 }

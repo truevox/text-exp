@@ -1,6 +1,7 @@
 /**
  * Snippet Editor Component Styles
  * Complete styling for the snippet editing interface
+ * Enhanced to support all JSON fields and comprehensive snippet editing
  */
 
 /* Main Container */
@@ -102,7 +103,7 @@
 }
 
 .form-group.required label::after {
-  content: ' *';
+  content: " *";
   color: #ef4444;
 }
 
@@ -120,7 +121,9 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   background: white;
 }
 
@@ -159,7 +162,9 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   overflow: hidden;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 .editor-container.focused {
@@ -275,12 +280,19 @@
   border-radius: 6px;
   background: white;
   min-height: 100px;
-  font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    San Francisco,
+    Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    sans-serif;
   line-height: 1.5;
 }
 
 .preview-content:empty::before {
-  content: 'Preview will appear here...';
+  content: "Preview will appear here...";
   color: #9ca3af;
   font-style: italic;
 }
@@ -319,26 +331,26 @@
     border-radius: 0;
     box-shadow: none;
   }
-  
+
   .editor-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .editor-actions {
     justify-content: flex-end;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .editor-form {
     padding: 16px;
   }
-  
+
   .editor-toolbar {
     flex-wrap: wrap;
   }
@@ -348,16 +360,16 @@
   .editor-header {
     padding: 16px;
   }
-  
+
   .editor-actions {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
     justify-content: center;
   }
-  
+
   .form-section {
     margin-bottom: 20px;
   }
@@ -369,25 +381,25 @@
     background: #1f2937;
     color: #e5e7eb;
   }
-  
+
   .editor-header {
     background: #374151;
     border-bottom-color: #4b5563;
   }
-  
+
   .editor-title {
     color: #f9fafb;
   }
-  
+
   .section-title {
     color: #e5e7eb;
     border-bottom-color: #4b5563;
   }
-  
+
   .form-group label {
     color: #e5e7eb;
   }
-  
+
   .form-group input,
   .form-group select,
   .form-group textarea {
@@ -395,57 +407,57 @@
     border-color: #4b5563;
     color: #e5e7eb;
   }
-  
+
   .form-group input:focus,
   .form-group select:focus,
   .form-group textarea:focus {
     border-color: #3b82f6;
     background: #374151;
   }
-  
+
   .form-help {
     color: #9ca3af;
   }
-  
+
   .editor-container {
     border-color: #4b5563;
   }
-  
+
   .editor-toolbar {
     border-top-color: #4b5563;
   }
-  
+
   .btn-secondary {
     background: #374151;
     color: #e5e7eb;
     border-color: #4b5563;
   }
-  
+
   .btn-secondary:hover:not(:disabled) {
     background: #4b5563;
     border-color: #6b7280;
   }
-  
+
   .variable-item {
     background: #374151;
     border-color: #4b5563;
   }
-  
+
   .variable-item small {
     color: #9ca3af;
   }
-  
+
   .preview-content {
     background: #374151;
     border-color: #4b5563;
     color: #e5e7eb;
   }
-  
+
   .validation-messages {
     background: #451b2a;
     border-color: #be185d;
   }
-  
+
   .validation-error h4,
   .validation-error ul {
     color: #fda4af;
@@ -459,7 +471,7 @@
 }
 
 .snippet-editor.loading::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -505,6 +517,114 @@
   outline: none;
 }
 
+/* Enhanced Fields Styles */
+.readonly-field {
+  background-color: #f9fafb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+}
+
+.readonly-field:focus {
+  background-color: #f9fafb !important;
+  box-shadow: none !important;
+}
+
+/* Images Section */
+.image-item {
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.image-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.image-info code {
+  flex: 1;
+  background-color: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.image-upload-area {
+  margin-top: 12px;
+  padding: 12px;
+  border: 2px dashed #d1d5db;
+  border-radius: 4px;
+  text-align: center;
+  background-color: #fafafa;
+}
+
+.image-upload-area:hover {
+  border-color: #3b82f6;
+  background-color: #f8faff;
+}
+
+/* Enhanced Form Fields */
+.form-group.enhanced {
+  border-left: 3px solid #3b82f6;
+  padding-left: 12px;
+  margin-left: -12px;
+}
+
+.form-group.enhanced .form-help {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* Tags Input Styling */
+.form-group input[name="tags"] {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.form-group input[name="tags"]::placeholder {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+/* Dependencies Input Styling */
+.form-group input[name="snipDependencies"] {
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 13px;
+}
+
+.form-group input[name="snipDependencies"]::placeholder {
+  font-style: italic;
+  color: #9ca3af;
+}
+
+/* ID Input Styling */
+.form-group input[name="id"] {
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 13px;
+  background-color: #f9fafb;
+}
+
+/* Metadata Section Styling */
+.form-section:has(.readonly-field) {
+  background-color: #f9fafb;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.form-section:has(.readonly-field) .section-title {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
   .form-group input,
@@ -512,12 +632,21 @@
   .form-group textarea {
     border-width: 2px;
   }
-  
+
   .btn {
     border-width: 2px;
   }
-  
+
   .editor-container {
     border-width: 2px;
+  }
+
+  .image-item {
+    border-width: 2px;
+  }
+
+  .readonly-field {
+    background-color: #f3f4f6 !important;
+    border-width: 2px !important;
   }
 }

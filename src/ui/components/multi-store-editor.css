@@ -1,0 +1,550 @@
+/**
+ * Multi-Store Editor Component Styles
+ * Styling for same-screen store selection with duplicate detection
+ */
+
+/* Main Container */
+.multi-store-editor {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Header */
+.multi-store-editor .editor-header {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.multi-store-editor .editor-title {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.multi-store-editor .editor-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Section Styles */
+.multi-store-editor .section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-store-editor .store-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.multi-store-editor .duplicate-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.multi-store-editor .duplicate-count.has-duplicates {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Store Selection Section */
+.multi-store-editor .store-selection-section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.multi-store-editor .selection-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.multi-store-editor .stores-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.multi-store-editor .tier-group {
+  margin-bottom: 16px;
+}
+
+.multi-store-editor .tier-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multi-store-editor .stores-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Store Card */
+.multi-store-editor .store-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.multi-store-editor .store-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.multi-store-editor .store-card.selected {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.multi-store-editor .store-card.readonly {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.multi-store-editor .store-card.readonly .store-name {
+  color: #6b7280;
+}
+
+.multi-store-editor .store-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.multi-store-editor .store-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.multi-store-editor .store-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+.multi-store-editor .store-info {
+  flex: 1;
+}
+
+.multi-store-editor .store-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-store-editor .storage-icon {
+  font-size: 14px;
+}
+
+.multi-store-editor .store-filename {
+  font-size: 12px;
+  color: #6b7280;
+  font-family: "Monaco", "Menlo", monospace;
+}
+
+.multi-store-editor .readonly-badge {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Store Details */
+.multi-store-editor .store-details {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.multi-store-editor .detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.multi-store-editor .detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.multi-store-editor .detail-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.multi-store-editor .detail-value {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.multi-store-editor .detail-value.warning {
+  color: #dc2626;
+}
+
+.multi-store-editor .duplicate-info {
+  background: #fef2f2;
+  border-left: 3px solid #dc2626;
+  padding-left: 8px;
+}
+
+/* Store Actions */
+.multi-store-editor .store-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Duplicate Detection Section */
+.multi-store-editor .duplicate-detection-section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.multi-store-editor .detection-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.multi-store-editor .detection-settings {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.multi-store-editor .settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.multi-store-editor .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.multi-store-editor .checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+/* Duplicates List */
+.multi-store-editor .duplicates-list {
+  display: grid;
+  gap: 16px;
+}
+
+.multi-store-editor .no-duplicates {
+  text-align: center;
+  padding: 32px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Duplicate Group */
+.multi-store-editor .duplicate-group {
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  background: #fffbeb;
+  overflow: hidden;
+}
+
+.multi-store-editor .duplicate-header {
+  background: #fef3c7;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #fbbf24;
+}
+
+.multi-store-editor .duplicate-trigger {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  font-family: "Monaco", "Menlo", monospace;
+}
+
+.multi-store-editor .duplicate-count {
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+/* Duplicate Items */
+.multi-store-editor .duplicate-items {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.multi-store-editor .duplicate-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  gap: 16px;
+}
+
+.multi-store-editor .duplicate-item.readonly {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.multi-store-editor .duplicate-info {
+  flex: 1;
+}
+
+.multi-store-editor .duplicate-info .store-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.multi-store-editor .duplicate-info .content-preview {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.multi-store-editor .duplicate-info .metadata {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: "Monaco", "Menlo", monospace;
+}
+
+.multi-store-editor .duplicate-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-store-editor .resolution-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+}
+
+.multi-store-editor .duplicate-actions {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 8px;
+}
+
+/* Cross-Store Editing Section */
+.multi-store-editor .cross-store-editing-section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.multi-store-editor .current-snippet-info {
+  background: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.multi-store-editor .snippet-preview {
+  font-size: 14px;
+  color: #0c4a6e;
+  line-height: 1.5;
+}
+
+.multi-store-editor .editing-controls {
+  display: flex;
+  gap: 8px;
+}
+
+/* Editor Actions */
+.multi-store-editor .editor-actions {
+  padding: 24px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.multi-store-editor .action-group {
+  display: flex;
+  gap: 8px;
+}
+
+/* Button Styles */
+.multi-store-editor .btn {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: #374151;
+}
+
+.multi-store-editor .btn:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.multi-store-editor .btn-primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.multi-store-editor .btn-primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.multi-store-editor .btn-secondary {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: white;
+}
+
+.multi-store-editor .btn-secondary:hover {
+  background: #4b5563;
+  border-color: #4b5563;
+}
+
+.multi-store-editor .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.multi-store-editor .btn-xs {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* Validation Messages */
+.multi-store-editor .validation-messages {
+  margin: 16px 24px;
+  padding: 16px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.multi-store-editor .validation-errors h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.multi-store-editor .validation-errors ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.multi-store-editor .validation-errors li {
+  color: #dc2626;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.multi-store-editor .validation-warnings {
+  margin-top: 12px;
+}
+
+.multi-store-editor .validation-warnings h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #d97706;
+}
+
+.multi-store-editor .validation-warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.multi-store-editor .validation-warnings li {
+  color: #d97706;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .multi-store-editor {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .multi-store-editor .stores-list {
+    grid-template-columns: 1fr;
+  }
+
+  .multi-store-editor .duplicate-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .multi-store-editor .duplicate-controls {
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .multi-store-editor .editor-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .multi-store-editor .action-group {
+    width: 100%;
+    justify-content: center;
+  }
+}
