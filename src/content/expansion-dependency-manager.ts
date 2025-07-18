@@ -750,6 +750,7 @@ export class ExpansionDependencyManager {
   private hooks: ExpansionHook[] = [];
   private stats: ExpansionStats;
   private activeResolutions = new Map<string, Promise<ResolvedDependency>>();
+  private currentExpansionErrors: ExpansionError[] = [];
 
   constructor(
     resolver?: SnippetDependencyResolver,
@@ -785,7 +786,21 @@ export class ExpansionDependencyManager {
     const startTime = Date.now();
     const sessionId = context.sessionId || `expansion-${Date.now()}`;
 
+    // Reset errors for this expansion
+    this.currentExpansionErrors = [];
+
     try {
+      // Validate snippet data
+      if (!snippet || !snippet.content || typeof snippet.content !== "string") {
+        return this.createErrorResult(
+          "INVALID_FORMAT",
+          "Snippet content is missing or invalid",
+          snippet,
+          context,
+          startTime,
+        );
+      }
+
       // Execute pre-expansion hooks
       for (const hook of this.hooks.filter((h) => h.preExpansion)) {
         const shouldContinue = await hook.preExpansion!(context);
@@ -816,10 +831,13 @@ export class ExpansionDependencyManager {
         context,
       );
 
+      // Flatten nested dependencies to get all dependencies in the chain
+      const allDependencies = this.flattenDependencies(resolvedDependencies);
+
       // Expand content with resolved dependencies
       const expandedContent = await this.expandContentWithDependencies(
         snippet,
-        resolvedDependencies,
+        allDependencies,
         context,
       );
 
@@ -827,10 +845,13 @@ export class ExpansionDependencyManager {
       const result = this.createSuccessResult(
         expandedContent,
         snippet,
-        resolvedDependencies,
+        allDependencies,
         context,
         startTime,
       );
+
+      // Add any resolution errors to the result
+      result.errors.push(...this.currentExpansionErrors);
 
       // Cache result
       if (context.enableCaching) {
@@ -848,16 +869,27 @@ export class ExpansionDependencyManager {
       // Track usage for analytics (with error isolation)
       try {
         const originalSnippet = this.convertToTextSnippet(snippet);
-        const dependencyChain = resolvedDependencies.map(d => d.trigger).join(' → ');
+        const dependencyChain = allDependencies
+          .map((d) => {
+            const parsedDep = this.resolver.parseDependency(
+              d.originalDependency,
+            );
+            return parsedDep.isValid ? parsedDep.trigger : d.originalDependency;
+          })
+          .join(" → ");
         await logExpansionUsage(originalSnippet, true, undefined, {
-          targetElement: 'dependency-resolved',
-          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-          dependencyChain
+          targetElement: "dependency-resolved",
+          url: typeof window !== "undefined" ? window.location.href : "unknown",
+          userAgent:
+            typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+          dependencyChain,
         });
       } catch (trackingError) {
         // Usage tracking errors should not affect expansion
-        console.warn('⚠️ Dependency expansion usage tracking failed:', trackingError);
+        console.warn(
+          "⚠️ Dependency expansion usage tracking failed:",
+          trackingError,
+        );
       }
 
       return result;
@@ -865,18 +897,38 @@ export class ExpansionDependencyManager {
       // Track failed expansion usage for analytics (with error isolation)
       try {
         const originalSnippet = this.convertToTextSnippet(snippet);
-        await logExpansionUsage(originalSnippet, false, `Dependency expansion failed: ${error.message}`, {
-          targetElement: 'dependency-resolved',
-          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
-        });
+        await logExpansionUsage(
+          originalSnippet,
+          false,
+          `Dependency expansion failed: ${error.message}`,
+          {
+            targetElement: "dependency-resolved",
+            url:
+              typeof window !== "undefined" ? window.location.href : "unknown",
+            userAgent:
+              typeof navigator !== "undefined"
+                ? navigator.userAgent
+                : "unknown",
+          },
+        );
       } catch (trackingError) {
         // Usage tracking errors should not affect expansion
-        console.warn('⚠️ Failed dependency expansion usage tracking failed:', trackingError);
+        console.warn(
+          "⚠️ Failed dependency expansion usage tracking failed:",
+          trackingError,
+        );
+      }
+
+      // Determine error type based on error message
+      let errorType: ExpansionErrorType = "UNKNOWN_ERROR";
+      if (error.message.includes("Circular dependency")) {
+        errorType = "CIRCULAR_DEPENDENCY";
+      } else if (error.message.includes("Maximum recursion depth")) {
+        errorType = "RECURSIVE_LIMIT_EXCEEDED";
       }
 
       return this.createErrorResult(
-        "UNKNOWN_ERROR",
+        errorType,
         `Expansion failed: ${error.message}`,
         snippet,
         context,
@@ -891,6 +943,7 @@ export class ExpansionDependencyManager {
   async resolveDependencies(
     snippet: TextSnippet | EnhancedSnippet,
     context: DependencyResolutionContext,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency[]> {
     const dependencies = this.resolver.extractDependencies(snippet);
 
@@ -903,12 +956,126 @@ export class ExpansionDependencyManager {
       throw new Error(`Maximum recursion depth ${context.maxDepth} exceeded`);
     }
 
+    // Check for circular dependencies
+    if (resolutionPath.includes(snippet.id)) {
+      const circularError = new Error(
+        `Circular dependency detected: ${resolutionPath.join(" -> ")} -> ${snippet.id}`,
+      );
+
+      // Add to global error tracking
+      this.currentExpansionErrors.push({
+        type: "CIRCULAR_DEPENDENCY",
+        message: circularError.message,
+        severity: "ERROR",
+        errorCode: "EXP_CIRCULAR_DEPENDENCY",
+        resolutionPath: resolutionPath,
+      });
+
+      if (context.errorHandling.circularDependencyStrategy === "FAIL") {
+        throw circularError;
+      }
+      console.warn(`Warning: ${circularError.message}`);
+      return [];
+    }
+
+    // Also check for circular dependencies in the snippet's dependencies
+    const snippetDependencies = this.resolver.extractDependencies(snippet);
+    for (const dep of snippetDependencies) {
+      // Check if this dependency references any snippet in the resolution path
+      const parsedDep = this.resolver.parseDependency(dep);
+      if (!parsedDep.isValid) {
+        // For simplified dependencies, try to find the snippet
+        const foundSnippet = this.resolveByTrigger(dep, context);
+        if (foundSnippet && resolutionPath.includes(foundSnippet.id)) {
+          const circularError = new Error(
+            `Circular dependency detected: ${resolutionPath.join(" -> ")} -> ${snippet.id} -> ${foundSnippet.id}`,
+          );
+
+          // Add to global error tracking
+          this.currentExpansionErrors.push({
+            type: "CIRCULAR_DEPENDENCY",
+            message: circularError.message,
+            severity: "ERROR",
+            errorCode: "EXP_CIRCULAR_DEPENDENCY",
+            resolutionPath: resolutionPath,
+          });
+
+          if (context.errorHandling.circularDependencyStrategy === "FAIL") {
+            throw circularError;
+          }
+          console.warn(`Warning: ${circularError.message}`);
+          return [];
+        }
+      } else {
+        // Check if the dependency ID is in the resolution path
+        if (resolutionPath.includes(parsedDep.id)) {
+          const circularError = new Error(
+            `Circular dependency detected: ${resolutionPath.join(" -> ")} -> ${snippet.id} -> ${parsedDep.id}`,
+          );
+
+          // Add to global error tracking
+          this.currentExpansionErrors.push({
+            type: "CIRCULAR_DEPENDENCY",
+            message: circularError.message,
+            severity: "ERROR",
+            errorCode: "EXP_CIRCULAR_DEPENDENCY",
+            resolutionPath: resolutionPath,
+          });
+
+          if (context.errorHandling.circularDependencyStrategy === "FAIL") {
+            throw circularError;
+          }
+          console.warn(`Warning: ${circularError.message}`);
+          return [];
+        }
+      }
+    }
+
     // Resolve dependencies based on strategy
     return await this.resolveWithStrategy(
       dependencies,
       context,
       this.selectStrategy(context),
+      [...resolutionPath, snippet.id],
     );
+  }
+
+  /**
+   * Normalize dependencies to handle simplified formats
+   */
+  private normalizeDependencies(
+    dependencies: string[],
+    context: DependencyResolutionContext,
+  ): string[] {
+    return dependencies.map((dep) => {
+      // If already in full format, return as-is
+      if (dep.includes(":") && dep.split(":").length === 3) {
+        return dep;
+      }
+
+      // Handle simplified trigger format like ";a"
+      if (dep.startsWith(";")) {
+        // Try to find the snippet by trigger in all available stores
+        for (const [storeName, storeInfo] of Object.entries(
+          context.availableStores,
+        )) {
+          const foundSnippet = storeInfo.snippets.find(
+            (s) => s.trigger === dep,
+          );
+          if (foundSnippet) {
+            return `${storeName}:${dep}:${foundSnippet.id}`;
+          }
+        }
+        // If not found, use the first available store as fallback
+        const firstStore = Object.keys(context.availableStores)[0];
+        if (firstStore) {
+          return `${firstStore}:${dep}:${dep.replace(";", "")}`;
+        }
+      }
+
+      // Return as-is if we can't normalize it
+      return dep;
+    });
   }
 
   /**
@@ -918,11 +1085,22 @@ export class ExpansionDependencyManager {
     dependencies: string[],
     context: DependencyResolutionContext,
     strategy: ExpansionStrategy,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency[]> {
     if (strategy.parallel) {
-      return await this.resolveParallel(dependencies, context, strategy);
+      return await this.resolveParallel(
+        dependencies,
+        context,
+        strategy,
+        resolutionPath,
+      );
     } else {
-      return await this.resolveSequential(dependencies, context, strategy);
+      return await this.resolveSequential(
+        dependencies,
+        context,
+        strategy,
+        resolutionPath,
+      );
     }
   }
 
@@ -933,6 +1111,7 @@ export class ExpansionDependencyManager {
     dependencies: string[],
     context: DependencyResolutionContext,
     strategy: ExpansionStrategy,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency[]> {
     const results: ResolvedDependency[] = [];
     const semaphore = new Semaphore(strategy.maxConcurrency);
@@ -940,7 +1119,11 @@ export class ExpansionDependencyManager {
     const promises = dependencies.map(async (dependency) => {
       await semaphore.acquire();
       try {
-        return await this.resolveSingleDependency(dependency, context);
+        return await this.resolveSingleDependency(
+          dependency,
+          context,
+          resolutionPath,
+        );
       } finally {
         semaphore.release();
       }
@@ -967,6 +1150,7 @@ export class ExpansionDependencyManager {
     dependencies: string[],
     context: DependencyResolutionContext,
     strategy: ExpansionStrategy,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency[]> {
     const results: ResolvedDependency[] = [];
 
@@ -975,6 +1159,7 @@ export class ExpansionDependencyManager {
         const resolved = await this.resolveSingleDependency(
           dependency,
           context,
+          resolutionPath,
         );
         if (resolved) {
           results.push(resolved);
@@ -993,6 +1178,7 @@ export class ExpansionDependencyManager {
   private async resolveSingleDependency(
     dependency: string,
     context: DependencyResolutionContext,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency | null> {
     const startTime = Date.now();
 
@@ -1006,6 +1192,7 @@ export class ExpansionDependencyManager {
       dependency,
       context,
       startTime,
+      resolutionPath,
     );
 
     this.activeResolutions.set(dependency, resolutionPromise);
@@ -1025,15 +1212,67 @@ export class ExpansionDependencyManager {
     dependency: string,
     context: DependencyResolutionContext,
     startTime: number,
+    resolutionPath: string[] = [],
   ): Promise<ResolvedDependency | null> {
     // Parse dependency
     const parsedDependency = this.resolver.parseDependency(dependency);
     if (!parsedDependency.isValid) {
+      // For simplified dependency formats like ";a", try to resolve directly
+      const fallbackResult = this.resolveByTrigger(dependency, context);
+      if (fallbackResult) {
+        // Use the fallback result instead of failing
+        const expandedContent = await this.expandVariables(
+          fallbackResult.content,
+          context.variableContext,
+          fallbackResult,
+        );
+
+        // Resolve nested dependencies recursively
+        const nestedContext: DependencyResolutionContext = {
+          ...context,
+          currentDepth: context.currentDepth + 1,
+          rootSnippet: fallbackResult,
+        };
+
+        const nestedDependencies = await this.resolveDependencies(
+          fallbackResult,
+          nestedContext,
+          resolutionPath,
+        );
+
+        // Create resolved dependency with simplified format
+        const resolvedDependency: ResolvedDependency = {
+          originalDependency: dependency,
+          resolvedSnippet: fallbackResult,
+          resolvedContent: expandedContent,
+          nestedDependencies,
+          resolutionPath: [dependency],
+          resolutionDepth: context.currentDepth + 1,
+          metadata: {
+            sourceStore: this.getStoreNameFromResolution(
+              dependency,
+              fallbackResult,
+              context,
+            ),
+            resolutionTime: Date.now() - startTime,
+            fromCache: false,
+            variablesResolved: this.countVariables(expandedContent),
+            nestedDependencyCount: nestedDependencies.length,
+            resolutionMethod: "DIRECT",
+            warnings: [],
+          },
+          timestamp: new Date(),
+        };
+
+        return resolvedDependency;
+      }
+
       this.handleDependencyError(
         "INVALID_FORMAT",
         `Invalid dependency format: ${dependency}`,
         dependency,
         context,
+        this.currentExpansionErrors,
       );
       return null;
     }
@@ -1045,13 +1284,22 @@ export class ExpansionDependencyManager {
     );
 
     if (!resolutionResult.resolved || !resolutionResult.snippet) {
-      this.handleDependencyError(
-        "MISSING_DEPENDENCY",
-        `Dependency not found: ${dependency}`,
-        dependency,
-        context,
-      );
-      return null;
+      // If standard resolution failed, try to resolve by trigger directly
+      const fallbackResult = this.resolveByTrigger(dependency, context);
+      if (fallbackResult) {
+        // Update the resolutionResult with the fallback
+        resolutionResult.resolved = true;
+        resolutionResult.snippet = fallbackResult;
+      } else {
+        this.handleDependencyError(
+          "MISSING_DEPENDENCY",
+          `Dependency not found: ${dependency}`,
+          dependency,
+          context,
+          this.currentExpansionErrors,
+        );
+        return null;
+      }
     }
 
     // Validate dependency
@@ -1095,12 +1343,14 @@ export class ExpansionDependencyManager {
     const nestedDependencies = await this.resolveDependencies(
       resolutionResult.snippet,
       nestedContext,
+      resolutionPath,
     );
 
     // Expand content with variables
     const expandedContent = await this.expandVariables(
       resolutionResult.snippet.content,
       context.variableContext,
+      resolutionResult.snippet,
     );
 
     // Create resolved dependency
@@ -1112,7 +1362,13 @@ export class ExpansionDependencyManager {
       resolutionPath: [dependency],
       resolutionDepth: context.currentDepth + 1,
       metadata: {
-        sourceStore: parsedDependency.storeName,
+        sourceStore: parsedDependency.isValid
+          ? parsedDependency.storeName
+          : this.getStoreNameFromResolution(
+              dependency,
+              resolutionResult.snippet,
+              context,
+            ),
         resolutionTime: Date.now() - startTime,
         fromCache: false,
         variablesResolved: this.countVariables(expandedContent),
@@ -1141,12 +1397,19 @@ export class ExpansionDependencyManager {
   ): Promise<string> {
     let expandedContent = snippet.content;
 
-    // Replace dependency placeholders with resolved content
+    // Replace dependency references with resolved content
     for (const dependency of resolvedDependencies) {
-      const dependencyPlaceholder =
-        this.generateDependencyPlaceholder(dependency);
+      // Extract the original trigger from the dependency
+      const parsedDep = this.resolver.parseDependency(
+        dependency.originalDependency,
+      );
+      const triggerToReplace = parsedDep.isValid
+        ? parsedDep.trigger
+        : dependency.originalDependency;
+
+      // Replace all occurrences of the trigger with the resolved content
       expandedContent = expandedContent.replace(
-        dependencyPlaceholder,
+        new RegExp(this.escapeRegExp(triggerToReplace), "g"),
         dependency.resolvedContent,
       );
     }
@@ -1155,6 +1418,7 @@ export class ExpansionDependencyManager {
     expandedContent = await this.expandVariables(
       expandedContent,
       context.variableContext,
+      snippet,
     );
 
     return expandedContent;
@@ -1166,10 +1430,29 @@ export class ExpansionDependencyManager {
   private async expandVariables(
     content: string,
     variableContext: VariableResolutionContext,
+    snippet?: TextSnippet | EnhancedSnippet,
   ): Promise<string> {
     const variableRegex = /\{\{([^}]+)\}\}/g;
     let expandedContent = content;
     let match;
+
+    // Build default values from snippet if available
+    if (snippet && snippet.variables && snippet.variables.length > 0) {
+      for (const variable of snippet.variables) {
+        if (
+          variable.defaultValue &&
+          !variableContext.defaultValues.has(variable.name)
+        ) {
+          variableContext.defaultValues.set(
+            variable.name,
+            variable.defaultValue,
+          );
+        }
+      }
+    }
+
+    // Reset the regex lastIndex to avoid issues with global regex
+    variableRegex.lastIndex = 0;
 
     while ((match = variableRegex.exec(content)) !== null) {
       const variableName = match[1].trim();
@@ -1265,6 +1548,7 @@ export class ExpansionDependencyManager {
     message: string,
     dependency: string,
     context: DependencyResolutionContext,
+    errors?: ExpansionError[],
   ): void {
     const error: ExpansionError = {
       type,
@@ -1274,6 +1558,11 @@ export class ExpansionDependencyManager {
       errorCode: `EXP_${type}`,
       suggestions: this.generateErrorSuggestions(type, dependency),
     };
+
+    // Add to errors array if provided
+    if (errors) {
+      errors.push(error);
+    }
 
     // Execute error hooks
     for (const hook of this.hooks.filter((h) => h.onError)) {
@@ -1437,17 +1726,26 @@ export class ExpansionDependencyManager {
       0,
     );
 
+    // Calculate maximum dependency depth
+    const maxDependencyDepth =
+      resolvedDependencies.length > 0
+        ? Math.max(...resolvedDependencies.map((d) => d.resolutionDepth))
+        : 0;
+
+    // Count variables resolved
+    const variablesResolved = resolvedDependencies.reduce(
+      (sum, dep) => sum + dep.metadata.variablesResolved,
+      0,
+    );
+
     return {
-      totalExpansionTime: totalTime,
+      totalExpansionTime: Math.max(totalTime, 1), // Ensure at least 1ms
       dependencyResolutionTime,
       variableResolutionTime: 0, // TODO: Track variable resolution time
-      contentGenerationTime: totalTime - dependencyResolutionTime,
+      contentGenerationTime: Math.max(totalTime - dependencyResolutionTime, 0),
       dependenciesResolved: resolvedDependencies.length,
-      variablesResolved: 0, // TODO: Track variable count
-      maxDependencyDepth: Math.max(
-        ...resolvedDependencies.map((d) => d.resolutionDepth),
-        0,
-      ),
+      variablesResolved,
+      maxDependencyDepth,
       cacheHitRate: 0, // TODO: Calculate cache hit rate
       memoryUsagePeak: 0, // TODO: Track memory usage
       networkRequests: 0, // TODO: Track network requests
@@ -1641,6 +1939,97 @@ export class ExpansionDependencyManager {
     return `{{DEPENDENCY:${dependency.originalDependency}}}`;
   }
 
+  private escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  private resolveByTrigger(
+    dependency: string,
+    context: DependencyResolutionContext,
+  ): TextSnippet | EnhancedSnippet | null {
+    // Try to resolve by trigger directly if it's a simple trigger format
+    const parsedDep = this.resolver.parseDependency(dependency);
+
+    if (!parsedDep.isValid) {
+      // If it looks like a simple trigger (e.g., ";a"), try to find it directly
+      if (dependency.startsWith(";")) {
+        for (const [storeName, storeInfo] of Object.entries(
+          context.availableStores,
+        )) {
+          const foundSnippet = storeInfo.snippets.find(
+            (s) => s.trigger === dependency,
+          );
+          if (foundSnippet) {
+            return foundSnippet;
+          }
+        }
+      }
+      return null;
+    }
+
+    // If parsed successfully, try to find by ID or trigger
+    for (const [storeName, storeInfo] of Object.entries(
+      context.availableStores,
+    )) {
+      if (storeName === parsedDep.storeName) {
+        // First try by ID
+        let foundSnippet = storeInfo.snippets.find(
+          (s) => s.id === parsedDep.id,
+        );
+        if (foundSnippet) {
+          return foundSnippet;
+        }
+
+        // Then try by trigger
+        foundSnippet = storeInfo.snippets.find(
+          (s) => s.trigger === parsedDep.trigger,
+        );
+        if (foundSnippet) {
+          return foundSnippet;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private getStoreNameFromResolution(
+    dependency: string,
+    snippet: TextSnippet | EnhancedSnippet,
+    context: DependencyResolutionContext,
+  ): string {
+    // Find which store this snippet belongs to
+    for (const [storeName, storeInfo] of Object.entries(
+      context.availableStores,
+    )) {
+      if (storeInfo.snippets.some((s) => s.id === snippet.id)) {
+        return storeInfo.storeId;
+      }
+    }
+    return "unknown";
+  }
+
+  private flattenDependencies(
+    dependencies: ResolvedDependency[],
+  ): ResolvedDependency[] {
+    const flattened: ResolvedDependency[] = [];
+    const seen = new Set<string>();
+
+    function flatten(deps: ResolvedDependency[]) {
+      for (const dep of deps) {
+        if (!seen.has(dep.originalDependency)) {
+          seen.add(dep.originalDependency);
+          flattened.push(dep);
+          // Recursively flatten nested dependencies
+          flatten(dep.nestedDependencies);
+        }
+      }
+    }
+
+    flatten(dependencies);
+    return flattened;
+  }
+
   private async promptForVariable(
     variableName: string,
     context: VariableResolutionContext,
@@ -1712,9 +2101,11 @@ export class ExpansionDependencyManager {
   /**
    * Convert snippet to TextSnippet format for usage tracking
    */
-  private convertToTextSnippet(snippet: TextSnippet | EnhancedSnippet): TextSnippet {
+  private convertToTextSnippet(
+    snippet: TextSnippet | EnhancedSnippet,
+  ): TextSnippet {
     // If it's already a TextSnippet, return it
-    if ('trigger' in snippet && 'content' in snippet && 'id' in snippet) {
+    if ("trigger" in snippet && "content" in snippet && "id" in snippet) {
       return snippet as TextSnippet;
     }
 
@@ -1724,14 +2115,14 @@ export class ExpansionDependencyManager {
       id: enhanced.id,
       trigger: enhanced.trigger,
       content: enhanced.content,
-      contentType: enhanced.contentType || 'text',
-      scope: enhanced.scope || 'personal',
-      description: enhanced.description || '',
+      contentType: enhanced.contentType || "text",
+      scope: enhanced.scope || "personal",
+      description: enhanced.description || "",
       variables: enhanced.variables || [],
       tags: enhanced.tags || [],
       createdAt: enhanced.createdAt ? new Date(enhanced.createdAt) : new Date(),
       updatedAt: enhanced.updatedAt ? new Date(enhanced.updatedAt) : new Date(),
-      storeFileName: enhanced.storeFileName
+      storeFileName: enhanced.storeFileName,
     };
   }
 }

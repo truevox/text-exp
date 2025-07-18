@@ -30,9 +30,27 @@ const mockEditor = {
 };
 
 const mockTinyMCE = {
-  init: jest.fn().mockResolvedValue([mockEditor]),
+  init: jest.fn().mockImplementation(async (config: any) => {
+    // Simulate TinyMCE initialization by calling the callbacks
+    if (config.setup) {
+      config.setup(mockEditor);
+    }
+    if (config.init_instance_callback) {
+      config.init_instance_callback(mockEditor);
+    }
+    return [mockEditor];
+  }),
   default: {
-    init: jest.fn().mockResolvedValue([mockEditor]),
+    init: jest.fn().mockImplementation(async (config: any) => {
+      // Simulate TinyMCE initialization by calling the callbacks
+      if (config.setup) {
+        config.setup(mockEditor);
+      }
+      if (config.init_instance_callback) {
+        config.init_instance_callback(mockEditor);
+      }
+      return [mockEditor];
+    }),
   },
 };
 
@@ -133,13 +151,13 @@ describe("TinyMCEWrapper", () => {
       expect(textarea?.value).toBe("Test content");
     });
 
-    it("should throw error if already initialized", async () => {
+    it("should allow re-initialization by destroying first", async () => {
       wrapper = new TinyMCEWrapper();
       await wrapper.init(container);
 
-      await expect(wrapper.init(container)).rejects.toThrow(
-        "TinyMCE wrapper has been destroyed",
-      );
+      // Should not throw - it destroys and re-initializes
+      await expect(wrapper.init(container)).resolves.toBeDefined();
+      expect(wrapper.isReady()).toBe(true);
     });
 
     it("should throw error if destroyed", async () => {
@@ -349,6 +367,13 @@ describe("TinyMCEWrapper", () => {
     });
 
     it("should execute variable insertion shortcut", () => {
+      // Mock prompt to return a variable name
+      const originalPrompt = global.prompt;
+      global.prompt = jest.fn().mockReturnValue("test_variable");
+
+      // Mock getContent to return empty content (no existing variables)
+      mockEditor.getContent.mockReturnValue("");
+
       // Get the registered shortcut handler
       const shortcutCalls = mockEditor.addShortcut.mock.calls;
       const variableShortcut = shortcutCalls.find(
@@ -358,7 +383,10 @@ describe("TinyMCEWrapper", () => {
 
       handler?.();
 
-      expect(mockEditor.insertContent).toHaveBeenCalledWith("${variable_name}");
+      expect(mockEditor.insertContent).toHaveBeenCalledWith("${test_variable}");
+
+      // Restore original prompt
+      global.prompt = originalPrompt;
     });
   });
 
@@ -448,19 +476,15 @@ describe("TinyMCEWrapper", () => {
   });
 
   describe("Error Handling", () => {
-    it("should handle TinyMCE loading failure", async () => {
-      const originalImport = require;
-      (global as any).require = jest
-        .fn()
-        .mockRejectedValue(new Error("Load failed"));
+    it("should handle TinyMCE initialization failure", async () => {
+      // Make the mock TinyMCE init function reject
+      mockTinyMCE.init.mockRejectedValueOnce(new Error("TinyMCE init failed"));
 
       wrapper = new TinyMCEWrapper();
 
       await expect(wrapper.init(container)).rejects.toThrow(
-        "Failed to load TinyMCE modules",
+        "TinyMCE init failed",
       );
-
-      (global as any).require = originalImport;
     });
 
     it("should handle editor operations when editor is null", () => {

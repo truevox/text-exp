@@ -821,6 +821,34 @@ export class JsonSerializer {
   }
 
   /**
+   * Synchronous serialize method for backward compatibility
+   */
+  static serialize(
+    schema: TierStorageSchema,
+    options: JsonSerializationOptions = {},
+  ): string {
+    const opts = {
+      pretty: true,
+      preserveOrder: true,
+      ...options,
+    };
+
+    try {
+      // Order fields and serialize
+      if (opts.preserveOrder) {
+        const orderedSchema = this.orderSchemaFields(schema);
+        return JSON.stringify(orderedSchema, null, opts.pretty ? 2 : undefined);
+      } else {
+        return JSON.stringify(schema, null, opts.pretty ? 2 : undefined);
+      }
+    } catch (error) {
+      throw new Error(
+        `Serialization failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
    * Serialize array of snippets to JSON
    */
   static serializeSnippets(

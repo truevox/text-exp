@@ -808,7 +808,7 @@ export class DependencyValidator {
     }
 
     // Update average validation time
-    const validationTime = Date.now() - startTime;
+    const validationTime = Math.max(1, Date.now() - startTime); // Ensure minimum 1ms for statistics
     this.validationStats.averageValidationTime =
       (this.validationStats.averageValidationTime *
         (this.validationStats.totalValidations - 1) +

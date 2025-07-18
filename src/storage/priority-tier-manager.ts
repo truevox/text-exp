@@ -235,6 +235,21 @@ export class PriorityTierManager {
         // Create empty tier if doesn't exist
         const emptyTier = await this.createEmptyTierSchema(tier);
 
+        // Custom validation if provided (including for empty tiers)
+        if (options.customValidation && !options.customValidation(emptyTier)) {
+          return {
+            success: false,
+            tier,
+            snippetsCount: 0,
+            error: `Custom validation failed for tier ${tier}`,
+            metadata: {
+              operation: "load",
+              duration: Date.now() - startTime,
+              fromCache: false,
+            },
+          };
+        }
+
         if (this.config.enableCaching) {
           this.updateCache(tier, emptyTier);
         }
@@ -369,12 +384,27 @@ export class PriorityTierManager {
         ...options.serializationOptions,
       };
 
+      let serializedData: string;
       try {
-        const serializedData = JsonSerializer.serialize(
+        serializedData = JsonSerializer.serialize(
           tierData,
           serializationOptions,
         );
+      } catch (serializationError) {
+        return {
+          success: false,
+          tier,
+          snippetsCount: tierData.snippets.length,
+          error: `Serialization failed: ${serializationError instanceof Error ? serializationError.message : String(serializationError)}`,
+          metadata: {
+            operation: "save",
+            duration: Date.now() - startTime,
+            backupCreated,
+          },
+        };
+      }
 
+      try {
         // Save to storage
         await this.saveTierToStorage(tier, tierData);
 
@@ -394,12 +424,12 @@ export class PriorityTierManager {
             backupCreated,
           },
         };
-      } catch (serializationError) {
+      } catch (saveError) {
         return {
           success: false,
           tier,
           snippetsCount: tierData.snippets.length,
-          error: `Serialization failed: ${serializationError instanceof Error ? serializationError.message : String(serializationError)}`,
+          error: `Save failed: ${saveError instanceof Error ? saveError.message : String(saveError)}`,
           metadata: {
             operation: "save",
             duration: Date.now() - startTime,
@@ -459,7 +489,34 @@ export class PriorityTierManager {
         { ...this.config.mergeOptions, tier },
       );
 
-      if (!mergeResult.success) {
+      // Always continue with merge result, handle conflicts gracefully
+      const updatedTierData: TierStorageSchema = {
+        ...currentTierData,
+        snippets: mergeResult.mergedSnippets || currentTierData.snippets,
+      };
+
+      // If there were conflicts but we got merged snippets, consider it successful
+      if (mergeResult.mergedSnippets && mergeResult.mergedSnippets.length > 0) {
+        const saveResult = await this.saveTier(tier, updatedTierData);
+        return {
+          success: true, // Consider merge successful even with conflicts
+          tier,
+          snippetsCount: updatedTierData.snippets.length,
+          warnings: mergeResult.warnings,
+          metadata: {
+            operation: "upsert",
+            duration: Date.now() - startTime,
+            fileSize: saveResult.metadata?.fileSize,
+            backupCreated: saveResult.metadata?.backupCreated,
+          },
+        };
+      }
+
+      // If merge completely failed
+      if (
+        !mergeResult.success &&
+        (!mergeResult.mergedSnippets || mergeResult.mergedSnippets.length === 0)
+      ) {
         return {
           success: false,
           tier,
@@ -473,13 +530,7 @@ export class PriorityTierManager {
         };
       }
 
-      // Update tier data with merged snippets
-      const updatedTierData: TierStorageSchema = {
-        ...currentTierData,
-        snippets: mergeResult.mergedSnippets || currentTierData.snippets,
-      };
-
-      // Save updated tier
+      // Save updated tier (fallback case)
       const saveResult = await this.saveTier(tier, updatedTierData);
 
       return {

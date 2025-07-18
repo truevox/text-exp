@@ -40,7 +40,7 @@ describe("MultiStoreEditor", () => {
       },
       {
         id: "snippet2",
-        trigger: ";hello",
+        trigger: ";team",
         content: "Hello, Team!",
         createdAt: new Date(),
         updatedAt: new Date(),

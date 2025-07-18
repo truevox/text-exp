@@ -494,23 +494,23 @@ describe("ContentTypeManager", () => {
   });
 
   describe("Preview Generation", () => {
-    it("should return HTML content as-is for preview", () => {
+    it("should return HTML content as-is for preview", async () => {
       const htmlContent = "<p><strong>Bold</strong> content</p>";
-      const preview = manager.getPreviewHTML(htmlContent, "html");
+      const preview = await manager.getPreviewHTML(htmlContent, "html");
 
       expect(preview).toBe(htmlContent);
     });
 
-    it("should convert plaintext to HTML for preview", () => {
+    it("should convert plaintext to HTML for preview", async () => {
       const plaintext = "Line 1\n\nLine 2";
-      const preview = manager.getPreviewHTML(plaintext, "plaintext");
+      const preview = await manager.getPreviewHTML(plaintext, "plaintext");
 
       expect(preview).toBe("<p>Line 1</p><p>Line 2</p>");
     });
 
-    it("should convert LaTeX to HTML with preview note", () => {
+    it("should convert LaTeX to HTML with preview note", async () => {
       const latex = "\\textbf{Bold} text with $math$";
-      const preview = manager.getPreviewHTML(latex, "latex");
+      const preview = await manager.getPreviewHTML(latex, "latex");
 
       expect(preview).toContain("LaTeX Preview (simplified)");
       expect(preview).toContain("<strong>Bold</strong>");

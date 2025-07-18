@@ -19,8 +19,8 @@ jest.mock("../../src/content/expansion-usage-logger", () => ({
   logExpansionUsage: jest.fn().mockResolvedValue({
     globalTrackingSuccess: true,
     perStoreTrackingSuccess: true,
-    errors: []
-  })
+    errors: [],
+  }),
 }));
 
 describe("ExpansionDependencyManager", () => {
@@ -588,7 +588,8 @@ describe("ExpansionDependencyManager", () => {
 
     beforeEach(() => {
       // Get the mock function
-      logExpansionUsageMock = require("../../src/content/expansion-usage-logger").logExpansionUsage;
+      logExpansionUsageMock =
+        require("../../src/content/expansion-usage-logger").logExpansionUsage;
       logExpansionUsageMock.mockClear();
     });
 
@@ -612,9 +613,9 @@ describe("ExpansionDependencyManager", () => {
         true, // success
         undefined, // no error
         expect.objectContaining({
-          targetElement: 'dependency-resolved',
+          targetElement: "dependency-resolved",
           dependencyChain: expect.any(String),
-        })
+        }),
       );
     });
 
@@ -630,13 +631,15 @@ describe("ExpansionDependencyManager", () => {
       // Verify that usage tracking was called
       expect(logExpansionUsageMock).toHaveBeenCalled();
       expect(logExpansionUsageMock).toHaveBeenCalledTimes(1);
-      
+
       // Check the first argument (snippet) has the correct structure
       const firstCall = logExpansionUsageMock.mock.calls[0];
-      expect(firstCall[0]).toEqual(expect.objectContaining({
-        id: snippet.id,
-        trigger: snippet.trigger,
-      }));
+      expect(firstCall[0]).toEqual(
+        expect.objectContaining({
+          id: snippet.id,
+          trigger: snippet.trigger,
+        }),
+      );
     });
 
     it("should include dependency chain metadata when available", async () => {
@@ -649,13 +652,15 @@ describe("ExpansionDependencyManager", () => {
 
       // Verify that usage tracking was called with metadata
       expect(logExpansionUsageMock).toHaveBeenCalled();
-      
+
       // Check the metadata parameter (4th argument)
       const firstCall = logExpansionUsageMock.mock.calls[0];
-      expect(firstCall[3]).toEqual(expect.objectContaining({
-        targetElement: 'dependency-resolved',
-        dependencyChain: expect.any(String),
-      }));
+      expect(firstCall[3]).toEqual(
+        expect.objectContaining({
+          targetElement: "dependency-resolved",
+          dependencyChain: expect.any(String),
+        }),
+      );
     });
 
     it("should handle usage tracking errors gracefully", async () => {

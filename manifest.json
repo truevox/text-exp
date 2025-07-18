@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PuffPuffPaste",
-  "version": "0.89.0",
+  "version": "0.104.0",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "permissions": [
     "storage",
@@ -21,12 +21,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content/content-script.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content/content-script.js"],
       "run_at": "document_idle"
     }
   ],
@@ -49,13 +45,8 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "assets/*",
-        "scripts/*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["assets/*", "scripts/*"],
+      "matches": ["<all_urls>"]
     }
   ],
   "commands": {

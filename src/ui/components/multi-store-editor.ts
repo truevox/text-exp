@@ -699,6 +699,12 @@ export class MultiStoreEditor {
     try {
       const date =
         typeof dateString === "string" ? new Date(dateString) : dateString;
+
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return "Unknown";
+      }
+
       return date.toLocaleDateString() + " " + date.toLocaleTimeString();
     } catch {
       return "Unknown";

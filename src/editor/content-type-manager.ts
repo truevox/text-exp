@@ -477,11 +477,12 @@ export class ContentTypeManager {
           .replace(/$/, "</p>");
 
       case "latex":
-        // Escape LaTeX special characters
+        // Escape LaTeX special characters - avoid double escaping
         return content
-          .replace(/\\/g, "\\textbackslash{}")
+          .replace(/\\/g, "BACKSLASH_PLACEHOLDER")
           .replace(/\{/g, "\\{")
           .replace(/\}/g, "\\}")
+          .replace(/BACKSLASH_PLACEHOLDER/g, "\\textbackslash{}")
           .replace(/\$/g, "\\$")
           .replace(/&/g, "\\&")
           .replace(/%/g, "\\%")
@@ -528,7 +529,7 @@ export class ContentTypeManager {
           .replace(/\\[a-zA-Z]+\s*/g, "")
           .replace(/\$\$([^$]*)\$\$/g, "$1")
           .replace(/\$([^$]*)\$/g, "$1")
-          .replace(/\\\\\s*/g, "\n")
+          .replace(/\\\\\\\\/g, "\n")
           .replace(/\\par\s*/g, "\n\n")
           .replace(/\{([^}]*)\}/g, "$1")
           .trim();
@@ -557,19 +558,30 @@ export class ContentTypeManager {
     }
 
     // Content-specific validation
+    let result: ContentValidationResult;
     switch (type) {
       case "html":
-        return this.validateHTML(content, config);
+        result = this.validateHTML(content, config);
+        break;
       case "plaintext":
-        return this.validatePlainText(content, config);
+        result = this.validatePlainText(content, config);
+        break;
       case "latex":
-        return this.validateLaTeX(content, config);
+        result = this.validateLaTeX(content, config);
+        break;
+      default:
+        result = {
+          isValid: errors.length === 0,
+          errors,
+          warnings,
+        };
     }
 
+    // Merge length validation errors with content-specific errors
     return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
+      isValid: errors.length === 0 && result.isValid,
+      errors: [...errors, ...result.errors],
+      warnings: [...warnings, ...result.warnings],
     };
   }
 
@@ -630,7 +642,7 @@ export class ContentTypeManager {
     const warnings: string[] = [];
 
     // Check for HTML tags (not allowed in plaintext)
-    if (/<[^>]*>/.test(content)) {
+    if (/<[a-zA-Z][^>]*>/.test(content)) {
       errors.push("HTML tags are not allowed in plain text content");
     }
 

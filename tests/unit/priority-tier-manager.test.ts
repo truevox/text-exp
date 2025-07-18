@@ -238,18 +238,22 @@ describe("Enhanced PriorityTierManager - Phase 2", () => {
       await mockManager.initialize();
 
       // Mock JsonSerializer to throw error
-      jest.mock("../../src/storage/json-serializer.js", () => ({
-        JsonSerializer: {
-          serialize: jest.fn().mockImplementation(() => {
-            throw new Error("Serialization failed");
-          }),
-        },
-      }));
+      const { JsonSerializer } = await import(
+        "../../src/storage/json-serializer.js"
+      );
+      const serializeSpy = jest
+        .spyOn(JsonSerializer, "serialize")
+        .mockImplementation(() => {
+          throw new Error("Serialization failed");
+        });
 
       const result = await mockManager.saveTier("personal", mockTierData);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Serialization failed");
+
+      // Restore original implementation
+      serializeSpy.mockRestore();
     });
 
     test("should handle backup creation", async () => {
