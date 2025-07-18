@@ -194,22 +194,23 @@ export class FileSelector {
 
     try {
       const config = this.configs.find((c) => c.tier === tier)!;
-      
+
       // Prompt user to select a file (drive.file scope requires user selection)
-      const instructions = `Please select your ${config.title} file from Google Drive.\n\n` +
+      const instructions =
+        `Please select your ${config.title} file from Google Drive.\n\n` +
         `Expected file name: ${config.defaultFileName}\n` +
         `File type: JSON\n\n` +
         `Click OK to open the file picker.`;
 
       const confirmed = confirm(instructions);
-      
+
       if (confirmed) {
         // Use the Chrome file picker or Google Drive picker
         // This is a placeholder - in a real implementation, you'd use:
         // - Chrome's file picker API
         // - Google Drive picker API
         // - or prompt the user to drag and drop files
-        
+
         // For now, let's offer to create a new file
         const shouldCreate = confirm(
           `File selection not yet implemented in this UI.\n\n` +
@@ -270,13 +271,17 @@ export class FileSelector {
 
     // With drive.file scope, we can't scan for files automatically
     // User must select files explicitly
-    const instructions = `Due to privacy and security improvements, PuffPuffPaste now requires you to explicitly select your snippet files.\n\n` +
+    const instructions =
+      `Due to privacy and security improvements, PuffPuffPaste now requires you to explicitly select your snippet files.\n\n` +
       `This ensures PuffPuffPaste can only access files you choose.\n\n` +
       `Please use the "Select" or "Create New" buttons for each tier you want to use.`;
 
     alert(instructions);
-    
-    this.showStatus("Please select files manually using the buttons below", "info");
+
+    this.showStatus(
+      "Please select files manually using the buttons below",
+      "info",
+    );
   }
 
   /**
@@ -302,7 +307,10 @@ export class FileSelector {
         createdCount++;
       } catch (error) {
         console.error(`Failed to create ${config.tier} file:`, error);
-        this.showStatus(`Failed to create ${config.title} file: ${error}`, "error");
+        this.showStatus(
+          `Failed to create ${config.title} file: ${error}`,
+          "error",
+        );
       }
     }
 

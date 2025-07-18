@@ -3,82 +3,82 @@
  * Fixes import errors for TinyMCE plugins and themes
  */
 
-declare module 'tinymce/themes/silver' {
+declare module "tinymce/themes/silver" {
   const theme: any;
   export default theme;
 }
 
-declare module 'tinymce/models/dom' {
+declare module "tinymce/models/dom" {
   const model: any;
   export default model;
 }
 
-declare module 'tinymce/plugins/lists' {
+declare module "tinymce/plugins/lists" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/link' {
+declare module "tinymce/plugins/link" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/image' {
+declare module "tinymce/plugins/image" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/charmap' {
+declare module "tinymce/plugins/charmap" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/preview' {
+declare module "tinymce/plugins/preview" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/searchreplace' {
+declare module "tinymce/plugins/searchreplace" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/visualblocks' {
+declare module "tinymce/plugins/visualblocks" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/code' {
+declare module "tinymce/plugins/code" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/fullscreen' {
+declare module "tinymce/plugins/fullscreen" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/insertdatetime' {
+declare module "tinymce/plugins/insertdatetime" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/media' {
+declare module "tinymce/plugins/media" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/table' {
+declare module "tinymce/plugins/table" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/help' {
+declare module "tinymce/plugins/help" {
   const plugin: any;
   export default plugin;
 }
 
-declare module 'tinymce/plugins/wordcount' {
+declare module "tinymce/plugins/wordcount" {
   const plugin: any;
   export default plugin;
 }

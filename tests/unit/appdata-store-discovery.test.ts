@@ -10,11 +10,14 @@ import type { TierStorageSchema } from "../../src/types/snippet-formats";
 
 // Mock the dependencies
 jest.mock("../../src/background/cloud-adapters/google-drive-appdata-manager");
-jest.mock("../../src/background/cloud-adapters/google-drive/auth-service", () => ({
-  GoogleDriveAuthService: {
-    validateCredentials: jest.fn().mockResolvedValue({ isValid: true }),
-  },
-}));
+jest.mock(
+  "../../src/background/cloud-adapters/google-drive/auth-service",
+  () => ({
+    GoogleDriveAuthService: {
+      validateCredentials: jest.fn().mockResolvedValue({ isValid: true }),
+    },
+  }),
+);
 
 describe("Appdata Store Discovery", () => {
   let adapter: GoogleDriveAdapter;
@@ -51,9 +54,9 @@ describe("Appdata Store Discovery", () => {
         lastModified: new Date().toISOString(),
       };
 
-      (GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock).mockResolvedValue(
-        mockPriorityStore,
-      );
+      (
+        GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock
+      ).mockResolvedValue(mockPriorityStore);
 
       const result = await adapter.discoverAppDataStore();
 
@@ -68,9 +71,9 @@ describe("Appdata Store Discovery", () => {
     });
 
     it("should handle case where no Priority #0 store exists", async () => {
-      (GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock).mockResolvedValue(
-        null,
-      );
+      (
+        GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock
+      ).mockResolvedValue(null);
 
       const result = await adapter.discoverAppDataStore();
 
@@ -80,9 +83,9 @@ describe("Appdata Store Discovery", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      (GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock).mockRejectedValue(
-        new Error("Network error"),
-      );
+      (
+        GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock
+      ).mockRejectedValue(new Error("Network error"));
 
       const result = await adapter.discoverAppDataStore();
 
@@ -94,9 +97,9 @@ describe("Appdata Store Discovery", () => {
     it("should throw error if not authenticated", async () => {
       const unauthenticatedAdapter = new GoogleDriveAdapter();
 
-      await expect(unauthenticatedAdapter.discoverAppDataStore()).rejects.toThrow(
-        "Not authenticated",
-      );
+      await expect(
+        unauthenticatedAdapter.discoverAppDataStore(),
+      ).rejects.toThrow("Not authenticated");
     });
   });
 
@@ -124,9 +127,9 @@ describe("Appdata Store Discovery", () => {
         lastModified: new Date().toISOString(),
       };
 
-      (GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock).mockResolvedValue(
-        mockPriorityStore,
-      );
+      (
+        GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock
+      ).mockResolvedValue(mockPriorityStore);
 
       const result = await adapter.discoverAppDataStore();
 
@@ -134,7 +137,7 @@ describe("Appdata Store Discovery", () => {
       expect(result.snippets).toHaveLength(2);
       expect(result.storeInfo?.tier).toBe("priority-0");
       expect(result.storeInfo?.name).toBe("Priority #0 Store");
-      
+
       // Verify snippets have correct content
       expect(result.snippets[0].trigger).toBe("urgent");
       expect(result.snippets[1].trigger).toBe("crit");
@@ -157,9 +160,9 @@ describe("Appdata Store Discovery", () => {
         lastModified: "2023-01-01T00:00:00Z",
       };
 
-      (GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock).mockResolvedValue(
-        mockPriorityStore,
-      );
+      (
+        GoogleDriveAppDataManager.getPriorityZeroSnippets as jest.Mock
+      ).mockResolvedValue(mockPriorityStore);
 
       const result = await adapter.discoverAppDataStore();
 

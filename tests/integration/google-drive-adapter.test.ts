@@ -16,6 +16,9 @@ global.chrome = {
     getAuthToken: jest.fn(),
     launchWebAuthFlow: jest.fn(),
     getRedirectURL: jest.fn(() => "https://test-extension-id.chromiumapp.org/"),
+    clearAllCachedAuthTokens: jest
+      .fn()
+      .mockImplementation((callback) => callback()),
   },
   notifications: {
     create: jest.fn(),
@@ -256,73 +259,7 @@ describe("GoogleDriveAdapter Integration", () => {
     });
   });
 
-  describe("Folder Operations", () => {
-    beforeEach(async () => {
-      // Set up authenticated adapter
-      adapter["credentials"] = {
-        provider: "google-drive",
-        accessToken: mockAccessToken,
-      };
-    });
-
-    it("should list folders in Google Drive", async () => {
-      const mockFolders = [
-        { id: "folder-1", name: "My Snippets", parents: ["root"] },
-        { id: "folder-2", name: "Work Snippets", parents: ["root"] },
-      ];
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ files: mockFolders }),
-      });
-
-      const folders = await adapter.getFolders();
-
-      expect(folders).toHaveLength(2);
-      expect(folders[0].name).toBe("My Snippets");
-      expect(folders[0].isFolder).toBe(true);
-      expect(folders[1].name).toBe("Work Snippets");
-    });
-
-    it("should create new folder", async () => {
-      const newFolderName = "Test Snippets";
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({ id: "new-folder-id", name: newFolderName }),
-      });
-
-      const createdFolder = await adapter.createFolder(newFolderName);
-
-      expect(createdFolder.id).toBe("new-folder-id");
-      expect(createdFolder.name).toBe(newFolderName);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("drive/v3/files"),
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringContaining(
-            '"mimeType":"application/vnd.google-apps.folder"',
-          ),
-        }),
-      );
-    });
-
-    it("should select folder for snippets", async () => {
-      const mockFolders = [{ id: "folder-1", name: "PuffPuffPaste Snippets" }];
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ files: mockFolders }),
-      });
-
-      const selection = await adapter.selectFolder();
-
-      expect(selection.folderId).toBe("folder-1");
-      expect(selection.folderName).toBe("PuffPuffPaste Snippets");
-    });
-  });
+  // Folder operations removed as part of scope reduction to drive.file + drive.appdata only
 
   describe("Connectivity and Validation", () => {
     beforeEach(async () => {

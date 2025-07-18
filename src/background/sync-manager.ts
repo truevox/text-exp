@@ -252,9 +252,14 @@ export class SyncManager {
       }
 
       // Check for appdata-based Priority #0 store (automatic discovery)
-      if (this.currentAdapter && this.currentAdapter.provider === "google-drive") {
+      if (
+        this.currentAdapter &&
+        this.currentAdapter.provider === "google-drive"
+      ) {
         try {
-          const appdataStore = await (this.currentAdapter as any).discoverAppDataStore();
+          const appdataStore = await (
+            this.currentAdapter as any
+          ).discoverAppDataStore();
           if (appdataStore.hasStore) {
             console.log("✨ Discovered Priority #0 store in appdata");
             sources.unshift({

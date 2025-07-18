@@ -93,7 +93,9 @@ describe("FileSelector", () => {
       await fileSelector.render();
 
       // Simulate creating a file for personal tier
-      const createButton = container.querySelector('[data-action="create"][data-tier="personal"]') as HTMLButtonElement;
+      const createButton = container.querySelector(
+        '[data-action="create"][data-tier="personal"]',
+      ) as HTMLButtonElement;
       expect(createButton).toBeTruthy();
 
       createButton.click();
@@ -108,11 +110,15 @@ describe("FileSelector", () => {
     });
 
     it("should handle file creation errors", async () => {
-      mockAdapter.createSnippetStoreFile.mockRejectedValue(new Error("Creation failed"));
+      mockAdapter.createSnippetStoreFile.mockRejectedValue(
+        new Error("Creation failed"),
+      );
 
       await fileSelector.render();
 
-      const createButton = container.querySelector('[data-action="create"][data-tier="personal"]') as HTMLButtonElement;
+      const createButton = container.querySelector(
+        '[data-action="create"][data-tier="personal"]',
+      ) as HTMLButtonElement;
       createButton.click();
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -130,7 +136,9 @@ describe("FileSelector", () => {
       // Mock window.confirm to return true
       const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
 
-      const selectButton = container.querySelector('[data-action="select"][data-tier="personal"]') as HTMLButtonElement;
+      const selectButton = container.querySelector(
+        '[data-action="select"][data-tier="personal"]',
+      ) as HTMLButtonElement;
       selectButton.click();
 
       expect(confirmSpy).toHaveBeenCalledWith(
@@ -146,7 +154,9 @@ describe("FileSelector", () => {
       // Mock window.alert
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
-      const aboutButton = container.querySelector("#scan-existing-files") as HTMLButtonElement;
+      const aboutButton = container.querySelector(
+        "#scan-existing-files",
+      ) as HTMLButtonElement;
       aboutButton.click();
 
       expect(alertSpy).toHaveBeenCalledWith(
@@ -166,7 +176,9 @@ describe("FileSelector", () => {
 
       await fileSelector.render();
 
-      const createAllButton = container.querySelector("#create-new-files") as HTMLButtonElement;
+      const createAllButton = container.querySelector(
+        "#create-new-files",
+      ) as HTMLButtonElement;
       createAllButton.click();
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -192,7 +204,9 @@ describe("FileSelector", () => {
 
       (fileSelector as any).selections.set("personal", personalSelection);
 
-      const createAllButton = container.querySelector("#create-new-files") as HTMLButtonElement;
+      const createAllButton = container.querySelector(
+        "#create-new-files",
+      ) as HTMLButtonElement;
       createAllButton.click();
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -200,7 +214,9 @@ describe("FileSelector", () => {
       expect(mockAdapter.createSnippetStoreFile).not.toHaveBeenCalled();
 
       const statusMessage = container.querySelector("#status-message");
-      expect(statusMessage?.textContent).toContain("All required files already exist");
+      expect(statusMessage?.textContent).toContain(
+        "All required files already exist",
+      );
     });
   });
 
@@ -229,7 +245,9 @@ describe("FileSelector", () => {
       (fileSelector as any).selections.set("personal", selection);
       (fileSelector as any).updateSaveButton();
 
-      const saveButton = container.querySelector("#save-selections") as HTMLButtonElement;
+      const saveButton = container.querySelector(
+        "#save-selections",
+      ) as HTMLButtonElement;
       expect(saveButton.disabled).toBe(false);
 
       saveButton.click();
@@ -269,7 +287,9 @@ describe("FileSelector", () => {
       const eventSpy = jest.fn();
       window.addEventListener("tier-files-selected", eventSpy);
 
-      const saveButton = container.querySelector("#save-selections") as HTMLButtonElement;
+      const saveButton = container.querySelector(
+        "#save-selections",
+      ) as HTMLButtonElement;
       saveButton.click();
 
       await new Promise((resolve) => setTimeout(resolve, 10));

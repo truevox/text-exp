@@ -71,9 +71,14 @@ export class MultiScopeSyncManager {
       let snippets: Snippet[] = [];
 
       // Handle appdata store specially
-      if (source.name === "priority-0" && source.folderId === "appdata-priority-0") {
+      if (
+        source.name === "priority-0" &&
+        source.folderId === "appdata-priority-0"
+      ) {
         console.log("🔍 Fetching Priority #0 store from appdata");
-        const appdataStore = await (source.adapter as any).discoverAppDataStore();
+        const appdataStore = await (
+          source.adapter as any
+        ).discoverAppDataStore();
         if (appdataStore.hasStore) {
           snippets = appdataStore.snippets;
           console.log(

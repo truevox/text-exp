@@ -72,7 +72,12 @@ export type CloudProvider =
 /**
  * Snippet scopes for multi-tier sync architecture
  */
-export type SnippetScope = "priority-0" | "personal" | "department" | "team" | "org";
+export type SnippetScope =
+  | "priority-0"
+  | "personal"
+  | "department"
+  | "team"
+  | "org";
 
 /**
  * Scoped source configuration

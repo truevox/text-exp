@@ -1,0 +1,573 @@
+/**
+ * Multi-File Selector Styles
+ * Styling for the multi-file selection interface
+ */
+
+.multi-file-selector {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Header */
+.selector-header {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.selector-title {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.selector-description {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Selection controls */
+.selection-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.control-group {
+  display: flex;
+  gap: 10px;
+}
+
+.selection-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.selection-count {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.selection-tiers {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Store grid */
+.store-grid {
+  margin-bottom: 25px;
+}
+
+.tier-section {
+  margin-bottom: 30px;
+}
+
+.tier-title {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #4285f4;
+}
+
+.stores-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+}
+
+/* Store cards */
+.store-card {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.store-card:hover {
+  border-color: #4285f4;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.1);
+}
+
+.store-card.selected {
+  border-color: #4285f4;
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
+}
+
+.store-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.store-checkbox {
+  position: relative;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.store-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.store-checkbox .checkmark {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.store-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: #4285f4;
+  border-color: #4285f4;
+}
+
+.store-checkbox .checkmark::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.store-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  display: block;
+}
+
+.store-info {
+  flex: 1;
+}
+
+.store-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.store-filename {
+  font-size: 12px;
+  color: #666;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+}
+
+.storage-icon {
+  font-size: 16px;
+}
+
+.drive-icon {
+  color: #4285f4;
+}
+
+.local-icon {
+  color: #34a853;
+}
+
+.default-badge {
+  background: #e8f0fe;
+  color: #1a73e8;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* Store details */
+.store-details {
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.store-details.hidden {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.store-details.visible {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 15px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detail-row label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  min-width: 80px;
+}
+
+.priority-input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.priority-input:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+}
+
+.conflict-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+}
+
+.conflict-select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+}
+
+.store-metadata {
+  display: flex;
+  gap: 15px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.metadata-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #666;
+}
+
+/* Advanced options */
+.advanced-options {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 25px;
+}
+
+.advanced-options h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.option-group {
+  margin-bottom: 15px;
+}
+
+.option-group:last-child {
+  margin-bottom: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #555;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4285f4;
+}
+
+/* Selector actions */
+.selector-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Validation messages */
+.validation-messages {
+  margin-top: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.validation-errors {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  padding: 15px;
+}
+
+.validation-errors h4 {
+  margin: 0 0 10px 0;
+  color: #c53030;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.validation-errors ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.validation-errors li {
+  color: #c53030;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.validation-warnings {
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  padding: 15px;
+  margin-top: 1px;
+}
+
+.validation-warnings h4 {
+  margin: 0 0 10px 0;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.validation-warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.validation-warnings li {
+  color: #92400e;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: #4285f4;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #3367d6;
+}
+
+.btn-secondary {
+  background: #f1f3f4;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+}
+
+.btn-secondary:hover {
+  background: #e8eaed;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .multi-file-selector {
+    padding: 15px;
+    margin: 0 10px;
+  }
+
+  .selection-controls {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .selection-summary {
+    align-items: center;
+    text-align: center;
+  }
+
+  .stores-list {
+    grid-template-columns: 1fr;
+  }
+
+  .store-card {
+    padding: 12px;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .detail-row label {
+    min-width: auto;
+  }
+
+  .priority-input {
+    width: 100%;
+  }
+
+  .selector-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Animation for store cards */
+.store-card {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Selection state animations */
+.store-card.selected {
+  animation: selectCard 0.3s ease;
+}
+
+@keyframes selectCard {
+  0% {
+    background: #fff;
+    border-color: #e0e0e0;
+  }
+  50% {
+    background: #f0f8ff;
+    border-color: #4285f4;
+    transform: scale(1.02);
+  }
+  100% {
+    background: #f8f9ff;
+    border-color: #4285f4;
+    transform: scale(1);
+  }
+}
+
+/* Store details slide animation */
+.store-details.visible {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 200px;
+    opacity: 1;
+  }
+}
+
+/* Tier section styling */
+.tier-section:last-child {
+  margin-bottom: 0;
+}
+
+.tier-section:nth-child(1) .tier-title {
+  border-color: #34a853; /* Green for personal */
+}
+
+.tier-section:nth-child(2) .tier-title {
+  border-color: #fbbc04; /* Yellow for team */
+}
+
+.tier-section:nth-child(3) .tier-title {
+  border-color: #ea4335; /* Red for org */
+}
+
+/* Focus states */
+.store-card:focus-within {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+}
+
+/* Empty state */
+.stores-list:empty::after {
+  content: "No stores available for this tier";
+  display: block;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px dashed #ddd;
+}

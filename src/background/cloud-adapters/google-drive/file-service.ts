@@ -6,6 +6,7 @@
 import type { CloudCredentials, TextSnippet } from "../../../shared/types.js";
 import { SYNC_CONFIG } from "../../../shared/constants.js";
 import { GoogleDriveAuthService } from "./auth-service.js";
+import { GoogleDriveAppDataManager } from "../google-drive-appdata-manager.js";
 
 export class GoogleDriveFileService {
   private static readonly API_BASE = "https://www.googleapis.com";
@@ -467,5 +468,98 @@ export class GoogleDriveFileService {
       console.error("File content:", content);
       return { snippets: [], fileId };
     }
+  }
+
+  /**
+   * Upload file to Google Drive appdata folder
+   * Delegates to GoogleDriveAppDataManager for proper scope restrictions
+   */
+  static async uploadToAppData(
+    credentials: CloudCredentials,
+    fileName: string,
+    content: string,
+  ): Promise<void> {
+    return GoogleDriveAppDataManager.uploadToAppData(
+      credentials,
+      fileName,
+      content,
+    );
+  }
+
+  /**
+   * Download file from Google Drive appdata folder
+   * Delegates to GoogleDriveAppDataManager for proper scope restrictions
+   */
+  static async downloadFromAppData(
+    credentials: CloudCredentials,
+    fileName: string,
+  ): Promise<string> {
+    return GoogleDriveAppDataManager.downloadFromAppData(credentials, fileName);
+  }
+
+  /**
+   * Upload JSON file to Google Drive (works with drive.file scope)
+   */
+  static async uploadJsonFile(
+    credentials: CloudCredentials,
+    fileName: string,
+    content: string,
+    fileId?: string,
+  ): Promise<string> {
+    if (fileId) {
+      // Update existing file
+      await this.updateFile(credentials, fileId, content);
+      return fileId;
+    } else {
+      // Create new file
+      return await this.createFile(credentials, content);
+    }
+  }
+
+  /**
+   * Search for files by query (works with drive.file scope only for accessible files)
+   */
+  static async searchFiles(
+    credentials: CloudCredentials,
+    query: string,
+  ): Promise<Array<{ id: string; name: string; modifiedTime?: string }>> {
+    console.log(`🔍 Searching for files with query: ${query}`);
+
+    const url = `${this.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,modifiedTime)`;
+
+    const response = await fetch(url, {
+      headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to search files: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const files = data.files || [];
+
+    console.log(`🔍 Found ${files.length} files matching query`);
+    return files;
+  }
+
+  /**
+   * Delete file from Google Drive (works with drive.file scope)
+   */
+  static async deleteFile(
+    credentials: CloudCredentials,
+    fileId: string,
+  ): Promise<void> {
+    console.log(`🗑️ Deleting file: ${fileId}`);
+
+    const response = await fetch(`${this.DRIVE_API}/files/${fileId}`, {
+      method: "DELETE",
+      headers: GoogleDriveAuthService.getAuthHeaders(credentials),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete file: ${response.statusText}`);
+    }
+
+    console.log(`✅ Successfully deleted file: ${fileId}`);
   }
 }

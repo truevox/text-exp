@@ -109,7 +109,9 @@ describe("Appdata Store Sync Integration", () => {
         return Promise.resolve([]);
       });
 
-      jest.spyOn(multiScopeSyncManager, "syncAndMerge").mockImplementation(mockSyncAndMerge);
+      jest
+        .spyOn(multiScopeSyncManager, "syncAndMerge")
+        .mockImplementation(mockSyncAndMerge);
 
       // Initialize and perform sync
       await syncManager.initialize();
@@ -152,7 +154,9 @@ describe("Appdata Store Sync Integration", () => {
         return Promise.resolve([]);
       });
 
-      jest.spyOn(multiScopeSyncManager, "syncAndMerge").mockImplementation(mockSyncAndMerge);
+      jest
+        .spyOn(multiScopeSyncManager, "syncAndMerge")
+        .mockImplementation(mockSyncAndMerge);
 
       // Initialize and perform sync
       await syncManager.initialize();
@@ -167,7 +171,9 @@ describe("Appdata Store Sync Integration", () => {
       // Mock the adapter's discoverAppDataStore method to throw an error
       const mockAdapter = {
         provider: "google-drive",
-        discoverAppDataStore: jest.fn().mockRejectedValue(new Error("Network error")),
+        discoverAppDataStore: jest
+          .fn()
+          .mockRejectedValue(new Error("Network error")),
         initialize: jest.fn(),
         isAuthenticated: jest.fn().mockResolvedValue(true),
       };
@@ -189,7 +195,9 @@ describe("Appdata Store Sync Integration", () => {
         return Promise.resolve([]);
       });
 
-      jest.spyOn(multiScopeSyncManager, "syncAndMerge").mockImplementation(mockSyncAndMerge);
+      jest
+        .spyOn(multiScopeSyncManager, "syncAndMerge")
+        .mockImplementation(mockSyncAndMerge);
 
       // Initialize and perform sync
       await syncManager.initialize();
@@ -237,13 +245,15 @@ describe("Appdata Store Sync Integration", () => {
 
       // Mock the fetchFromSource to return different snippets for each source
       const originalFetchFromSource = multiScopeSyncManager["fetchFromSource"];
-      multiScopeSyncManager["fetchFromSource"] = jest.fn().mockImplementation((source) => {
-        if (source.name === "priority-0") {
-          return Promise.resolve({ source, snippets: [prioritySnippet] });
-        } else {
-          return Promise.resolve({ source, snippets: [personalSnippet] });
-        }
-      });
+      multiScopeSyncManager["fetchFromSource"] = jest
+        .fn()
+        .mockImplementation((source) => {
+          if (source.name === "priority-0") {
+            return Promise.resolve({ source, snippets: [prioritySnippet] });
+          } else {
+            return Promise.resolve({ source, snippets: [personalSnippet] });
+          }
+        });
 
       const mergedSnippets = await multiScopeSyncManager.syncAndMerge(sources);
 

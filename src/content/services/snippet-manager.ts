@@ -216,4 +216,47 @@ export class ContentSnippetManager {
   async getSettings(): Promise<any> {
     return await ExtensionStorage.getSettings();
   }
+
+  /**
+   * Get available stores formatted for dependency resolution
+   * Returns snippets organized by store for the ExpansionDependencyManager
+   */
+  async getAvailableStores(): Promise<
+    import("../../storage/snippet-dependency-resolver.js").StoreSnippetMap
+  > {
+    const snippets = await ExtensionStorage.getSnippets();
+    const settings = await ExtensionStorage.getSettings();
+
+    // Add built-in test snippet if not disabled
+    if (!settings.disableTestSnippet) {
+      const testTrigger = settings.testTrigger || ";htest";
+      const builtInTestSnippet: TextSnippet = {
+        id: "builtin-test",
+        trigger: testTrigger,
+        content: "Hello World!",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        variables: [],
+        tags: ["builtin", "test"],
+        isBuiltIn: true,
+      };
+      snippets.push(builtInTestSnippet);
+    }
+
+    // For now, organize all snippets under a "local" store
+    // This can be enhanced later when we have multiple stores
+    const storeMap: import("../../storage/snippet-dependency-resolver.js").StoreSnippetMap =
+      {
+        local: {
+          snippets,
+          storeId: "local-storage",
+          displayName: "Local Storage",
+        },
+      };
+
+    console.log(
+      `🗄️ [STORE-MAP] Created store map with ${snippets.length} snippets in 'local' store`,
+    );
+    return storeMap;
+  }
 }

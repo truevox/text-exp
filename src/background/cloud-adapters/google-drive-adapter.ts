@@ -225,9 +225,10 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
     }
 
     try {
-      const priorityStore = await GoogleDriveAppDataManager.getPriorityZeroSnippets(
-        this.credentials,
-      );
+      const priorityStore =
+        await GoogleDriveAppDataManager.getPriorityZeroSnippets(
+          this.credentials,
+        );
 
       if (!priorityStore) {
         return {
