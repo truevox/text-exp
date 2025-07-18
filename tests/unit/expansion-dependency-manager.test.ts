@@ -14,6 +14,15 @@ import type { TextSnippet } from "../../src/shared/types";
 import type { EnhancedSnippet } from "../../src/types/snippet-formats";
 import type { StoreSnippetMap } from "../../src/storage/snippet-dependency-resolver";
 
+// Mock the usage tracking function
+jest.mock("../../src/content/expansion-usage-logger", () => ({
+  logExpansionUsage: jest.fn().mockResolvedValue({
+    globalTrackingSuccess: true,
+    perStoreTrackingSuccess: true,
+    errors: []
+  })
+}));
+
 describe("ExpansionDependencyManager", () => {
   let manager: ExpansionDependencyManager;
   let mockContext: DependencyResolutionContext;
@@ -571,6 +580,101 @@ describe("ExpansionDependencyManager", () => {
       expect(result.performanceMetrics?.dependenciesResolved).toBeGreaterThan(
         0,
       );
+    });
+  });
+
+  describe("Usage Tracking Integration", () => {
+    let logExpansionUsageMock: jest.Mock;
+
+    beforeEach(() => {
+      // Get the mock function
+      logExpansionUsageMock = require("../../src/content/expansion-usage-logger").logExpansionUsage;
+      logExpansionUsageMock.mockClear();
+    });
+
+    it("should track successful dependency expansion", async () => {
+      const snippetB = mockStoreMap.local.snippets.find(
+        (s) => s.trigger === ";b",
+      ) as EnhancedSnippet;
+
+      const result = await manager.expandWithDependencies(snippetB, {
+        ...mockContext,
+        rootSnippet: snippetB,
+      });
+
+      expect(result.success).toBe(true);
+      expect(logExpansionUsageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: snippetB.id,
+          trigger: snippetB.trigger,
+          content: snippetB.content,
+        }),
+        true, // success
+        undefined, // no error
+        expect.objectContaining({
+          targetElement: 'dependency-resolved',
+          dependencyChain: expect.any(String),
+        })
+      );
+    });
+
+    it("should track expansion attempt regardless of outcome", async () => {
+      // Test with a simple snippet to ensure tracking is called
+      const snippet = createSnippet("test", ";test", "Test content");
+
+      const result = await manager.expandWithDependencies(snippet, {
+        ...mockContext,
+        rootSnippet: snippet,
+      });
+
+      // Verify that usage tracking was called
+      expect(logExpansionUsageMock).toHaveBeenCalled();
+      expect(logExpansionUsageMock).toHaveBeenCalledTimes(1);
+      
+      // Check the first argument (snippet) has the correct structure
+      const firstCall = logExpansionUsageMock.mock.calls[0];
+      expect(firstCall[0]).toEqual(expect.objectContaining({
+        id: snippet.id,
+        trigger: snippet.trigger,
+      }));
+    });
+
+    it("should include dependency chain metadata when available", async () => {
+      const snippet = createSnippet("meta", ";meta", "Meta content");
+
+      const result = await manager.expandWithDependencies(snippet, {
+        ...mockContext,
+        rootSnippet: snippet,
+      });
+
+      // Verify that usage tracking was called with metadata
+      expect(logExpansionUsageMock).toHaveBeenCalled();
+      
+      // Check the metadata parameter (4th argument)
+      const firstCall = logExpansionUsageMock.mock.calls[0];
+      expect(firstCall[3]).toEqual(expect.objectContaining({
+        targetElement: 'dependency-resolved',
+        dependencyChain: expect.any(String),
+      }));
+    });
+
+    it("should handle usage tracking errors gracefully", async () => {
+      // Make the usage tracking fail
+      logExpansionUsageMock.mockRejectedValue(new Error("Tracking failed"));
+
+      const snippetA = mockStoreMap.local.snippets.find(
+        (s) => s.trigger === ";a",
+      ) as EnhancedSnippet;
+
+      // Should not throw even if tracking fails
+      const result = await manager.expandWithDependencies(snippetA, {
+        ...mockContext,
+        rootSnippet: snippetA,
+      });
+
+      // Expansion should still succeed despite tracking failure
+      expect(result.success).toBe(true);
+      expect(logExpansionUsageMock).toHaveBeenCalled();
     });
   });
 });

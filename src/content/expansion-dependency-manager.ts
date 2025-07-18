@@ -7,6 +7,7 @@
 import type { TextSnippet } from "../shared/types.js";
 import type { EnhancedSnippet } from "../types/snippet-formats.js";
 import type { StoreSnippetMap } from "../storage/snippet-dependency-resolver.js";
+import { logExpansionUsage } from "./expansion-usage-logger.js";
 
 // ============================================================================
 // EXPANSION DEPENDENCY INTERFACES
@@ -844,8 +845,36 @@ export class ExpansionDependencyManager {
       // Update statistics
       this.updateStats(result, startTime);
 
+      // Track usage for analytics (with error isolation)
+      try {
+        const originalSnippet = this.convertToTextSnippet(snippet);
+        const dependencyChain = resolvedDependencies.map(d => d.trigger).join(' → ');
+        await logExpansionUsage(originalSnippet, true, undefined, {
+          targetElement: 'dependency-resolved',
+          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+          dependencyChain
+        });
+      } catch (trackingError) {
+        // Usage tracking errors should not affect expansion
+        console.warn('⚠️ Dependency expansion usage tracking failed:', trackingError);
+      }
+
       return result;
     } catch (error) {
+      // Track failed expansion usage for analytics (with error isolation)
+      try {
+        const originalSnippet = this.convertToTextSnippet(snippet);
+        await logExpansionUsage(originalSnippet, false, `Dependency expansion failed: ${error.message}`, {
+          targetElement: 'dependency-resolved',
+          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+        });
+      } catch (trackingError) {
+        // Usage tracking errors should not affect expansion
+        console.warn('⚠️ Failed dependency expansion usage tracking failed:', trackingError);
+      }
+
       return this.createErrorResult(
         "UNKNOWN_ERROR",
         `Expansion failed: ${error.message}`,
@@ -1677,6 +1706,32 @@ export class ExpansionDependencyManager {
     return {
       cacheSize: this.cache.size,
       hitRate,
+    };
+  }
+
+  /**
+   * Convert snippet to TextSnippet format for usage tracking
+   */
+  private convertToTextSnippet(snippet: TextSnippet | EnhancedSnippet): TextSnippet {
+    // If it's already a TextSnippet, return it
+    if ('trigger' in snippet && 'content' in snippet && 'id' in snippet) {
+      return snippet as TextSnippet;
+    }
+
+    // Convert EnhancedSnippet to TextSnippet format
+    const enhanced = snippet as EnhancedSnippet;
+    return {
+      id: enhanced.id,
+      trigger: enhanced.trigger,
+      content: enhanced.content,
+      contentType: enhanced.contentType || 'text',
+      scope: enhanced.scope || 'personal',
+      description: enhanced.description || '',
+      variables: enhanced.variables || [],
+      tags: enhanced.tags || [],
+      createdAt: enhanced.createdAt ? new Date(enhanced.createdAt) : new Date(),
+      updatedAt: enhanced.updatedAt ? new Date(enhanced.updatedAt) : new Date(),
+      storeFileName: enhanced.storeFileName
     };
   }
 }
