@@ -3,11 +3,7 @@
  * Tests for improved OAuth2 refresh token management
  */
 
-import {
-  AuthManager,
-  type AuthResult,
-  type TokenResponse,
-} from "../../src/background/auth-manager";
+import { AuthManager } from "../../src/background/auth-manager";
 import { ExtensionStorage } from "../../src/shared/storage";
 import type { CloudCredentials } from "../../src/shared/types";
 
@@ -457,19 +453,15 @@ describe("Enhanced AuthManager", () => {
       );
 
       // Mock successful OAuth flow
-      mockChrome.identity.launchWebAuthFlow.mockImplementation(
-        (config, callback) => {
-          const authUrl = config.url;
-          expect(authUrl).toContain("access_type=offline");
-          expect(authUrl).toContain("prompt=consent");
-          expect(authUrl).toContain("include_granted_scopes=true");
+      mockChrome.identity.launchWebAuthFlow.mockImplementation(async (config) => {
+        const authUrl = config.url;
+        expect(authUrl).toContain("access_type=offline");
+        expect(authUrl).toContain("prompt=consent");
+        expect(authUrl).toContain("include_granted_scopes=true");
 
-          // Simulate auth code response
-          callback(
-            "https://test-extension-id.chromiumapp.org/?code=auth_code_123",
-          );
-        },
-      );
+        // Simulate auth code response
+        return "https://test-extension-id.chromiumapp.org/?code=auth_code_123";
+      });
 
       // Mock token exchange
       mockFetch.mockResolvedValueOnce(

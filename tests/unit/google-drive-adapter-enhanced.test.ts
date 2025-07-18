@@ -6,8 +6,7 @@
 import { GoogleDriveAdapter } from "../../src/background/cloud-adapters/google-drive-adapter";
 import { GoogleDriveFilePickerService } from "../../src/background/cloud-adapters/google-drive/file-picker-service";
 import { GoogleDriveAppDataManager } from "../../src/background/cloud-adapters/google-drive-appdata-manager";
-import { GoogleDriveAuthService } from "../../src/background/cloud-adapters/google-drive/auth-service";
-import type { CloudCredentials, TextSnippet } from "../../src/shared/types";
+import type { CloudCredentials } from "../../src/shared/types";
 import type { TierStorageSchema } from "../../src/types/snippet-formats";
 
 // Mock all dependencies
@@ -410,18 +409,33 @@ describe("GoogleDriveAdapter Enhanced Functionality", () => {
     describe("storePriorityZeroSnippets", () => {
       it("should store Priority #0 snippets in appdata", async () => {
         const mockSnippetStore: TierStorageSchema = {
-          tier: "priority-0",
-          version: "1.0.0",
+          schema: "priority-tier-v1",
+          tier: "personal",
           snippets: [
             {
               id: "snippet1",
               trigger: "test",
               content: "Test content",
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              snipDependencies: [],
+              contentType: "html",
+              description: "Test snippet",
+              scope: "personal",
+              variables: [],
+              images: [],
+              tags: [],
+              createdAt: new Date().toISOString(),
+              createdBy: "test-user",
+              updatedAt: new Date().toISOString(),
+              updatedBy: "test-user",
             },
           ],
-          lastModified: new Date().toISOString(),
+          metadata: {
+            version: "1.0.0",
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
+            owner: "test-user",
+            description: "Test store",
+          },
         };
 
         (
@@ -447,18 +461,33 @@ describe("GoogleDriveAdapter Enhanced Functionality", () => {
     describe("getPriorityZeroSnippets", () => {
       it("should retrieve Priority #0 snippets from appdata", async () => {
         const mockSnippetStore: TierStorageSchema = {
-          tier: "priority-0",
-          version: "1.0.0",
+          schema: "priority-tier-v1",
+          tier: "personal",
           snippets: [
             {
               id: "snippet1",
               trigger: "test",
               content: "Test content",
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              snipDependencies: [],
+              contentType: "html",
+              description: "Test snippet",
+              scope: "personal",
+              variables: [],
+              images: [],
+              tags: [],
+              createdAt: new Date().toISOString(),
+              createdBy: "test-user",
+              updatedAt: new Date().toISOString(),
+              updatedBy: "test-user",
             },
           ],
-          lastModified: new Date().toISOString(),
+          metadata: {
+            version: "1.0.0",
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
+            owner: "test-user",
+            description: "Test store",
+          },
         };
 
         (
@@ -497,10 +526,15 @@ describe("GoogleDriveAdapter Enhanced Functionality", () => {
     describe("uploadTierSchema", () => {
       it("should upload tier schema to Google Drive", async () => {
         const mockSchema: TierStorageSchema = {
+          schema: "priority-tier-v1",
           tier: "personal",
-          version: "1.0.0",
           snippets: [],
-          lastModified: new Date().toISOString(),
+          metadata: {
+            version: "1.0.0",
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
+            owner: "test-user",
+          },
         };
 
         // Mock the uploadTierSchema method (it's implemented in the adapter)
@@ -518,10 +552,15 @@ describe("GoogleDriveAdapter Enhanced Functionality", () => {
     describe("downloadTierSchema", () => {
       it("should download tier schema from Google Drive", async () => {
         const mockSchema: TierStorageSchema = {
+          schema: "priority-tier-v1",
           tier: "personal",
-          version: "1.0.0",
           snippets: [],
-          lastModified: new Date().toISOString(),
+          metadata: {
+            version: "1.0.0",
+            created: new Date().toISOString(),
+            modified: new Date().toISOString(),
+            owner: "test-user",
+          },
         };
 
         // Mock the downloadTierSchema method
@@ -664,6 +703,18 @@ describe("GoogleDriveAdapter Enhanced Functionality", () => {
   });
 
   describe("Scope Compliance", () => {
+    beforeEach(() => {
+      // Reset all mocks to their default successful state for this test suite
+      (
+        GoogleDriveFilePickerService.createStructuredSnippetStore as jest.Mock
+      ).mockResolvedValue({
+        fileId: "file123",
+        fileName: "personal.json",
+        isNewFile: true,
+        permissions: "write" as const,
+      });
+    });
+
     it("should only use drive.file and drive.appdata scopes", () => {
       // Verify the adapter doesn't have methods requiring full drive scope
       expect(adapter).not.toHaveProperty("getFolders");

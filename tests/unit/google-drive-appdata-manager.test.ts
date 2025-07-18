@@ -1,12 +1,12 @@
 /**
- * Tests for GoogleDriveAppDataManager
+ * Te// Mock global fetch
+const mockFetch = jest.fn();riveAppDataManager
  * Focus on drive.appdata scope compliance and restricted file access
  */
 
 import { GoogleDriveAppDataManager } from "../../src/background/cloud-adapters/google-drive-appdata-manager";
 import type { CloudCredentials } from "../../src/shared/types";
 import type { TierStorageSchema } from "../../src/types/snippet-formats";
-import { GoogleDriveAuthService } from "../../src/background/cloud-adapters/google-drive/auth-service";
 
 // Mock the auth service
 jest.mock(
@@ -286,7 +286,7 @@ describe("GoogleDriveAppDataManager", () => {
         },
         driveFiles: {
           selectedFiles: ["file1", "file2"],
-          permissions: { file1: "read", file2: "write" },
+          permissions: { file1: "read" as const, file2: "write" as const },
         },
         lastSync: new Date().toISOString(),
         created: new Date().toISOString(),
@@ -300,7 +300,7 @@ describe("GoogleDriveAppDataManager", () => {
 
       // Verify the configuration was serialized and uploaded
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("appDataFolder"),
+        expect.stringContaining("upload/drive/v3/files"),
         expect.objectContaining({
           method: "POST",
           body: expect.any(FormData),
@@ -384,18 +384,32 @@ describe("GoogleDriveAppDataManager", () => {
         .mockResolvedValueOnce(mockUploadResponse as any);
 
       const snippetStore: TierStorageSchema = {
-        tier: "priority-0",
-        version: "1.0.0",
+        schema: "priority-tier-v1",
+        tier: "personal", // Changed from "priority-0" to valid PriorityTier
         snippets: [
           {
             id: "snippet1",
             trigger: "test",
             content: "Test content",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            snipDependencies: [],
+            contentType: "html",
+            description: "Test snippet",
+            scope: "personal",
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(), // Changed to ISO string
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(), // Changed to ISO string
+            updatedBy: "test-user",
           },
         ],
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+        },
       };
 
       await GoogleDriveAppDataManager.storePriorityZeroSnippets(
@@ -404,7 +418,7 @@ describe("GoogleDriveAppDataManager", () => {
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("appDataFolder"),
+        expect.stringContaining("upload/drive/v3/files"),
         expect.objectContaining({
           method: "POST",
           body: expect.any(FormData),
@@ -420,18 +434,32 @@ describe("GoogleDriveAppDataManager", () => {
         json: () => Promise.resolve({ files: [{ id: "snippets123" }] }),
       };
       const mockSnippets: TierStorageSchema = {
-        tier: "priority-0",
-        version: "1.0.0",
+        schema: "priority-tier-v1",
+        tier: "personal", // Changed from "priority-0" to valid PriorityTier
         snippets: [
           {
             id: "snippet1",
             trigger: "test",
             content: "Test content",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            snipDependencies: [],
+            contentType: "html",
+            description: "Test snippet",
+            scope: "personal",
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(), // Changed to ISO string
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(), // Changed to ISO string
+            updatedBy: "test-user",
           },
         ],
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+        },
       };
       const mockDownloadResponse = {
         ok: true,
@@ -620,6 +648,10 @@ describe("GoogleDriveAppDataManager", () => {
         ok: true,
         json: () => Promise.resolve({ files: [{ id: "legacy123" }] }),
       };
+      const mockConfigSearchResponse = {
+        ok: true,
+        json: () => Promise.resolve({ files: [] }), // No existing config, so will create new
+      };
       const mockLegacyPrefs = {
         triggerDelay: 150,
         caseSensitive: true,
@@ -640,14 +672,14 @@ describe("GoogleDriveAppDataManager", () => {
       mockFetch
         .mockResolvedValueOnce(mockSearchResponse as any)
         .mockResolvedValueOnce(mockDownloadResponse as any)
-        .mockResolvedValueOnce(mockSearchResponse as any) // For new config search
+        .mockResolvedValueOnce(mockConfigSearchResponse as any) // For new config search - no files found
         .mockResolvedValueOnce(mockUploadResponse as any);
 
       await GoogleDriveAppDataManager.migrateLegacyPreferences(mockCredentials);
 
       // Verify the new config was uploaded
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("appDataFolder"),
+        expect.stringContaining("upload/drive/v3/files"),
         expect.objectContaining({
           method: "POST",
           body: expect.any(FormData),

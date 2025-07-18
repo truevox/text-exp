@@ -342,11 +342,23 @@ describe("GoogleDriveFilePickerService", () => {
 
   describe("createDefaultSnippetStores", () => {
     it("should create all default stores", async () => {
-      const mockResponse = {
+      const mockPersonalResponse = {
         ok: true,
-        json: () => Promise.resolve({ id: "file123", name: "personal.json" }),
+        json: () => Promise.resolve({ id: "file1", name: "personal.json" }),
       };
-      mockFetch.mockResolvedValue(mockResponse as any);
+      const mockTeamResponse = {
+        ok: true,
+        json: () => Promise.resolve({ id: "file2", name: "team.json" }),
+      };
+      const mockOrgResponse = {
+        ok: true,
+        json: () => Promise.resolve({ id: "file3", name: "org.json" }),
+      };
+
+      mockFetch
+        .mockResolvedValueOnce(mockPersonalResponse as any)
+        .mockResolvedValueOnce(mockTeamResponse as any)
+        .mockResolvedValueOnce(mockOrgResponse as any);
 
       const result =
         await GoogleDriveFilePickerService.createDefaultSnippetStores(

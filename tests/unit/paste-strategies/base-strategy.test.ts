@@ -47,6 +47,62 @@ const mockExecCommand = jest.fn();
   },
 };
 
+// Mock ClipboardEvent
+(global as any).ClipboardEvent = class ClipboardEvent {
+  type: string;
+  bubbles: boolean;
+  cancelable: boolean;
+  clipboardData: DataTransfer | null;
+
+  constructor(type: string, eventInitDict?: any) {
+    this.type = type;
+    this.bubbles = eventInitDict?.bubbles || false;
+    this.cancelable = eventInitDict?.cancelable || false;
+    this.clipboardData = eventInitDict?.clipboardData || null;
+  }
+};
+
+// Mock DataTransfer
+(global as any).DataTransfer = class DataTransfer {
+  private data: Map<string, string> = new Map();
+
+  setData(format: string, data: string): void {
+    this.data.set(format, data);
+  }
+
+  getData(format: string): string {
+    return this.data.get(format) || "";
+  }
+};
+
+// Mock ClipboardItem
+(global as any).ClipboardItem = class ClipboardItem {
+  private data: Record<string, Blob>;
+
+  constructor(data: Record<string, Blob>) {
+    this.data = data;
+  }
+
+  getType(type: string): Promise<Blob> {
+    return Promise.resolve(this.data[type]);
+  }
+};
+
+// Mock Blob
+(global as any).Blob = class Blob {
+  private content: string;
+  type: string;
+
+  constructor(content: string[], options?: { type?: string }) {
+    this.content = content.join("");
+    this.type = options?.type || "";
+  }
+
+  text(): Promise<string> {
+    return Promise.resolve(this.content);
+  }
+};
+
 // Test implementation of BasePasteStrategy
 class TestPasteStrategy extends BasePasteStrategy {
   readonly name = "test-paste";
@@ -84,9 +140,25 @@ describe("BasePasteStrategy", () => {
 
   beforeEach(() => {
     strategy = new TestPasteStrategy();
+    
+    // Setup mock return values
+    const mockDiv = { tagName: "DIV", style: {} };
+    const mockTextarea = { 
+      tagName: "TEXTAREA", 
+      value: "", 
+      style: { position: "", left: "", top: "", opacity: "" } 
+    };
+    
+    mockCreateElement.mockImplementation((tag: string) => {
+      if (tag === "textarea") {
+        return mockTextarea;
+      }
+      return mockDiv;
+    });
+
     mockTarget = {
       type: "test-target",
-      element: document.createElement("div"),
+      element: mockDiv as any,
       context: {
         domain: "test.com",
         url: "https://test.com/page",
@@ -229,23 +301,60 @@ describe("BasePasteStrategy", () => {
 
 describe("PasteUtils", () => {
   beforeEach(() => {
+    // Reset navigator mock to ensure clipboard API is available
+    (global as any).navigator = {
+      clipboard: {
+        writeText: mockWriteText,
+        write: mockWrite,
+      },
+    };
+    
     jest.clearAllMocks();
   });
 
   describe("Clipboard Operations", () => {
     test("isClipboardApiAvailable should check for clipboard API", () => {
+      // Override the navigator object for this test
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+          write: mockWrite,
+        },
+        writable: true,
+        configurable: true,
+      });
+      
       expect(PasteUtils.isClipboardApiAvailable()).toBe(true);
 
       // Test when clipboard API is not available
-      const originalClipboard = navigator.clipboard;
-      (navigator as any).clipboard = undefined;
+      Object.defineProperty(navigator, 'clipboard', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
       expect(PasteUtils.isClipboardApiAvailable()).toBe(false);
-      (navigator as any).clipboard = originalClipboard;
+      
+      // Restore for other tests
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+          write: mockWrite,
+        },
+        writable: true,
+        configurable: true,
+      });
     });
 
     test("writeToClipboard should write text and HTML to clipboard", async () => {
-      const mockClipboardItem = jest.fn();
-      (global as any).ClipboardItem = mockClipboardItem;
+      // Set up clipboard API
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+          write: mockWrite,
+        },
+        writable: true,
+        configurable: true,
+      });
 
       await PasteUtils.writeToClipboard("test text", "<p>test html</p>");
 
@@ -253,6 +362,16 @@ describe("PasteUtils", () => {
     });
 
     test("writeToClipboard should fallback to writeText when HTML fails", async () => {
+      // Set up clipboard API
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+          write: mockWrite,
+        },
+        writable: true,
+        configurable: true,
+      });
+      
       mockWrite.mockRejectedValue(new Error("Write failed"));
 
       await PasteUtils.writeToClipboard("test text", "<p>test html</p>");
@@ -261,6 +380,16 @@ describe("PasteUtils", () => {
     });
 
     test("writeToClipboard should handle writeText failure", async () => {
+      // Set up clipboard API
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+          write: mockWrite,
+        },
+        writable: true,
+        configurable: true,
+      });
+      
       mockWrite.mockRejectedValue(new Error("Write failed"));
       mockWriteText.mockRejectedValue(new Error("WriteText failed"));
 
@@ -274,29 +403,39 @@ describe("PasteUtils", () => {
 
   describe("DOM Utilities", () => {
     test("createTempTextarea should create temporary textarea", () => {
-      const mockTextarea = document.createElement("textarea");
+      const mockTextarea = { 
+        tagName: "TEXTAREA", 
+        value: "", 
+        style: { position: "", left: "", top: "", opacity: "" } 
+      };
       mockCreateElement.mockReturnValue(mockTextarea);
+
+      // Mock document.body.appendChild
+      const originalAppendChild = document.body.appendChild;
+      document.body.appendChild = jest.fn();
+
+      // Mock document.createElement to use our mock
+      const originalCreateElement = document.createElement;
+      document.createElement = mockCreateElement;
 
       const result = PasteUtils.createTempTextarea("test content");
 
       expect(mockCreateElement).toHaveBeenCalledWith("textarea");
       expect(result.value).toBe("test content");
       expect(result.style.position).toBe("fixed");
+      
+      // Restore original
+      document.createElement = originalCreateElement;
+      document.body.appendChild = originalAppendChild;
     });
 
     test("removeTempElement should remove element from DOM", () => {
-      const mockElement = document.createElement("div");
-      const mockParent = document.createElement("div");
-      mockParent.appendChild(mockElement);
+      const mockRemoveChild = jest.fn();
+      const mockParent = { removeChild: mockRemoveChild };
+      const mockElement = { parentNode: mockParent };
 
-      Object.defineProperty(mockElement, "parentNode", {
-        value: mockParent,
-      });
-
-      mockParent.removeChild = jest.fn();
-
-      PasteUtils.removeTempElement(mockElement);
-      expect(mockParent.removeChild).toHaveBeenCalledWith(mockElement);
+      PasteUtils.removeTempElement(mockElement as any);
+      expect(mockRemoveChild).toHaveBeenCalledWith(mockElement);
     });
 
     test("triggerPasteEvent should dispatch paste event", () => {

@@ -151,12 +151,32 @@ export abstract class BasePasteStrategy {
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
 
+      // Create and dispatch keyboard events
+      const keydownEvent = new KeyboardEvent("keydown", {
+        key: char,
+        bubbles: true,
+      });
+      
+      const keypressEvent = new KeyboardEvent("keypress", {
+        key: char,
+        bubbles: true,
+      });
+      
+      const keyupEvent = new KeyboardEvent("keyup", {
+        key: char,
+        bubbles: true,
+      });
+
       // Create and dispatch input events
       const inputEvent = new InputEvent("input", {
         data: char,
         inputType: "insertText",
         bubbles: true,
       });
+
+      // Dispatch events in proper order (keydown, keypress, keyup only)
+      target.dispatchEvent(keydownEvent);
+      target.dispatchEvent(keypressEvent);
 
       // Insert character
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
@@ -177,7 +197,7 @@ export abstract class BasePasteStrategy {
         }
       }
 
-      target.dispatchEvent(inputEvent);
+      target.dispatchEvent(keyupEvent);
 
       if (delay > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -284,7 +304,7 @@ export class PasteUtils {
   static isClipboardApiAvailable(): boolean {
     return (
       typeof navigator !== "undefined" &&
-      "clipboard" in navigator &&
+      navigator.clipboard != null &&
       "writeText" in navigator.clipboard
     );
   }
@@ -299,15 +319,22 @@ export class PasteUtils {
 
     try {
       if (html && "write" in navigator.clipboard) {
-        const data = new ClipboardItem({
-          "text/plain": new Blob([text], { type: "text/plain" }),
-          "text/html": new Blob([html], { type: "text/html" }),
-        });
-        await navigator.clipboard.write([data]);
+        try {
+          const data = new ClipboardItem({
+            "text/plain": new Blob([text], { type: "text/plain" }),
+            "text/html": new Blob([html], { type: "text/html" }),
+          });
+          await navigator.clipboard.write([data]);
+          return true;
+        } catch (writeError) {
+          // Fallback to writeText if HTML write fails
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
       } else {
         await navigator.clipboard.writeText(text);
+        return true;
       }
-      return true;
     } catch (error) {
       console.error("Failed to write to clipboard:", error);
       return false;
@@ -391,10 +418,24 @@ export class PasteUtils {
    * Convert line breaks to HTML
    */
   static textToHtml(text: string): string {
-    return text
+    if (!text) {
+      return "";
+    }
+
+    // Escape HTML entities first
+    const escaped = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\n/g, "<br>");
+      .replace(/>/g, "&gt;");
+
+    // Split by double newlines to create paragraphs
+    const paragraphs = escaped.split(/\n\n+/);
+    
+    // Convert single newlines within paragraphs to <br> tags and wrap in <p> tags
+    return paragraphs
+      .map(paragraph => paragraph.trim())
+      .filter(paragraph => paragraph.length > 0)
+      .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+      .join("");
   }
 }

@@ -81,7 +81,7 @@ export class StorePermissionsManager {
     this.stores.set(storeInfo.storeId, {
       ...storeInfo,
       lastPermissionCheck: new Date(),
-      canCopyTo: true, // Default to allowing copies
+      canCopyTo: storeInfo.canCopyTo ?? true, // Default to allowing copies
       canEditCopies: storeInfo.permission === "read-write",
     });
 
@@ -130,11 +130,15 @@ export class StorePermissionsManager {
         reason: "Store not found or not registered",
         suggestedAction: "view-only",
       };
+      // Add timestamp for cache validation
+      (result as any).__timestamp = Date.now();
       this.permissionCache.set(cacheKey, result);
       return result;
     }
 
     const result = this.evaluatePermission(store, operation);
+    // Add timestamp for cache validation
+    (result as any).__timestamp = Date.now();
     this.permissionCache.set(cacheKey, result);
     return result;
   }
@@ -441,8 +445,8 @@ export class StorePermissionsManager {
 
     let writableStores = this.getWritableStores(tierToSearch);
 
-    // If no writable stores in the same tier, expand search
-    if (writableStores.length === 0) {
+    // If no preferred tier was specified and no writable stores in the same tier, expand search
+    if (writableStores.length === 0 && !preferredTier) {
       writableStores = this.getWritableStores();
     }
 

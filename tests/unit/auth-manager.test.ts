@@ -21,6 +21,10 @@ global.chrome = {
   identity: {
     getAuthToken: jest.fn(),
     launchWebAuthFlow: jest.fn(),
+    removeCachedAuthToken: jest.fn((options, callback) => {
+      // Immediately call the callback to simulate successful token removal
+      if (callback) callback();
+    }),
   },
 } as any;
 
@@ -396,8 +400,11 @@ describe("AuthManager", () => {
         ok: true,
       });
 
-      // Reset the mock to count calls properly
+      // Mock clearCloudCredentials to resolve successfully and reset to count calls properly
       (ExtensionStorage.clearCloudCredentials as jest.Mock).mockClear();
+      (ExtensionStorage.clearCloudCredentials as jest.Mock).mockResolvedValue(
+        undefined,
+      );
 
       await AuthManager.signOut();
 
