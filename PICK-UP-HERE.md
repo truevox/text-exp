@@ -10,15 +10,17 @@
 
 ### **🎯 Current State Assessment**
 
-I have successfully completed **Agent-DriveIntegration** (100% success rate - 14/14 tests passing) and made significant progress on **Agent-AppdataIntegration** (75% complete - 1/4 tests passing). 
+I have successfully completed **Agent-DriveIntegration** (100% success rate - 14/14 tests passing) and made significant progress on **Agent-AppdataIntegration** (75% complete - 1/4 tests passing).
 
 **Agent-DriveIntegration Achievements**:
+
 - ✅ Fixed all Google Drive integration tests
 - ✅ Resolved Chrome identity API mocking issues
 - ✅ Created proper Headers objects for fetch responses
 - ✅ Aligned error messages and token validation flow
 
 **Agent-AppdataIntegration Current Status**:
+
 - 🔄 75% complete (1/4 tests passing)
 - ✅ Identified root cause: SyncManager singleton pattern issue
 - ✅ Console logs confirm appdata discovery workflow functions correctly
@@ -27,6 +29,7 @@ I have successfully completed **Agent-DriveIntegration** (100% success rate - 14
 ### **🔍 Key Insights from Current Session**
 
 **Completed Work**:
+
 - ✅ **Agent-DriveIntegration**: 100% success (14/14 tests) - All Google Drive integration tests now passing
 - 🔄 **Agent-AppdataIntegration**: 75% progress (1/4 tests) - Core mocking architecture issue identified
 
@@ -66,16 +69,19 @@ In `/shared/code/text-exp/tests/integration/appdata-store-sync-integration.test.
 ### **🔧 Recommended Approach**
 
 **Step 1**: **Validation Phase**
+
 - Run individual test suites to confirm which are actually broken
 - Compare results with CLAUDE-TODO.md claims
 - Identify if there are cross-test dependencies or pollution
 
 **Step 2**: **Systematic Repair**
+
 - Follow the proven "one agent at a time" methodology
 - Achieve >95% success rate per agent before moving on
 - Update CLAUDE-TODO.md with ACTUAL results, not aspirational
 
 **Step 3**: **Regression Prevention**
+
 - After each fix, run full test suite to ensure no new breaks
 - Document any discovered test dependencies
 - Consider adding test isolation improvements
@@ -114,16 +120,19 @@ In `/shared/code/text-exp/tests/integration/appdata-store-sync-integration.test.
 ### **🛠️ Key Technical Patterns Discovered**
 
 **Jest Testing Framework**:
+
 - JSDOM environment setup is critical for DOM-based tests
 - Global mocks (window, document, etc.) need careful management
 - beforeEach/afterEach hooks prevent test pollution
 
 **Chrome Extension Testing**:
+
 - Manifest V3 APIs need proper mocking
-- chrome.* APIs must be mocked consistently  
+- chrome.\* APIs must be mocked consistently
 - Background script vs content script testing requires different setups
 
 **TypeScript Integration**:
+
 - Import paths must be precise
 - Type assertions help with mock objects
 - Interface compliance is strictly enforced
@@ -137,22 +146,22 @@ const mockChrome = {
     local: {
       get: jest.fn(),
       set: jest.fn(),
-      clear: jest.fn()
-    }
-  }
+      clear: jest.fn(),
+    },
+  },
 };
 (global as any).chrome = mockChrome;
 
-// DOM event mocking pattern  
+// DOM event mocking pattern
 const mockEvent = {
   preventDefault: jest.fn(),
   stopPropagation: jest.fn(),
-  target: mockElement
+  target: mockElement,
 };
 
 // Async operation mocking pattern
-jest.mock('../../src/services/api-service', () => ({
-  fetchData: jest.fn().mockResolvedValue(mockData)
+jest.mock("../../src/services/api-service", () => ({
+  fetchData: jest.fn().mockResolvedValue(mockData),
 }));
 ```
 
@@ -172,7 +181,7 @@ jest.mock('../../src/services/api-service', () => ({
 ```
 src/
 ├── background/         # Service worker, auth, cloud adapters
-├── content/           # Content scripts, paste strategies  
+├── content/           # Content scripts, paste strategies
 ├── storage/           # Data persistence, tier management
 ├── services/          # API integrations, utilities
 ├── ui/               # User interface components
@@ -180,7 +189,7 @@ src/
 
 tests/
 ├── unit/             # Component-level testing
-├── integration/      # Cross-component workflows  
+├── integration/      # Cross-component workflows
 ├── performance/      # Timing and benchmark tests
 └── security/         # Compliance and security validation
 ```
@@ -188,12 +197,14 @@ tests/
 ### **🔗 Critical Dependencies**
 
 **Core Systems**:
+
 - **Storage Layer**: Priority tiers, multi-store management
 - **Authentication**: OAuth2, Google Drive integration
 - **Paste Strategies**: Platform-specific content insertion
 - **Content Processing**: Text transformation, sanitization
 
 **Integration Points**:
+
 - Chrome Extension APIs (storage, identity, tabs)
 - Google Drive API (files, appdata scopes)
 - DOM manipulation (content scripts)
@@ -206,12 +217,14 @@ tests/
 ### **🎯 Step-by-Step Handoff Process**
 
 **Phase 1: Validation & Assessment (30 minutes)**
+
 1. Run `npm test` to confirm current status
-2. Compare actual results with CLAUDE-TODO.md claims  
+2. Compare actual results with CLAUDE-TODO.md claims
 3. Identify which Phase 4 targets are actually failing
 4. Document any discrepancies discovered
 
 **Phase 2: Agent Deployment (2-4 hours per agent)**
+
 1. Select first Phase 4 agent (recommend: Agent-DriveIntegration)
 2. Run individual test suite: `npm test -- --testPathPattern="integration/google-drive-adapter.test.ts"`
 3. Analyze failures and implement systematic fixes
@@ -219,11 +232,13 @@ tests/
 5. Update CLAUDE-TODO.md with ACTUAL results
 
 **Phase 3: Regression Prevention (15 minutes)**
+
 1. Run full test suite to ensure no new failures
 2. Document any cross-test dependencies discovered
 3. Update project status with accurate metrics
 
 **Phase 4: Handoff Documentation (10 minutes)**
+
 1. Update CLAUDE-TODO.md with completed agent
 2. Move completed tasks to CLAUDE-TODONE.md
 3. Update this PICK-UP-HERE.md for next agent
@@ -262,7 +277,7 @@ npm test -- --coverage
 ### **🏆 Target Outcomes**
 
 1. **Agent-DriveIntegration**: 100% success on integration/google-drive-adapter.test.ts
-2. **Agent-AppdataIntegration**: 100% success on integration/appdata-store-sync-integration.test.ts  
+2. **Agent-AppdataIntegration**: 100% success on integration/appdata-store-sync-integration.test.ts
 3. **Agent-TargetDetector**: 100% success on target-detector.test.ts
 4. **Agent-SyncPerformance**: 100% success on performance/sync-performance.test.ts
 
@@ -294,7 +309,7 @@ npm test -- --coverage
 ### **🔍 Key Questions to Investigate**
 
 1. **Why do some "completed" tests show as failing?** (regression analysis)
-2. **Are there hidden dependencies between test suites?** (isolation analysis)  
+2. **Are there hidden dependencies between test suites?** (isolation analysis)
 3. **What's the true baseline for performance tests?** (benchmark establishment)
 4. **How can we prevent future regressions?** (process improvement)
 
@@ -310,6 +325,7 @@ npm test -- --coverage
 ## 🎯 **FINAL HANDOFF INSTRUCTIONS**
 
 **Next Agent Should**:
+
 1. **IMMEDIATELY Complete Agent-AppdataIntegration**: Only 3 failing tests remain
    - File: `/shared/code/text-exp/tests/integration/appdata-store-sync-integration.test.ts`
    - Issue: Lines 181, 184, 195, 228, 231, 242, 309, 310, 320, 328 need singleton access pattern
@@ -320,18 +336,21 @@ npm test -- --coverage
 5. Maintain the >95% success rate standard
 
 **Next Agent Should NOT**:
+
 1. Skip the appdata integration completion (it's 75% done!)
 2. Move to next agent before achieving >95% success on current
 3. Skip the regression testing step
 4. Forget to update documentation immediately
 
 **Current Technical Context**:
+
 - **Agent-DriveIntegration**: ✅ COMPLETE (100% success, 14/14 tests)
 - **Agent-AppdataIntegration**: 🔄 75% COMPLETE (only mocking pattern fix needed)
 - **Proven Fix**: Singleton instance access pattern successfully identified
 - **Console Evidence**: Appdata discovery workflow functions correctly, only mock capture failing
 
 **Critical Files Ready for Fix**:
+
 - `/shared/code/text-exp/tests/integration/appdata-store-sync-integration.test.ts` (needs 10 line fixes)
 - All other files ready for Agent-TargetDetector and Agent-SyncPerformance
 
