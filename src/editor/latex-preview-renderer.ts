@@ -97,7 +97,8 @@ export class LaTeXPreviewRenderer {
 
       // Load MathJax from CDN
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+      script.src =
+        "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
       script.async = true;
 
       await new Promise<void>((resolve, reject) => {
@@ -184,48 +185,53 @@ export class LaTeXPreviewRenderer {
    * Convert LaTeX text formatting to HTML (non-math elements)
    */
   private convertLaTeXToHTML(content: string): string {
-    return content
-      // Text formatting
-      .replace(/\\textbf\{([^}]*)\}/g, "<strong>$1</strong>")
-      .replace(/\\textit\{([^}]*)\}/g, "<em>$1</em>")
-      .replace(/\\texttt\{([^}]*)\}/g, "<code>$1</code>")
-      .replace(/\\underline\{([^}]*)\}/g, "<u>$1</u>")
-      .replace(/\\textsc\{([^}]*)\}/g, '<span style="font-variant: small-caps">$1</span>')
+    return (
+      content
+        // Text formatting
+        .replace(/\\textbf\{([^}]*)\}/g, "<strong>$1</strong>")
+        .replace(/\\textit\{([^}]*)\}/g, "<em>$1</em>")
+        .replace(/\\texttt\{([^}]*)\}/g, "<code>$1</code>")
+        .replace(/\\underline\{([^}]*)\}/g, "<u>$1</u>")
+        .replace(
+          /\\textsc\{([^}]*)\}/g,
+          '<span style="font-variant: small-caps">$1</span>',
+        )
 
-      // Sections
-      .replace(/\\section\{([^}]*)\}/g, "<h1>$1</h1>")
-      .replace(/\\subsection\{([^}]*)\}/g, "<h2>$1</h2>")
-      .replace(/\\subsubsection\{([^}]*)\}/g, "<h3>$1</h3>")
+        // Sections
+        .replace(/\\section\{([^}]*)\}/g, "<h1>$1</h1>")
+        .replace(/\\subsection\{([^}]*)\}/g, "<h2>$1</h2>")
+        .replace(/\\subsubsection\{([^}]*)\}/g, "<h3>$1</h3>")
 
-      // Lists
-      .replace(/\\begin\{itemize\}/g, "<ul>")
-      .replace(/\\end\{itemize\}/g, "</ul>")
-      .replace(/\\begin\{enumerate\}/g, "<ol>")
-      .replace(/\\end\{enumerate\}/g, "</ol>")
-      .replace(/\\item\s*/g, "<li>")
+        // Lists
+        .replace(/\\begin\{itemize\}/g, "<ul>")
+        .replace(/\\end\{itemize\}/g, "</ul>")
+        .replace(/\\begin\{enumerate\}/g, "<ol>")
+        .replace(/\\end\{enumerate\}/g, "</ol>")
+        .replace(/\\item\s*/g, "<li>")
 
-      // Line breaks and spacing
-      .replace(/\\\\\s*/g, "<br>")
-      .replace(/\\par\s*/g, "</p><p>")
-      .replace(/\\newpage/g, '<div style="page-break-before: always;"></div>')
+        // Line breaks and spacing
+        .replace(/\\\\\s*/g, "<br>")
+        .replace(/\\par\s*/g, "</p><p>")
+        .replace(/\\newpage/g, '<div style="page-break-before: always;"></div>')
 
-      // Quotes
-      .replace(/``([^']*)''/g, ""$1"")
-      .replace(/`([^']*)'/g, "'$1'")
+        // Quotes
+        .replace(/``([^']*)''/g, '"$1"')
+        .replace(/`([^']*)'/g, "'$1'")
 
-      // Special characters (that aren't math)
-      .replace(/\\&/g, "&amp;")
-      .replace(/\\%/g, "%")
-      .replace(/\\#/g, "#")
+        // Special characters (that aren't math)
+        .replace(/\\&/g, "&amp;")
+        .replace(/\\%/g, "%")
+        .replace(/\\#/g, "#")
 
-      // Wrap in paragraph if not already structured
-      .replace(/^(?!<[h1-6]|<p|<ul|<ol|<div)/gm, "<p>")
-      .replace(/(?<!<\/[h1-6]>|<\/p>|<\/ul>|<\/ol>|<\/div>)$/gm, "</p>")
+        // Wrap in paragraph if not already structured
+        .replace(/^(?!<[h1-6]|<p|<ul|<ol|<div)/gm, "<p>")
+        .replace(/(?<!<\/[h1-6]>|<\/p>|<\/ul>|<\/ol>|<\/div>)$/gm, "</p>")
 
-      // Clean up empty paragraphs
-      .replace(/<p>\s*<\/p>/g, "")
-      .replace(/<p>(\s*<[h1-6])/g, "$1")
-      .replace(/(<\/[h1-6]>)\s*<\/p>/g, "$1");
+        // Clean up empty paragraphs
+        .replace(/<p>\s*<\/p>/g, "")
+        .replace(/<p>(\s*<[h1-6])/g, "$1")
+        .replace(/(<\/[h1-6]>)\s*<\/p>/g, "$1")
+    );
   }
 
   /**
@@ -300,7 +306,10 @@ export class LaTeXPreviewRenderer {
       await this.loadMathJax();
 
       if (!this.mathjax) {
-        return { isValid: true, errors: ["MathJax not available for validation"] };
+        return {
+          isValid: true,
+          errors: ["MathJax not available for validation"],
+        };
       }
 
       // Create a test container

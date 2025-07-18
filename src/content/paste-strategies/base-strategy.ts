@@ -156,12 +156,12 @@ export abstract class BasePasteStrategy {
         key: char,
         bubbles: true,
       });
-      
+
       const keypressEvent = new KeyboardEvent("keypress", {
         key: char,
         bubbles: true,
       });
-      
+
       const keyupEvent = new KeyboardEvent("keyup", {
         key: char,
         bubbles: true,
@@ -430,12 +430,12 @@ export class PasteUtils {
 
     // Split by double newlines to create paragraphs
     const paragraphs = escaped.split(/\n\n+/);
-    
+
     // Convert single newlines within paragraphs to <br> tags and wrap in <p> tags
     return paragraphs
-      .map(paragraph => paragraph.trim())
-      .filter(paragraph => paragraph.length > 0)
-      .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph.length > 0)
+      .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
       .join("");
   }
 }
