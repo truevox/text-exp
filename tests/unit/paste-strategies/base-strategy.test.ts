@@ -140,15 +140,15 @@ describe("BasePasteStrategy", () => {
 
   beforeEach(() => {
     strategy = new TestPasteStrategy();
-    
+
     // Setup mock return values
     const mockDiv = { tagName: "DIV", style: {} };
-    const mockTextarea = { 
-      tagName: "TEXTAREA", 
-      value: "", 
-      style: { position: "", left: "", top: "", opacity: "" } 
+    const mockTextarea = {
+      tagName: "TEXTAREA",
+      value: "",
+      style: { position: "", left: "", top: "", opacity: "" },
     };
-    
+
     mockCreateElement.mockImplementation((tag: string) => {
       if (tag === "textarea") {
         return mockTextarea;
@@ -308,14 +308,14 @@ describe("PasteUtils", () => {
         write: mockWrite,
       },
     };
-    
+
     jest.clearAllMocks();
   });
 
   describe("Clipboard Operations", () => {
     test("isClipboardApiAvailable should check for clipboard API", () => {
       // Override the navigator object for this test
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           writeText: mockWriteText,
           write: mockWrite,
@@ -323,19 +323,19 @@ describe("PasteUtils", () => {
         writable: true,
         configurable: true,
       });
-      
+
       expect(PasteUtils.isClipboardApiAvailable()).toBe(true);
 
       // Test when clipboard API is not available
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: undefined,
         writable: true,
         configurable: true,
       });
       expect(PasteUtils.isClipboardApiAvailable()).toBe(false);
-      
+
       // Restore for other tests
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           writeText: mockWriteText,
           write: mockWrite,
@@ -347,7 +347,7 @@ describe("PasteUtils", () => {
 
     test("writeToClipboard should write text and HTML to clipboard", async () => {
       // Set up clipboard API
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           writeText: mockWriteText,
           write: mockWrite,
@@ -363,7 +363,7 @@ describe("PasteUtils", () => {
 
     test("writeToClipboard should fallback to writeText when HTML fails", async () => {
       // Set up clipboard API
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           writeText: mockWriteText,
           write: mockWrite,
@@ -371,7 +371,7 @@ describe("PasteUtils", () => {
         writable: true,
         configurable: true,
       });
-      
+
       mockWrite.mockRejectedValue(new Error("Write failed"));
 
       await PasteUtils.writeToClipboard("test text", "<p>test html</p>");
@@ -381,7 +381,7 @@ describe("PasteUtils", () => {
 
     test("writeToClipboard should handle writeText failure", async () => {
       // Set up clipboard API
-      Object.defineProperty(navigator, 'clipboard', {
+      Object.defineProperty(navigator, "clipboard", {
         value: {
           writeText: mockWriteText,
           write: mockWrite,
@@ -389,7 +389,7 @@ describe("PasteUtils", () => {
         writable: true,
         configurable: true,
       });
-      
+
       mockWrite.mockRejectedValue(new Error("Write failed"));
       mockWriteText.mockRejectedValue(new Error("WriteText failed"));
 
@@ -403,10 +403,10 @@ describe("PasteUtils", () => {
 
   describe("DOM Utilities", () => {
     test("createTempTextarea should create temporary textarea", () => {
-      const mockTextarea = { 
-        tagName: "TEXTAREA", 
-        value: "", 
-        style: { position: "", left: "", top: "", opacity: "" } 
+      const mockTextarea = {
+        tagName: "TEXTAREA",
+        value: "",
+        style: { position: "", left: "", top: "", opacity: "" },
       };
       mockCreateElement.mockReturnValue(mockTextarea);
 
@@ -423,7 +423,7 @@ describe("PasteUtils", () => {
       expect(mockCreateElement).toHaveBeenCalledWith("textarea");
       expect(result.value).toBe("test content");
       expect(result.style.position).toBe("fixed");
-      
+
       // Restore original
       document.createElement = originalCreateElement;
       document.body.appendChild = originalAppendChild;
