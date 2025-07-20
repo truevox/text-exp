@@ -446,14 +446,12 @@ describe("PasteManager", () => {
     test("should not retry validation errors", async () => {
       const strategy = new MockHighPriorityStrategy();
 
-      strategy.executePaste = jest
-        .fn()
-        .mockResolvedValue({
-          success: false,
-          method: "custom",
-          transformations: [],
-          error: "validation error",
-        });
+      strategy.executePaste = jest.fn().mockResolvedValue({
+        success: false,
+        method: "custom",
+        transformations: [],
+        error: "validation error",
+      });
 
       // Create a manager without fallback strategy for this test
       const noFallbackManager = new PasteManager({

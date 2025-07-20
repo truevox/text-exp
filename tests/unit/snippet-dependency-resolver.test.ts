@@ -558,7 +558,9 @@ describe("SnippetDependencyResolver", () => {
         newDeps,
       );
 
-      expect((updatedSnippet as EnhancedSnippet).snipDependencies).toEqual(newDeps);
+      expect((updatedSnippet as EnhancedSnippet).snipDependencies).toEqual(
+        newDeps,
+      );
       expect(updatedSnippet.updatedAt).not.toBe(
         mockEnhancedSnippets[0].updatedAt,
       );

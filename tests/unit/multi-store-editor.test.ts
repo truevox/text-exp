@@ -702,7 +702,7 @@ describe("Multi-Store Editor Integration", () => {
       ...callbacks,
     });
     await editorWithSnippet.init(mockContainer);
-    
+
     // Select stores and apply
     editorWithSnippet["handleStoreSelection"]("personal", true);
     editorWithSnippet["handleStoreSelection"]("team", true);

@@ -536,13 +536,14 @@ export class BatchUpdateManager {
       contentType: snippet.contentType === "html" ? "html" : "plaintext",
       description: snippet.description,
       scope: snippet.scope,
-      variables: snippet.variables?.map((v) => ({
-        name: v.name,
-        placeholder: v.prompt || v.name,
-        defaultValue: "",
-        required: false,
-        type: "text",
-      })) || [],
+      variables:
+        snippet.variables?.map((v) => ({
+          name: v.name,
+          placeholder: v.prompt || v.name,
+          defaultValue: "",
+          required: false,
+          type: "text",
+        })) || [],
       tags: snippet.tags,
       createdAt: new Date(snippet.createdAt),
       updatedAt: new Date(snippet.updatedAt),

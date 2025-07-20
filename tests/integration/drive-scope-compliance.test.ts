@@ -488,7 +488,10 @@ describe("Google Drive Scope Compliance Integration", () => {
         driveFiles: {
           selectedFiles: Array.from({ length: 1000 }, (_, i) => `file${i}`),
           permissions: Object.fromEntries(
-            Array.from({ length: 1000 }, (_, i) => [`file${i}`, "write" as const]),
+            Array.from({ length: 1000 }, (_, i) => [
+              `file${i}`,
+              "write" as const,
+            ]),
           ) as Record<string, "read" | "write">,
         },
         lastSync: new Date().toISOString(),

@@ -178,7 +178,10 @@ describe("Google Drive Sync Performance", () => {
         driveFiles: {
           selectedFiles: Array.from({ length: 10000 }, (_, i) => `file${i}`),
           permissions: Object.fromEntries(
-            Array.from({ length: 10000 }, (_, i) => [`file${i}`, "write" as const]),
+            Array.from({ length: 10000 }, (_, i) => [
+              `file${i}`,
+              "write" as const,
+            ]),
           ) as Record<string, "read" | "write">,
         },
         lastSync: new Date().toISOString(),

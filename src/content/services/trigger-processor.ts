@@ -150,7 +150,10 @@ export class ContentTriggerProcessor {
             result,
           );
         } catch (error) {
-          if (error instanceof Error && (error as Error).message === "User cancelled") {
+          if (
+            error instanceof Error &&
+            (error as Error).message === "User cancelled"
+          ) {
             console.log("❌ User cancelled variable input");
             return;
           }
@@ -261,7 +264,10 @@ export class ContentTriggerProcessor {
           result,
         );
       } catch (error) {
-        if (error instanceof Error && (error as Error).message === "User cancelled") {
+        if (
+          error instanceof Error &&
+          (error as Error).message === "User cancelled"
+        ) {
           console.log("❌ User cancelled variable input");
           return;
         }

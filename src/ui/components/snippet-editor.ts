@@ -594,7 +594,9 @@ export class SnippetEditor {
     if (this.formElements.tierSelect)
       this.formElements.tierSelect.value = snippet.scope || "personal";
     if (this.formElements.priorityInput)
-      this.formElements.priorityInput.value = String((snippet as any).priority || 100);
+      this.formElements.priorityInput.value = String(
+        (snippet as any).priority || 100,
+      );
     if (this.formElements.contentTypeSelect)
       this.formElements.contentTypeSelect.value = snippet.contentType || "html";
 
@@ -1013,7 +1015,9 @@ export class SnippetEditor {
         scope: tier as any, // Map tier to scope
         priority,
         contentType: (contentType === "html" ? "html" : "text") as any,
-        createdAt: this.currentSnippet?.createdAt ? new Date(this.currentSnippet.createdAt) : new Date(),
+        createdAt: this.currentSnippet?.createdAt
+          ? new Date(this.currentSnippet.createdAt)
+          : new Date(),
         updatedAt: new Date(),
         lastUsed: (this.currentSnippet as any)?.lastUsed,
         usageCount: (this.currentSnippet as any)?.usageCount || 0,

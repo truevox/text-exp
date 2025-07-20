@@ -3,13 +3,16 @@
  * Demonstrates how to initialize the editor with available stores
  */
 
-import {
-  SnippetEditor,
-  SnippetEditorOptions,
-} from "./snippet-editor.js";
-import type { TierStoreInfo, MultiFileSelection } from "./multi-file-selector.js";
+import { SnippetEditor, SnippetEditorOptions } from "./snippet-editor.js";
+import type {
+  TierStoreInfo,
+  MultiFileSelection,
+} from "./multi-file-selector.js";
 import type { TextSnippet } from "../../shared/types.js";
-import type { PriorityTier, EnhancedSnippet } from "../../types/snippet-formats.js";
+import type {
+  PriorityTier,
+  EnhancedSnippet,
+} from "../../types/snippet-formats.js";
 
 /**
  * Example implementation showing how to use the enhanced snippet editor
@@ -187,7 +190,10 @@ export class SnippetEditorExample {
   /**
    * Handle snippet save
    */
-  private async handleSave(snippet: TextSnippet | EnhancedSnippet, targetStores?: MultiFileSelection[]): Promise<void> {
+  private async handleSave(
+    snippet: TextSnippet | EnhancedSnippet,
+    targetStores?: MultiFileSelection[],
+  ): Promise<void> {
     try {
       console.log("💾 Saving snippet:", {
         trigger: snippet.trigger,
@@ -238,7 +244,9 @@ export class SnippetEditorExample {
   /**
    * Mock save operation
    */
-  private async mockSaveSnippet(snippet: TextSnippet | EnhancedSnippet): Promise<void> {
+  private async mockSaveSnippet(
+    snippet: TextSnippet | EnhancedSnippet,
+  ): Promise<void> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -248,9 +256,7 @@ export class SnippetEditorExample {
     }
 
     // Mock saving to the selected store
-    console.log(
-      `📁 Saving snippet with tier: ${snippet.scope}`,
-    );
+    console.log(`📁 Saving snippet with tier: ${snippet.scope}`);
 
     // Here you would:
     // 1. Load the selected store file

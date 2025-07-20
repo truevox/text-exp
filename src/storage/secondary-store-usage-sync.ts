@@ -334,7 +334,9 @@ export class SecondaryStoreUsageSync {
           snippetId: usage.snippetId,
           userId: usage.userId || this.config.currentUserId || "unknown",
           userName: this.config.enablePrivacyMode
-            ? this.anonymizeUserName(usage.userName || this.config.currentUserName || "unknown")
+            ? this.anonymizeUserName(
+                usage.userName || this.config.currentUserName || "unknown",
+              )
             : usage.userName || this.config.currentUserName || "unknown",
           usageCount: 1, // SecondaryStoreUsageEvent doesn't have usage_count
           firstUsed: usage.timestamp, // Use timestamp as both first and last
@@ -539,7 +541,9 @@ export class SecondaryStoreUsageSync {
 
       result.statistics!.entriesUploaded = mergedEntries.length;
     } catch (error) {
-      throw new Error(`Failed to upload merged entries: ${(error as Error).message}`);
+      throw new Error(
+        `Failed to upload merged entries: ${(error as Error).message}`,
+      );
     }
   }
 
