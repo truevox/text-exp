@@ -39,7 +39,7 @@ export interface MigrationOptions {
  * Tier assignment rules
  */
 interface TierRule {
-  condition: (snippet: TextSnippet) => boolean;
+  condition: (snippet: EnhancedSnippet) => boolean;
   tier: PriorityTier;
   priority: number; // Higher number = higher priority rule
 }
@@ -242,16 +242,16 @@ export class LegacyMigrator {
     const rules: TierRule[] = [
       {
         condition: (s) =>
-          s.tags?.includes("team") ||
-          s.description?.toLowerCase().includes("team"),
+          (s.tags?.includes("team") ?? false) ||
+          (s.description?.toLowerCase().includes("team") ?? false),
         tier: "team",
         priority: 2,
       },
       {
         condition: (s) =>
-          s.tags?.includes("org") ||
-          s.tags?.includes("organization") ||
-          s.description?.toLowerCase().includes("organization"),
+          (s.tags?.includes("org") ?? false) ||
+          (s.tags?.includes("organization") ?? false) ||
+          (s.description?.toLowerCase().includes("organization") ?? false),
         tier: "org",
         priority: 3,
       },

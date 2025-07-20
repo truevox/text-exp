@@ -178,7 +178,7 @@ export class ExpansionUsageLogger {
     try {
       await this.initialize();
     } catch (error) {
-      result.errors.push(`Initialization failed: ${error.message}`);
+      result.errors.push(`Initialization failed: ${(error as Error).message}`);
       return result;
     }
 
@@ -207,10 +207,10 @@ export class ExpansionUsageLogger {
         ),
       ]);
     } catch (error) {
-      if (error.message === "Tracking timeout") {
+      if ((error as Error).message === "Tracking timeout") {
         result.errors.push("Usage tracking timed out");
       } else {
-        result.errors.push(`Tracking failed: ${error.message}`);
+        result.errors.push(`Tracking failed: ${(error as Error).message}`);
       }
     }
 
@@ -244,13 +244,10 @@ export class ExpansionUsageLogger {
       // Convert TextSnippet to EnhancedSnippet format expected by global tracker
       const enhancedSnippet = this.convertToEnhancedSnippet(context.snippet);
 
-      await this.globalTracker.trackUsage(enhancedSnippet, {
-        context: `expansion_${context.targetElement || "unknown"}`,
-        userAgent: context.userAgent || navigator.userAgent,
-        url: context.url || window.location.href,
-        success: context.success,
-        errorMessage: context.errorMessage,
-      });
+      await this.globalTracker.trackUsage(
+        enhancedSnippet,
+        `expansion_${context.targetElement || "unknown"}`,
+      );
 
       result.globalTrackingSuccess = true;
 
@@ -261,7 +258,7 @@ export class ExpansionUsageLogger {
         );
       }
     } catch (error) {
-      result.errors.push(`Global tracking failed: ${error.message}`);
+      result.errors.push(`Global tracking failed: ${(error as Error).message}`);
 
       if (this.config.enableDebugLogging) {
         console.error("❌ Global usage tracking failed:", error);
@@ -295,18 +292,15 @@ export class ExpansionUsageLogger {
       // Get or create per-store tracker
       let tracker = this.perStoreTrackers.get(storeFileName);
       if (!tracker) {
-        tracker = new SecondaryStoreUsageTracker(storeFileName);
+        tracker = new SecondaryStoreUsageTracker(storeFileName, storeFileName);
         await tracker.initialize();
         this.perStoreTrackers.set(storeFileName, tracker);
       }
 
-      await tracker.trackUsage(context.snippet, {
-        context: `expansion_${context.targetElement || "unknown"}`,
-        userAgent: context.userAgent || navigator.userAgent,
-        url: context.url || window.location.href,
-        success: context.success,
-        errorMessage: context.errorMessage,
-      });
+      await tracker.trackUsage(
+        context.snippet,
+        `expansion_${context.targetElement || "unknown"}`,
+      );
 
       result.perStoreTrackingSuccess = true;
 
@@ -317,7 +311,9 @@ export class ExpansionUsageLogger {
         );
       }
     } catch (error) {
-      result.errors.push(`Per-store tracking failed: ${error.message}`);
+      result.errors.push(
+        `Per-store tracking failed: ${(error as Error).message}`,
+      );
 
       if (this.config.enableDebugLogging) {
         console.error("❌ Per-store usage tracking failed:", error);
@@ -451,6 +447,7 @@ export async function logExpansionUsage(
     targetElement?: string;
     url?: string;
     userAgent?: string;
+    dependencyChain?: string;
   },
 ): Promise<UsageTrackingResult> {
   const logger = getExpansionUsageLogger();

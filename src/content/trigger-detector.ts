@@ -193,6 +193,7 @@ export class TriggerDetector {
       const possibleCompletions = this.findPossibleCompletions(node);
 
       if (possibleCompletions.length > 0) {
+        // Only show cycling UI for complete triggers that have longer alternatives
         return {
           isMatch: false,
           state: TriggerState.AMBIGUOUS,
@@ -208,7 +209,8 @@ export class TriggerDetector {
       }
     }
 
-    // Still typing
+    // Still typing - check if we have any possible completions but don't make it ambiguous
+    // Partial triggers should never trigger the cycling UI
     return {
       isMatch: false,
       state: TriggerState.TYPING,

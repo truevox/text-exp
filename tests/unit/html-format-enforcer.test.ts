@@ -40,7 +40,7 @@ describe("HTMLFormatEnforcer", () => {
         id: "text-snippet",
         trigger: ";text",
         content: "Hello World!\nThis is a test.",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-02"),
         updatedAt: new Date("2023-01-02"),
         usageCount: 3,
@@ -258,7 +258,7 @@ describe("HTMLFormatEnforcer", () => {
     it("should use custom converters when provided", () => {
       const customConverters = new Map([
         [
-          "plaintext",
+          "plaintext" as const,
           (content: string) => `<div class="custom">${content}</div>`,
         ],
       ]);

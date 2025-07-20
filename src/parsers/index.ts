@@ -249,12 +249,12 @@ export class MultiFormatParser {
 
   private getContentTypeForFormat(
     format: SnippetFormat,
-  ): "plainText" | "markdown" | "html" | "latex" {
+  ): "plaintext" | "markdown" | "html" | "latex" {
     switch (format) {
       case "json":
-        return "plainText";
+        return "plaintext";
       case "txt":
-        return "plainText";
+        return "plaintext";
       case "md":
         return "markdown";
       case "html":
@@ -262,7 +262,7 @@ export class MultiFormatParser {
       case "tex":
         return "latex";
       default:
-        return "plainText";
+        return "plaintext";
     }
   }
 }

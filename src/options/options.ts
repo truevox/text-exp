@@ -932,13 +932,13 @@ class OptionsApp {
       const finalDisplayName = customDisplayName || this.selectedFolder.name;
 
       // Determine scope based on picker priority
-      let scope: "personal" | "department" | "org";
+      let scope: "personal" | "team" | "org";
       switch (picker.priority) {
         case 1:
           scope = "personal";
           break;
         case 2:
-          scope = "department";
+          scope = "team";
           break;
         case 3:
           scope = "org";

@@ -448,7 +448,7 @@ describe("Complete User Workflows E2E", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isShared: true,
-          scope: "department",
+          scope: "team",
         },
         {
           id: "team-2",
@@ -458,7 +458,7 @@ describe("Complete User Workflows E2E", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isShared: true,
-          scope: "department",
+          scope: "team",
         },
       ];
 
@@ -511,7 +511,7 @@ describe("Complete User Workflows E2E", () => {
           id: "2",
           trigger: "dept",
           content: "Department content",
-          scope: "department",
+          scope: "team",
           createdAt: new Date(),
           updatedAt: new Date(),
         },

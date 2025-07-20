@@ -308,7 +308,7 @@ export class StoreDuplicateValidator {
           conflictsResolved += indices.length - 1;
           break;
 
-        case "keep-newest":
+        case "keep-newest": {
           // Keep the snippet with the most recent updatedAt
           const newestIndex = this.findNewestSnippetIndex(snippets);
           for (let i = indices.length - 1; i >= 0; i--) {
@@ -318,8 +318,9 @@ export class StoreDuplicateValidator {
           }
           conflictsResolved += indices.length - 1;
           break;
+        }
 
-        case "keep-oldest":
+        case "keep-oldest": {
           // Keep the snippet with the oldest createdAt
           const oldestIndex = this.findOldestSnippetIndex(snippets);
           for (let i = indices.length - 1; i >= 0; i--) {
@@ -329,6 +330,7 @@ export class StoreDuplicateValidator {
           }
           conflictsResolved += indices.length - 1;
           break;
+        }
 
         case "rename":
           // Rename all but the first occurrence
@@ -342,7 +344,7 @@ export class StoreDuplicateValidator {
           conflictsResolved += indices.length - 1;
           break;
 
-        case "merge":
+        case "merge": {
           // Merge all duplicates into the first occurrence
           const mergedSnippet = this.mergeSnippets(
             snippets,
@@ -355,6 +357,7 @@ export class StoreDuplicateValidator {
           }
           conflictsResolved += indices.length - 1;
           break;
+        }
       }
     }
 
@@ -516,7 +519,7 @@ export class StoreDuplicateValidator {
     const base = { ...snippets[0] };
 
     switch (strategy) {
-      case "content-priority":
+      case "content-priority": {
         // Use the snippet with the longest content
         const longestContent = snippets.reduce((prev, current) =>
           current.content.length > prev.content.length ? current : prev,
@@ -524,8 +527,9 @@ export class StoreDuplicateValidator {
         base.content = longestContent.content;
         base.updatedAt = new Date();
         break;
+      }
 
-      case "metadata-priority":
+      case "metadata-priority": {
         // Use the newest snippet for metadata
         const newest = snippets.reduce((prev, current) => {
           const prevDate = this.getSnippetDate(prev, "updated");
@@ -533,6 +537,7 @@ export class StoreDuplicateValidator {
           return currentDate > prevDate ? current : prev;
         });
         return newest;
+      }
 
       case "user-choice":
         // For now, default to first snippet (would need UI integration for true user choice)

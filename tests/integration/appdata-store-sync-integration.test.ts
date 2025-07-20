@@ -103,7 +103,7 @@ describe("Appdata Store Sync Integration", () => {
           snippets: mockPriorityStore.snippets,
           storeInfo: {
             name: "Priority #0 Store",
-            tier: "priority-0" as any,
+            tier: "personal",
             lastModified: new Date().toISOString(),
           },
         }),
@@ -251,6 +251,7 @@ describe("Appdata Store Sync Integration", () => {
 
       // Mock the sync method to capture the sources
       let capturedSources: SyncedSource[] = [];
+      const multiScopeSyncManager = (syncManager as any).multiScopeSyncManager;
       const originalSyncAndMerge = multiScopeSyncManager.syncAndMerge;
 
       // Override the method directly on the instance
@@ -320,7 +321,7 @@ describe("Appdata Store Sync Integration", () => {
       // Create sources with the same trigger
       const sources: SyncedSource[] = [
         {
-          name: "priority-0",
+          name: "personal",
           adapter: new GoogleDriveAdapter(),
           folderId: "appdata-priority-0",
           displayName: "Priority #0 Store",
@@ -334,11 +335,12 @@ describe("Appdata Store Sync Integration", () => {
       ];
 
       // Mock the fetchFromSource to return different snippets for each source
+      const multiScopeSyncManager = (syncManager as any).multiScopeSyncManager;
       const originalFetchFromSource = multiScopeSyncManager["fetchFromSource"];
       multiScopeSyncManager["fetchFromSource"] = jest
         .fn()
         .mockImplementation((source) => {
-          if (source.name === "priority-0") {
+          if (source.folderId === "appdata-priority-0") {
             return Promise.resolve({ source, snippets: [prioritySnippet] });
           } else {
             return Promise.resolve({ source, snippets: [personalSnippet] });
@@ -350,7 +352,7 @@ describe("Appdata Store Sync Integration", () => {
       // Verify that the priority snippet wins
       expect(mergedSnippets).toHaveLength(1);
       expect(mergedSnippets[0].content).toBe("Priority content");
-      expect(mergedSnippets[0].scope).toBe("priority-0");
+      expect(mergedSnippets[0].scope).toBe("personal");
 
       // Restore original method
       multiScopeSyncManager["fetchFromSource"] = originalFetchFromSource;

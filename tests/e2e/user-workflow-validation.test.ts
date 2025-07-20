@@ -16,6 +16,19 @@ jest.mock("../../src/shared/indexed-db.js");
 jest.mock("../../src/background/cloud-adapters/index.js");
 jest.mock("../../src/background/messaging-helpers.js");
 
+// Mock Chrome APIs
+global.chrome = {
+  tabs: {
+    query: jest.fn(),
+  },
+  runtime: {
+    sendMessage: jest.fn(),
+    getManifest: jest.fn(() => ({
+      version: "1.0.0",
+    })),
+  },
+} as any;
+
 describe("E2E User Workflow Validation", () => {
   let syncManager: SyncManager;
   let mockIndexedDB: jest.Mocked<IndexedDB>;

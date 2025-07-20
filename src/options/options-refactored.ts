@@ -213,8 +213,9 @@ class OptionsApp {
   ): Promise<void> {
     if (!this.settings) return;
 
+    const normalizedScope = scope === "department" ? "team" : scope;
     await this.folderPicker.handleSelectFolder(
-      scope,
+      normalizedScope,
       this.settings.cloudProvider,
     );
 

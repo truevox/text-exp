@@ -64,6 +64,7 @@ export class JSONParser implements FormatParser {
     const meta: SnippetMeta = {
       id: item.meta.id || `snippet-${Date.now()}-${index}`,
       trigger: item.meta.trigger,
+      content: String(item.body),
       snipDependencies: Array.isArray(item.meta.snipDependencies)
         ? item.meta.snipDependencies
         : [],
@@ -121,8 +122,9 @@ export class JSONParser implements FormatParser {
     const meta: SnippetMeta = {
       id: legacy.id,
       trigger: legacy.trigger,
+      content: legacy.content,
       snipDependencies: [],
-      contentType: "plainText",
+      contentType: "plaintext",
       description: `Legacy snippet: ${legacy.trigger}`,
       scope: this.normalizeScope(legacy.scope as any),
       variables: [],
@@ -159,6 +161,7 @@ export class JSONParser implements FormatParser {
     const meta: SnippetMeta = {
       id: flat.id,
       trigger: flat.trigger,
+      content: flat.content,
       snipDependencies: [],
       contentType: this.normalizeContentType(flat.contentType),
       description: flat.description || `Flat snippet: ${flat.trigger}`,
@@ -181,7 +184,7 @@ export class JSONParser implements FormatParser {
 
   private normalizeContentType(
     contentType: any,
-  ): "plainText" | "markdown" | "html" | "latex" {
+  ): "plaintext" | "markdown" | "html" | "latex" {
     if (typeof contentType === "string") {
       switch (contentType.toLowerCase()) {
         case "text/markdown":
@@ -196,19 +199,19 @@ export class JSONParser implements FormatParser {
         case "tex":
           return "latex";
         default:
-          return "plainText";
+          return "plaintext";
       }
     }
-    return "plainText";
+    return "plaintext";
   }
 
-  private normalizeScope(scope: any): "personal" | "group" | "org" {
+  private normalizeScope(scope: any): "personal" | "team" | "org" {
     if (typeof scope === "string") {
       switch (scope.toLowerCase()) {
         case "group":
         case "team":
         case "department":
-          return "group";
+          return "team";
         case "org":
         case "organization":
         case "company":
@@ -344,8 +347,9 @@ export class JSONParser implements FormatParser {
     const meta: SnippetMeta = {
       id,
       trigger,
+      content,
       snipDependencies: [],
-      contentType: "plainText",
+      contentType: "plaintext",
       description: options.description || `Snippet: ${trigger}`,
       scope: "personal",
       variables: [],

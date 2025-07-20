@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Extension Test Site</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .test-section {
+        border: 1px solid #ddd;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+      button {
+        background: #3498db;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #2980b9;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      textarea {
+        height: 100px;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Text Expansion Extension Test Site</h1>
+
+    <div class="test-section">
+      <h2>Text Input Testing</h2>
+      <p>
+        Type abbreviations like "addr", "email", "phone" to test text expansion:
+      </p>
+      <input
+        type="text"
+        placeholder="Try typing 'addr' and pressing space..."
+        id="test-input"
+      />
+      <textarea
+        placeholder="Test multi-line expansions here..."
+        id="test-textarea"
+      ></textarea>
+    </div>
+
+    <div class="test-section">
+      <h2>Extension Status</h2>
+      <p>Extension loaded: <span id="extension-status">Checking...</span></p>
+      <button onclick="checkExtension()">Check Extension</button>
+      <button onclick="testMessage()">Send Test Message</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Navigation Tests</h2>
+      <a href="/product/42">Go to Product Page</a> |
+      <a href="/about.html">About Page</a>
+    </div>
+
+    <script>
+      // Mark that the page is loaded for extension detection
+      window.__EXTENSION_TEST_PAGE__ = true;
+
+      function checkExtension() {
+        const status = document.getElementById("extension-status");
+
+        // Check for signs of extension injection
+        const hasExtensionElements = !!(
+          document.querySelector('[data-extension="puffpuffpaste"]') ||
+          document.querySelector(".puffpuffpaste-element") ||
+          window.__EXTENSION_LOADED__
+        );
+
+        status.textContent = hasExtensionElements
+          ? "Detected ✓"
+          : "Not detected ✗";
+        status.style.color = hasExtensionElements ? "green" : "red";
+      }
+
+      function testMessage() {
+        window.__LAST_EXT_MSG__ = {
+          type: "TEST_MESSAGE",
+          status: "ok",
+          timestamp: Date.now(),
+          page: window.location.href,
+        };
+        console.log("Test message set:", window.__LAST_EXT_MSG__);
+      }
+
+      // Auto-check extension status on load
+      setTimeout(checkExtension, 1000);
+
+      // Add listeners for text expansion testing
+      document.addEventListener("DOMContentLoaded", () => {
+        const inputs = document.querySelectorAll("input, textarea");
+        inputs.forEach((input) => {
+          input.addEventListener("input", (e) => {
+            console.log("Input event:", e.target.value);
+          });
+
+          input.addEventListener("keydown", (e) => {
+            if (e.key === " " || e.key === "Tab") {
+              console.log("Potential expansion trigger:", e.target.value);
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

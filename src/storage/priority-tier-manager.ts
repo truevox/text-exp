@@ -386,7 +386,7 @@ export class PriorityTierManager {
 
       let serializedData: string;
       try {
-        serializedData = JsonSerializer.serialize(
+        serializedData = JsonSerializer.serializeToString(
           tierData,
           serializationOptions,
         );

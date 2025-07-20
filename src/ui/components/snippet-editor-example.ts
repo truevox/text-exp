@@ -5,11 +5,11 @@
 
 import {
   SnippetEditor,
-  TierStoreInfo,
   SnippetEditorOptions,
 } from "./snippet-editor.js";
+import type { TierStoreInfo, MultiFileSelection } from "./multi-file-selector.js";
 import type { TextSnippet } from "../../shared/types.js";
-import type { PriorityTier } from "../../types/snippet-formats.js";
+import type { PriorityTier, EnhancedSnippet } from "../../types/snippet-formats.js";
 
 /**
  * Example implementation showing how to use the enhanced snippet editor
@@ -187,14 +187,13 @@ export class SnippetEditorExample {
   /**
    * Handle snippet save
    */
-  private async handleSave(snippet: TextSnippet): Promise<void> {
+  private async handleSave(snippet: TextSnippet | EnhancedSnippet, targetStores?: MultiFileSelection[]): Promise<void> {
     try {
       console.log("💾 Saving snippet:", {
         trigger: snippet.trigger,
         tier: snippet.scope,
-        store: snippet.storeFileName,
-        priority: snippet.priority,
         contentType: snippet.contentType,
+        targetStores: targetStores?.length || 0,
       });
 
       // Here you would integrate with your actual snippet storage system
@@ -239,18 +238,18 @@ export class SnippetEditorExample {
   /**
    * Mock save operation
    */
-  private async mockSaveSnippet(snippet: TextSnippet): Promise<void> {
+  private async mockSaveSnippet(snippet: TextSnippet | EnhancedSnippet): Promise<void> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Mock validation
-    if (!snippet.trigger || !snippet.content || !snippet.storeFileName) {
+    if (!snippet.trigger || !snippet.content) {
       throw new Error("Invalid snippet data");
     }
 
     // Mock saving to the selected store
     console.log(
-      `📁 Saving to store: ${snippet.storeFileName} in tier: ${snippet.scope}`,
+      `📁 Saving snippet with tier: ${snippet.scope}`,
     );
 
     // Here you would:
@@ -311,7 +310,7 @@ export class SnippetEditorExample {
   /**
    * Get current snippet data from editor
    */
-  getCurrentSnippet(): TextSnippet | null {
+  getCurrentSnippet(): TextSnippet | EnhancedSnippet | null {
     return this.editor?.getSnippetData() || null;
   }
 

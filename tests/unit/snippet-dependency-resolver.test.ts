@@ -34,7 +34,7 @@ describe("SnippetDependencyResolver", () => {
         id: "greeting-1",
         trigger: ";hello",
         content: "Hello {{name}}!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-01"),
         updatedAt: new Date("2023-01-01"),
         usageCount: 5,
@@ -44,7 +44,7 @@ describe("SnippetDependencyResolver", () => {
         id: "signature-1",
         trigger: ";sig",
         content: "Best regards,\n{{name}}",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-02"),
         updatedAt: new Date("2023-01-02"),
         usageCount: 3,
@@ -558,7 +558,7 @@ describe("SnippetDependencyResolver", () => {
         newDeps,
       );
 
-      expect(updatedSnippet.snipDependencies).toEqual(newDeps);
+      expect((updatedSnippet as EnhancedSnippet).snipDependencies).toEqual(newDeps);
       expect(updatedSnippet.updatedAt).not.toBe(
         mockEnhancedSnippets[0].updatedAt,
       );

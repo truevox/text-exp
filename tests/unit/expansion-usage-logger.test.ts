@@ -27,7 +27,7 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
     id: "test-snippet-1",
     trigger: "!hello",
     content: "Hello, world!",
-    contentType: "text",
+    contentType: "plaintext",
     scope: "personal",
     description: "Test greeting snippet",
     variables: [],
@@ -165,18 +165,12 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
           trigger: mockSnippet.trigger,
           content: mockSnippet.content,
         }),
-        expect.objectContaining({
-          context: "expansion_unknown",
-          success: true,
-        }),
+        "expansion_unknown",
       );
 
       expect(mockSecondaryTracker.trackUsage).toHaveBeenCalledWith(
         mockSnippet,
-        expect.objectContaining({
-          context: "expansion_unknown",
-          success: true,
-        }),
+        "expansion_unknown",
       );
     });
 
@@ -193,10 +187,7 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
 
       expect(mockGlobalTracker.trackUsage).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.objectContaining({
-          success: false,
-          errorMessage: "Expansion failed",
-        }),
+        "expansion_unknown",
       );
     });
 
@@ -461,11 +452,7 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
       expect(result).toBeDefined();
       expect(mockGlobalTracker.trackUsage).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.objectContaining({
-          context: "expansion_input",
-          url: "https://test.com",
-          userAgent: "Test Agent",
-        }),
+        "expansion_input",
       );
     });
   });
@@ -562,7 +549,7 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
           createdBy: "unknown",
           updatedBy: "unknown",
         }),
-        expect.any(Object),
+        "expansion_unknown",
       );
     });
 
@@ -585,13 +572,13 @@ describe("ExpansionUsageLogger - Phase 3 Task 4", () => {
           id: "minimal",
           trigger: "!min",
           content: "Minimal content",
-          contentType: "text",
+          contentType: "plaintext",
           scope: "personal",
           description: "",
           variables: [],
           tags: [],
         }),
-        expect.any(Object),
+        "expansion_unknown",
       );
     });
   });

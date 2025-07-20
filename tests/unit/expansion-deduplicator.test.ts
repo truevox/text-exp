@@ -59,7 +59,7 @@ describe("ExpansionDeduplicator", () => {
         id: "snippet-1",
         trigger: ";hello",
         content: "Hello World!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-01"),
         updatedAt: new Date("2023-01-01"),
         usageCount: 5,
@@ -69,7 +69,7 @@ describe("ExpansionDeduplicator", () => {
         id: "snippet-1", // Duplicate ID
         trigger: ";hello",
         content: "Hello Team!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-02"),
         updatedAt: new Date("2023-01-02"),
         usageCount: 3,
@@ -79,7 +79,7 @@ describe("ExpansionDeduplicator", () => {
         id: "snippet-2",
         trigger: ";goodbye",
         content: "Goodbye World!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-03"),
         updatedAt: new Date("2023-01-03"),
         usageCount: 2,
@@ -300,7 +300,7 @@ describe("ExpansionDeduplicator", () => {
     it("should filter by content types", () => {
       const textSnippet = {
         ...mockTextSnippets[0],
-        contentType: "text" as const,
+        contentType: "plaintext" as const,
       };
       const htmlSnippet = {
         ...mockEnhancedSnippets[0],

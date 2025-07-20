@@ -19,21 +19,22 @@ import type { TargetSurface } from "../../../src/content/target-detector";
 class MockHighPriorityStrategy extends BasePasteStrategy {
   readonly name = "mock-high-priority";
   readonly priority = 100;
-  readonly supportedTargets = ["test-target"];
+  readonly supportedTargets = ["plaintext-input"];
 
   canHandle(target: TargetSurface): boolean {
-    return target.type === "test-target";
+    return target.type === "plaintext-input";
   }
 
   async transformContent(content: PasteContent): Promise<PasteContent> {
     return {
       ...content,
       metadata: {
-        ...content.metadata,
+        originalFormat: "html",
         transformations: [
           ...(content.metadata?.transformations || []),
           "high-priority-transform",
         ],
+        timestamp: Date.now(),
       },
     };
   }
@@ -45,7 +46,7 @@ class MockHighPriorityStrategy extends BasePasteStrategy {
     return this.createResult(true, "custom", ["high-priority-transform"]);
   }
 
-  getConfidence(): number {
+  override getConfidence(): number {
     return 0.9;
   }
 
@@ -55,21 +56,22 @@ class MockHighPriorityStrategy extends BasePasteStrategy {
 class MockLowPriorityStrategy extends BasePasteStrategy {
   readonly name = "mock-low-priority";
   readonly priority = 50;
-  readonly supportedTargets = ["test-target"];
+  readonly supportedTargets = ["plaintext-input"];
 
   canHandle(target: TargetSurface): boolean {
-    return target.type === "test-target";
+    return target.type === "plaintext-input";
   }
 
   async transformContent(content: PasteContent): Promise<PasteContent> {
     return {
       ...content,
       metadata: {
-        ...content.metadata,
+        originalFormat: "html",
         transformations: [
           ...(content.metadata?.transformations || []),
           "low-priority-transform",
         ],
+        timestamp: Date.now(),
       },
     };
   }
@@ -78,7 +80,7 @@ class MockLowPriorityStrategy extends BasePasteStrategy {
     return this.createResult(true, "custom", ["low-priority-transform"]);
   }
 
-  getConfidence(): number {
+  override getConfidence(): number {
     return 0.5;
   }
 }
@@ -86,10 +88,10 @@ class MockLowPriorityStrategy extends BasePasteStrategy {
 class MockUnsupportedStrategy extends BasePasteStrategy {
   readonly name = "mock-unsupported";
   readonly priority = 75;
-  readonly supportedTargets = ["unsupported-target"];
+  readonly supportedTargets = ["rich-text-editor"];
 
   canHandle(target: TargetSurface): boolean {
-    return target.type === "unsupported-target";
+    return target.type === "rich-text-editor";
   }
 
   async transformContent(content: PasteContent): Promise<PasteContent> {
@@ -100,7 +102,7 @@ class MockUnsupportedStrategy extends BasePasteStrategy {
     return this.createResult(true, "custom", []);
   }
 
-  getConfidence(): number {
+  override getConfidence(): number {
     return 0.8;
   }
 }
@@ -119,7 +121,7 @@ describe("PasteManager", () => {
     });
 
     mockTarget = {
-      type: "test-target",
+      type: "plaintext-input",
       element: {
         classList: {
           contains: jest.fn().mockReturnValue(false),
@@ -148,12 +150,13 @@ describe("PasteManager", () => {
         editorName: "Test Editor",
         detectionConfidence: 0.9,
         detectionMethod: "test-rule",
+        timestamp: Date.now(),
       },
     };
 
     mockUnsupportedTarget = {
       ...mockTarget,
-      type: "unsupported-target",
+      type: "rich-text-editor",
       element: {
         classList: {
           contains: jest.fn().mockReturnValue(false),
@@ -418,14 +421,18 @@ describe("PasteManager", () => {
       strategy.executePaste = jest.fn().mockImplementation(async () => {
         callCount++;
         if (callCount < 2) {
-          return strategy.createResult(
-            false,
-            "custom",
-            [],
-            "Temporary failure",
-          );
+          return {
+            success: false,
+            method: "custom",
+            transformations: [],
+            error: "Temporary failure",
+          };
         }
-        return strategy.createResult(true, "custom", []);
+        return {
+          success: true,
+          method: "custom",
+          transformations: [],
+        };
       });
 
       manager.addStrategy(strategy);
@@ -441,9 +448,12 @@ describe("PasteManager", () => {
 
       strategy.executePaste = jest
         .fn()
-        .mockResolvedValue(
-          strategy.createResult(false, "custom", [], "validation error"),
-        );
+        .mockResolvedValue({
+          success: false,
+          method: "custom",
+          transformations: [],
+          error: "validation error",
+        });
 
       // Create a manager without fallback strategy for this test
       const noFallbackManager = new PasteManager({

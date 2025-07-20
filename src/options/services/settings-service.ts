@@ -117,7 +117,7 @@ export class SettingsService {
       }
 
       const departmentSource = this.settings.configuredSources.find(
-        (s) => s.scope === "department",
+        (s) => s.scope === "team",
       );
       if (this.elements.departmentFolderIdInput && departmentSource) {
         this.elements.departmentFolderIdInput.value =

@@ -239,11 +239,28 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
 
       return {
         hasStore: true,
-        snippets: priorityStore.snippets,
+        snippets: priorityStore.snippets.map((snippet) => ({
+          id: snippet.id,
+          trigger: snippet.trigger,
+          content: snippet.content,
+          contentType: snippet.contentType,
+          description: snippet.description,
+          scope: snippet.scope,
+          variables: snippet.variables?.map(v => ({
+            name: v.name,
+            placeholder: v.prompt || v.name,
+            defaultValue: v.defaultValue,
+            required: false,
+            type: "text" as const,
+          })) || [],
+          tags: snippet.tags || [],
+          createdAt: new Date(snippet.createdAt),
+          updatedAt: new Date(snippet.updatedAt),
+        })),
         storeInfo: {
           name: "Priority #0 Store",
-          tier: "priority-0",
-          lastModified: priorityStore.lastModified,
+          tier: "personal",
+          lastModified: priorityStore.metadata.modified,
         },
       };
     } catch (error) {

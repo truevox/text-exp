@@ -738,14 +738,32 @@ describe("ComprehensiveSnippetEditor", () => {
       jest.mocked(createSnippetEditor).mockImplementationOnce(() => ({
         init: jest.fn().mockRejectedValue(new Error("TinyMCE init failed")),
         destroy: jest.fn(),
-        getContent: jest.fn(),
+        getContent: jest.fn().mockReturnValue(""),
         setContent: jest.fn(),
         insertContent: jest.fn(),
         focus: jest.fn(),
-        hasFocus: jest.fn(),
-        getEditor: jest.fn(),
-        isReady: jest.fn(),
-      }));
+        hasFocus: jest.fn().mockReturnValue(false),
+        getEditor: jest.fn().mockReturnValue(null),
+        isReady: jest.fn().mockReturnValue(false),
+        // Add missing properties
+        editor: null,
+        container: null,
+        textArea: null,
+        isInitialized: false,
+        isDestroyed: false,
+        contentChangeTimeout: null,
+        options: {},
+        defaultConfig: {},
+        setupEventHandlers: jest.fn(),
+        handleContentChange: jest.fn(),
+        cleanup: jest.fn(),
+        validateContainer: jest.fn(),
+        createTextArea: jest.fn(),
+        getTextAreaConfig: jest.fn(),
+        handleInit: jest.fn(),
+        handleSetup: jest.fn(),
+        handleBeforeUnload: jest.fn(),
+      } as any));
 
       const options: ComprehensiveSnippetEditorOptions = {
         tierData: mockTierData,
@@ -857,7 +875,7 @@ declare module "../../src/ui/components/comprehensive-snippet-editor.js" {
     warnings: string[];
   }
 
-  export class ComprehensiveSnippetEditor {
+  class MockComprehensiveSnippetEditor {
     constructor(options: ComprehensiveSnippetEditorOptions);
 
     init(container: HTMLElement): Promise<void>;

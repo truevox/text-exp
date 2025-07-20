@@ -6,6 +6,7 @@
 import { GoogleDriveAdapter } from "../../src/background/cloud-adapters/google-drive-adapter";
 import { GoogleDriveFilePickerService } from "../../src/background/cloud-adapters/google-drive/file-picker-service";
 import { GoogleDriveAppDataManager } from "../../src/background/cloud-adapters/google-drive-appdata-manager";
+import { GoogleDriveAuthService } from "../../src/background/cloud-adapters/google-drive/auth-service";
 import type { CloudCredentials } from "../../src/shared/types";
 
 // Mock Chrome APIs
@@ -32,6 +33,20 @@ global.chrome = {
 
 global.fetch = jest.fn();
 
+// Mock GoogleDriveAuthService.validateCredentials to always succeed
+jest.mock(
+  "../../src/background/cloud-adapters/google-drive/auth-service",
+  () => ({
+    GoogleDriveAuthService: {
+      validateCredentials: jest.fn().mockResolvedValue({ isValid: true }),
+      getAuthHeaders: jest.fn().mockReturnValue({
+        Authorization: "Bearer mock_token",
+        "Content-Type": "application/json",
+      }),
+    },
+  }),
+);
+
 describe("Google Drive Scope Compliance Integration", () => {
   let mockCredentials: CloudCredentials;
   let mockFetch: jest.MockedFunction<typeof fetch>;
@@ -46,12 +61,18 @@ describe("Google Drive Scope Compliance Integration", () => {
 
     mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockClear();
+
+    // Default mock setup for most tests
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: "file123", name: "test.json" }),
+    } as any);
   });
 
   describe("OAuth2 Scope Validation", () => {
     it("should only request drive.file and drive.appdata scopes", () => {
       const manifest = chrome.runtime.getManifest();
-      const requestedScopes = manifest.oauth2.scopes;
+      const requestedScopes = manifest.oauth2?.scopes;
 
       expect(requestedScopes).toEqual([
         "https://www.googleapis.com/auth/drive.file",
@@ -66,7 +87,7 @@ describe("Google Drive Scope Compliance Integration", () => {
 
     it("should validate that no forbidden scopes are requested", () => {
       const manifest = chrome.runtime.getManifest();
-      const requestedScopes = manifest.oauth2.scopes;
+      const requestedScopes = manifest.oauth2?.scopes;
 
       const forbiddenScopes = [
         "https://www.googleapis.com/auth/drive",
@@ -214,39 +235,47 @@ describe("Google Drive Scope Compliance Integration", () => {
   describe("Complete Workflow Integration", () => {
     it("should complete file selection and setup workflow", async () => {
       const adapter = new GoogleDriveAdapter();
-      await adapter.initialize(mockCredentials);
 
-      // Mock responses for complete workflow
-      const mockCreateResponse = {
-        ok: true,
-        json: () => Promise.resolve({ id: "file123", name: "personal.json" }),
-      };
-      const mockValidateResponse = {
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            id: "file123",
-            name: "personal.json",
-            mimeType: "application/json",
-            permissions: [{ role: "owner" }],
-          }),
-      };
-      const mockAccessResponse = {
-        ok: true,
-        text: () => Promise.resolve("{}"),
-      };
-      const mockConfigResponse = {
-        ok: true,
-        json: () => Promise.resolve({ files: [] }),
-      };
-
+      // Setup mock responses for the workflow
       mockFetch
-        .mockResolvedValueOnce(mockCreateResponse as any)
-        .mockResolvedValueOnce(mockValidateResponse as any)
-        .mockResolvedValueOnce(mockAccessResponse as any)
-        .mockResolvedValueOnce(mockValidateResponse as any)
-        .mockResolvedValueOnce(mockConfigResponse as any)
-        .mockResolvedValueOnce(mockCreateResponse as any);
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ id: "file123", name: "personal.json" }),
+        } as any) // Create file
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "file123",
+              name: "personal.json",
+              mimeType: "application/json",
+              permissions: [{ role: "owner" }],
+            }),
+        } as any) // Validate file
+        .mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve("{}"),
+        } as any) // Test access
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "file123",
+              name: "personal.json",
+              mimeType: "application/json",
+              permissions: [{ role: "owner" }],
+            }),
+        } as any) // Second validate
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ files: [] }),
+        } as any) // Config search
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ id: "config123" }),
+        } as any); // Config upload
+
+      await adapter.initialize(mockCredentials);
 
       // Step 1: Create snippet store file
       const createdFile = await adapter.createSnippetStoreFile("personal");
@@ -288,22 +317,21 @@ describe("Google Drive Scope Compliance Integration", () => {
       await adapter.storeUserConfiguration(config);
 
       // Verify all operations completed successfully
-      expect(mockFetch).toHaveBeenCalledTimes(6);
+      expect(mockFetch).toHaveBeenCalledTimes(8);
     });
 
     it("should handle permission errors gracefully", async () => {
       const adapter = new GoogleDriveAdapter();
-      await adapter.initialize(mockCredentials);
 
-      // Mock permission denied response
-      const mockPermissionError = {
+      // Mock permission denied response for file creation
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 403,
         statusText: "Forbidden",
         text: () => Promise.resolve("Permission denied"),
-      };
+      } as any);
 
-      mockFetch.mockResolvedValue(mockPermissionError as any);
+      await adapter.initialize(mockCredentials);
 
       await expect(adapter.createSnippetStoreFile("personal")).rejects.toThrow(
         "Permission denied",
@@ -344,7 +372,21 @@ describe("Google Drive Scope Compliance Integration", () => {
 
   describe("Error Handling and Fallbacks", () => {
     it("should handle network errors gracefully", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      // Completely reset and reconfigure the mock for this specific test
+      mockFetch.mockReset();
+      mockFetch.mockImplementation((url) => {
+        if (
+          typeof url === "string" &&
+          url.includes("www.googleapis.com/upload/drive/v3/files")
+        ) {
+          return Promise.reject(new Error("Network error"));
+        }
+        // Return successful response for any other calls
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: "file123", name: "test.json" }),
+        } as any);
+      });
 
       await expect(
         GoogleDriveFilePickerService.createSnippetStoreFile(mockCredentials, {
@@ -368,14 +410,13 @@ describe("Google Drive Scope Compliance Integration", () => {
     });
 
     it("should handle quota exceeded errors", async () => {
-      const mockQuotaError = {
+      // Mock quota error for the appdata search call
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         statusText: "Too Many Requests",
         text: () => Promise.resolve("Quota exceeded"),
-      };
-
-      mockFetch.mockResolvedValue(mockQuotaError as any);
+      } as any);
 
       await expect(
         GoogleDriveAppDataManager.uploadToAppData(
@@ -383,7 +424,9 @@ describe("Google Drive Scope Compliance Integration", () => {
           "puffpuffpaste-config.json",
           "content",
         ),
-      ).rejects.toThrow("Quota exceeded");
+      ).rejects.toThrow(
+        "Failed to upload puffpuffpaste-config.json to appdata: Failed to search appdata: Too Many Requests",
+      );
     });
 
     it("should handle file not found errors", async () => {
@@ -445,8 +488,8 @@ describe("Google Drive Scope Compliance Integration", () => {
         driveFiles: {
           selectedFiles: Array.from({ length: 1000 }, (_, i) => `file${i}`),
           permissions: Object.fromEntries(
-            Array.from({ length: 1000 }, (_, i) => [`file${i}`, "write"]),
-          ),
+            Array.from({ length: 1000 }, (_, i) => [`file${i}`, "write" as const]),
+          ) as Record<string, "read" | "write">,
         },
         lastSync: new Date().toISOString(),
         created: new Date().toISOString(),

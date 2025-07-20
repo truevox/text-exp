@@ -172,7 +172,7 @@ export class LaTeXPreviewRenderer {
         return {
           success: false,
           html: this.convertLaTeXToHTML(content),
-          errors: [`Math rendering error: ${mathError.message}`],
+          errors: [`Math rendering error: ${(mathError as Error).message}`],
         };
       }
     } catch (error) {
@@ -326,7 +326,7 @@ export class LaTeXPreviewRenderer {
         document.body.removeChild(testContainer);
         return {
           isValid: false,
-          errors: [error.message || "Invalid math expression"],
+          errors: [(error as Error).message || "Invalid math expression"],
         };
       }
     } catch (error) {

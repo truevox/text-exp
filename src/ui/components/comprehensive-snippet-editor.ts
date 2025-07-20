@@ -594,11 +594,14 @@ export class ComprehensiveSnippetEditor {
       case "add-variable":
         this.showAddVariableDialog();
         break;
+      case "add-image":
+        this.handleAddImageClick();
+        break;
       case "add-dependency":
         this.addDependency();
         break;
-      case "add-image":
-        this.addImage();
+      default:
+        console.warn(`Unknown action: ${action}`);
         break;
     }
   }
@@ -607,7 +610,7 @@ export class ComprehensiveSnippetEditor {
    * Extract variables from content and sync with variables list
    */
   private extractAndSyncVariables(content: string): void {
-    const extractedVars = this.extractVariables(content);
+    const extractedVars = this.extractVariablesFromText(content);
 
     if (!this.currentSnippet) return;
 
@@ -1094,7 +1097,7 @@ export class ComprehensiveSnippetEditor {
     } else {
       // Update existing snippet
       const index = updatedTierData.snippets.findIndex(
-        (s) => s.id === this.currentSnippet!.id,
+        (s: any) => s.id === this.currentSnippet!.id,
       );
       if (index !== -1) {
         updatedTierData.snippets[index] = this.currentSnippet!;
@@ -1172,11 +1175,11 @@ export class ComprehensiveSnippetEditor {
    * Show add variable dialog
    */
   private showAddVariableDialog(): void {
-    const name = prompt("Variable name:");
-    const prompt = name ? window.prompt("Prompt text:") : null;
+    const name = window.prompt("Variable name:");
+    const promptText = name ? window.prompt("Prompt text:") : null;
 
-    if (name && prompt) {
-      this.addVariable({ name, prompt });
+    if (name && promptText) {
+      this.addVariable({ name, prompt: promptText });
     }
   }
 
@@ -1194,9 +1197,9 @@ export class ComprehensiveSnippetEditor {
   }
 
   /**
-   * Add image
+   * Handle add image button click - reads from input and adds image
    */
-  private addImage(): void {
+  private handleAddImageClick(): void {
     const input = this.formElements.imagesContainer?.querySelector(
       ".image-input",
     ) as HTMLInputElement;

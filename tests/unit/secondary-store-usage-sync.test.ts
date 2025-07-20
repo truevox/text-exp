@@ -30,9 +30,9 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
     userId: "user-1",
     userName: "Alice",
     usageCount: 5,
-    firstUsed: new Date("2024-01-01T10:00:00.000Z"),
-    lastUsed: new Date("2024-01-05T15:30:00.000Z"),
-    syncedAt: new Date("2024-01-05T16:00:00.000Z"),
+    firstUsed: new Date("2025-07-15T10:00:00.000Z"),
+    lastUsed: new Date("2025-07-18T15:30:00.000Z"),
+    syncedAt: new Date("2025-07-18T16:00:00.000Z"),
     version: 1,
     deviceId: "device-1",
     metadata: { contentType: "text", tags: ["test"] },
@@ -43,9 +43,9 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
     userId: "user-2",
     userName: "Bob",
     usageCount: 3,
-    firstUsed: new Date("2024-01-02T09:00:00.000Z"),
-    lastUsed: new Date("2024-01-04T14:20:00.000Z"),
-    syncedAt: new Date("2024-01-04T15:00:00.000Z"),
+    firstUsed: new Date("2025-07-10T09:00:00.000Z"),
+    lastUsed: new Date("2025-07-18T14:20:00.000Z"),
+    syncedAt: new Date("2025-07-18T15:00:00.000Z"),
     version: 1,
     deviceId: "device-2",
     metadata: { contentType: "html", tags: ["test", "work"] },
@@ -55,7 +55,7 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
     ...mockLocalEntry,
     userId: "user-1", // Same user as we'll use in local entry
     usageCount: 7, // Different count - conflict
-    lastUsed: new Date("2024-01-06T12:00:00.000Z"), // Later timestamp
+    lastUsed: new Date("2025-07-19T12:00:00.000Z"), // Later timestamp
     version: 2,
   };
 
@@ -86,8 +86,8 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
         {
           snippet_id: "snippet-1",
           usage_count: 5,
-          first_used: "2024-01-01T10:00:00.000Z",
-          last_used: "2024-01-05T15:30:00.000Z",
+          first_used: "2025-07-15T10:00:00.000Z",
+          last_used: "2025-07-18T15:30:00.000Z",
           content_type: "text",
           tags: ["test"],
         },
@@ -101,9 +101,13 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
       hasUsageData: jest.fn().mockResolvedValue(true),
       getLastSyncTimestamp: jest
         .fn()
-        .mockResolvedValue(new Date("2024-01-01T00:00:00.000Z")),
+        .mockResolvedValue(new Date("2025-07-01T00:00:00.000Z")),
       updateLastSyncTimestamp: jest.fn().mockResolvedValue(undefined),
     };
+
+    // Reset global singleton and set up with mock cloud adapter
+    const usageSyncModule = require("../../src/storage/secondary-store-usage-sync");
+    usageSyncModule.globalUsageSync = null;
 
     sync = new SecondaryStoreUsageSync(
       {
@@ -113,6 +117,9 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
       },
       mockCloudAdapter,
     );
+
+    // Set the global instance to our properly configured sync
+    usageSyncModule.globalUsageSync = sync;
   });
 
   afterEach(async () => {
@@ -603,10 +610,7 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
 
   describe("Helper Functions", () => {
     it("should sync store usage with helper function", async () => {
-      // Reset singleton
-      const usageSyncModule = require("../../src/storage/secondary-store-usage-sync");
-      usageSyncModule.globalUsageSync = null;
-
+      // Use the existing sync instance (which has a cloud adapter)
       const result = await syncStoreUsage("test-store", mockUsageTracker);
 
       expect(result).toBeDefined();
@@ -614,10 +618,6 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
     });
 
     it("should sync with custom config", async () => {
-      // Reset singleton
-      const usageSyncModule = require("../../src/storage/secondary-store-usage-sync");
-      usageSyncModule.globalUsageSync = null;
-
       const customConfig = {
         ...DEFAULT_USAGE_SYNC_CONFIG,
         maxRetries: 5,

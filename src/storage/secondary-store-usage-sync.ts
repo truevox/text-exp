@@ -217,7 +217,23 @@ export class SecondaryStoreUsageSync {
   /**
    * Sync usage data for a specific store
    */
-  async syncStore(
+  syncStore(
+    storeId: string,
+    usageTracker: SecondaryStoreUsageTracker,
+  ): Promise<SyncResult> {
+    // Check if sync is already in progress
+    if (this.activeSyncs.has(storeId)) {
+      return this.activeSyncs.get(storeId)!;
+    }
+
+    // Create the complete sync promise and store it immediately
+    const syncPromise = this.executeSyncOperation(storeId, usageTracker);
+    this.activeSyncs.set(storeId, syncPromise);
+
+    return syncPromise;
+  }
+
+  private async executeSyncOperation(
     storeId: string,
     usageTracker: SecondaryStoreUsageTracker,
   ): Promise<SyncResult> {
@@ -237,19 +253,12 @@ export class SecondaryStoreUsageSync {
       },
     };
 
-    // Check if sync is already in progress
-    if (this.activeSyncs.has(storeId)) {
-      return this.activeSyncs.get(storeId)!;
-    }
-
-    const syncPromise = this.performSync(storeId, usageTracker, result);
-    this.activeSyncs.set(storeId, syncPromise);
-
     try {
-      await syncPromise;
+      await this.performSync(storeId, usageTracker, result);
       result.success = true;
     } catch (error) {
-      result.errors.push(error.message);
+      result.success = false;
+      result.errors.push((error as Error).message);
       console.error(`❌ Sync failed for store ${storeId}:`, error);
     } finally {
       result.syncDurationMs = Date.now() - startTime;
@@ -280,34 +289,29 @@ export class SecondaryStoreUsageSync {
       console.log(`🔄 Starting sync for store: ${storeId}`);
     }
 
-    try {
-      // Get local usage data
-      const localEntries = await this.getLocalUsageEntries(usageTracker);
+    // Get local usage data
+    const localEntries = await this.getLocalUsageEntries(usageTracker);
 
-      // Get remote usage data
-      const remoteEntries = await this.getRemoteUsageEntries(storeId);
+    // Get remote usage data
+    const remoteEntries = await this.getRemoteUsageEntries(storeId);
 
-      // Merge and resolve conflicts
-      const mergedEntries = await this.mergeUsageEntries(
-        localEntries,
-        remoteEntries,
-        result,
-      );
+    // Merge and resolve conflicts
+    const mergedEntries = await this.mergeUsageEntries(
+      localEntries,
+      remoteEntries,
+      result,
+    );
 
-      // Upload merged data
-      await this.uploadMergedEntries(storeId, mergedEntries, result);
+    // Upload merged data
+    await this.uploadMergedEntries(storeId, mergedEntries, result);
 
-      // Update local usage tracker with merged data
-      await this.updateLocalUsageTracker(usageTracker, mergedEntries, result);
+    // Update local usage tracker with merged data
+    await this.updateLocalUsageTracker(usageTracker, mergedEntries, result);
 
-      result.entriesSynced = mergedEntries.length;
+    result.entriesSynced = mergedEntries.length;
 
-      if (this.config.enableDebugLogging) {
-        console.log(`✅ Sync completed for store: ${storeId}`, result);
-      }
-    } catch (error) {
-      // Re-throw to be caught by the calling function
-      throw error;
+    if (this.config.enableDebugLogging) {
+      console.log(`✅ Sync completed for store: ${storeId}`, result);
     }
   }
 
@@ -327,20 +331,21 @@ export class SecondaryStoreUsageSync {
       // Convert recent usage to sync entries
       for (const usage of recentUsage) {
         const entry: SyncUsageEntry = {
-          snippetId: usage.snippet_id,
-          userId: this.config.currentUserId || "unknown",
+          snippetId: usage.snippetId,
+          userId: usage.userId || this.config.currentUserId || "unknown",
           userName: this.config.enablePrivacyMode
-            ? this.anonymizeUserName(this.config.currentUserName || "unknown")
-            : this.config.currentUserName || "unknown",
-          usageCount: usage.usage_count,
-          firstUsed: new Date(usage.first_used),
-          lastUsed: new Date(usage.last_used),
+            ? this.anonymizeUserName(usage.userName || this.config.currentUserName || "unknown")
+            : usage.userName || this.config.currentUserName || "unknown",
+          usageCount: 1, // SecondaryStoreUsageEvent doesn't have usage_count
+          firstUsed: usage.timestamp, // Use timestamp as both first and last
+          lastUsed: usage.timestamp,
           syncedAt: new Date(),
           version: 1,
           deviceId: this.getDeviceId(),
           metadata: {
-            contentType: usage.content_type,
-            tags: usage.tags,
+            eventType: usage.eventType,
+            context: usage.context,
+            ...usage.metadata,
           },
         };
         entries.push(entry);
@@ -349,7 +354,8 @@ export class SecondaryStoreUsageSync {
       return entries;
     } catch (error) {
       console.error("❌ Failed to get local usage entries:", error);
-      return [];
+      // Re-throw the error to fail the entire sync operation
+      throw error;
     }
   }
 
@@ -361,6 +367,9 @@ export class SecondaryStoreUsageSync {
   ): Promise<SyncUsageEntry[]> {
     try {
       if (!this.cloudAdapter) {
+        if (this.config.enableDebugLogging) {
+          console.log("❌ No cloud adapter available");
+        }
         return [];
       }
 
@@ -378,7 +387,8 @@ export class SecondaryStoreUsageSync {
       return entries.filter((entry) => entry.lastUsed >= cutoffDate);
     } catch (error) {
       console.error("❌ Failed to get remote usage entries:", error);
-      return [];
+      // Re-throw the error to fail the entire sync operation
+      throw error;
     }
   }
 
@@ -529,7 +539,7 @@ export class SecondaryStoreUsageSync {
 
       result.statistics!.entriesUploaded = mergedEntries.length;
     } catch (error) {
-      throw new Error(`Failed to upload merged entries: ${error.message}`);
+      throw new Error(`Failed to upload merged entries: ${(error as Error).message}`);
     }
   }
 

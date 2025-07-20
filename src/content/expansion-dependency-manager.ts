@@ -129,6 +129,9 @@ export interface DependencyErrorHandling {
   /** How to handle permission denied errors */
   permissionDeniedStrategy: "FAIL" | "WARN" | "FALLBACK" | "IGNORE";
 
+  /** How to handle recursion depth exceeded errors */
+  recursionStrategy: "FAIL" | "WARN" | "BREAK" | "IGNORE";
+
   /** How to handle network errors */
   networkErrorStrategy: "FAIL" | "WARN" | "RETRY" | "FALLBACK";
 
@@ -328,6 +331,9 @@ export interface ExpansionError {
 
   /** Error code for programmatic handling */
   errorCode?: string;
+
+  /** Timestamp when error occurred */
+  timestamp?: number;
 }
 
 /**
@@ -577,6 +583,7 @@ export const DEFAULT_ERROR_HANDLING: DependencyErrorHandling = {
   missingDependencyStrategy: "WARN",
   circularDependencyStrategy: "WARN",
   permissionDeniedStrategy: "WARN",
+  recursionStrategy: "WARN",
   networkErrorStrategy: "RETRY",
   maxRetryAttempts: 3,
   retryDelay: 1000,
@@ -749,7 +756,10 @@ export class ExpansionDependencyManager {
   private cache = new Map<string, ExpansionCacheEntry>();
   private hooks: ExpansionHook[] = [];
   private stats: ExpansionStats;
-  private activeResolutions = new Map<string, Promise<ResolvedDependency>>();
+  private activeResolutions = new Map<
+    string,
+    Promise<ResolvedDependency | null>
+  >();
   private currentExpansionErrors: ExpansionError[] = [];
 
   constructor(
@@ -900,7 +910,7 @@ export class ExpansionDependencyManager {
         await logExpansionUsage(
           originalSnippet,
           false,
-          `Dependency expansion failed: ${error.message}`,
+          `Dependency expansion failed: ${(error as Error).message}`,
           {
             targetElement: "dependency-resolved",
             url:
@@ -921,15 +931,15 @@ export class ExpansionDependencyManager {
 
       // Determine error type based on error message
       let errorType: ExpansionErrorType = "UNKNOWN_ERROR";
-      if (error.message.includes("Circular dependency")) {
+      if ((error as Error).message.includes("Circular dependency")) {
         errorType = "CIRCULAR_DEPENDENCY";
-      } else if (error.message.includes("Maximum recursion depth")) {
+      } else if ((error as Error).message.includes("Maximum recursion depth")) {
         errorType = "RECURSIVE_LIMIT_EXCEEDED";
       }
 
       return this.createErrorResult(
         errorType,
-        `Expansion failed: ${error.message}`,
+        `Expansion failed: ${(error as Error).message}`,
         snippet,
         context,
         startTime,
@@ -2058,8 +2068,35 @@ export class ExpansionDependencyManager {
     error: any,
     context: DependencyResolutionContext,
   ): void {
-    // TODO: Implement error handling based on context.errorHandling
     console.error("Dependency resolution error:", error);
+
+    // Check if this is a circular dependency error and strategy is FAIL
+    if (error.message && error.message.includes("Circular dependency")) {
+      if (context.errorHandling?.circularDependencyStrategy === "FAIL") {
+        // Re-throw the error to propagate it up and fail the expansion
+        throw error;
+      }
+    }
+
+    // Check if this is a recursion depth error and strategy is FAIL
+    if (error.message && error.message.includes("Maximum recursion depth")) {
+      if (context.errorHandling?.recursionStrategy === "FAIL") {
+        // Re-throw the error to propagate it up and fail the expansion
+        throw error;
+      }
+    }
+
+    // For other errors or non-FAIL strategies, just add to current expansion errors
+    this.currentExpansionErrors.push({
+      type: (error as Error).message?.includes("Circular dependency")
+        ? "CIRCULAR_DEPENDENCY"
+        : "UNKNOWN_ERROR",
+      message:
+        (error as Error).message || "Unknown dependency resolution error",
+      severity: "ERROR",
+      errorCode: "DEPENDENCY_RESOLUTION_ERROR",
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -2115,14 +2152,19 @@ export class ExpansionDependencyManager {
       id: enhanced.id,
       trigger: enhanced.trigger,
       content: enhanced.content,
-      contentType: enhanced.contentType || "text",
+      contentType: enhanced.contentType,
       scope: enhanced.scope || "personal",
       description: enhanced.description || "",
-      variables: enhanced.variables || [],
+      variables: (enhanced.variables || []).map((v) => ({
+        name: v.name,
+        placeholder: v.prompt || v.name,
+        defaultValue: v.defaultValue,
+        required: false,
+        type: "text" as const,
+      })),
       tags: enhanced.tags || [],
       createdAt: enhanced.createdAt ? new Date(enhanced.createdAt) : new Date(),
       updatedAt: enhanced.updatedAt ? new Date(enhanced.updatedAt) : new Date(),
-      storeFileName: enhanced.storeFileName,
     };
   }
 }

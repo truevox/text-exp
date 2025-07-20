@@ -455,10 +455,10 @@ export class ExpansionDeduplicator {
    */
   private getSnippetContentType(
     snippet: TextSnippet | EnhancedSnippet,
-  ): string {
+  ): "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX" | "text" {
     if ("contentType" in snippet && snippet.contentType) {
       return snippet.contentType;
     }
-    return "text"; // Default fallback
+    return "plaintext"; // Default fallback
   }
 }

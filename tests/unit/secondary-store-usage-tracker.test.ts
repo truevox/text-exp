@@ -25,7 +25,7 @@ describe("SecondaryStoreUsageTracker - Phase 3 Per-Store Analytics", () => {
   const createTestSnippet = (
     id: string,
     trigger: string,
-    contentType: "text" | "html" = "html",
+    contentType: "plaintext" | "html" = "html",
   ): TextSnippet => ({
     id,
     trigger,
@@ -104,7 +104,7 @@ describe("SecondaryStoreUsageTracker - Phase 3 Per-Store Analytics", () => {
 
     it("should track usage for different snippet types", async () => {
       const htmlSnippet = createTestSnippet("html-1", "!html", "html");
-      const textSnippet = createTestSnippet("text-1", "!text", "text");
+      const textSnippet = createTestSnippet("text-1", "!text", "plaintext");
 
       await expect(tracker.trackUsage(htmlSnippet)).resolves.not.toThrow();
       await expect(tracker.trackUsage(textSnippet)).resolves.not.toThrow();

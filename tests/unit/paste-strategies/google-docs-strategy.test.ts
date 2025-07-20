@@ -110,6 +110,7 @@ describe("GoogleDocsPasteStrategy", () => {
         editorName: "Google Docs",
         detectionConfidence: 0.96,
         detectionMethod: "google-docs-editor-rule",
+        timestamp: Date.now(),
       },
     };
 
@@ -137,6 +138,7 @@ describe("GoogleDocsPasteStrategy", () => {
         editorName: "Text Input",
         detectionConfidence: 0.9,
         detectionMethod: "text-input-rule",
+        timestamp: Date.now(),
       },
     };
 

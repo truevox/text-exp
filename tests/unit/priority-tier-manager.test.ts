@@ -242,7 +242,7 @@ describe("Enhanced PriorityTierManager - Phase 2", () => {
         "../../src/storage/json-serializer.js"
       );
       const serializeSpy = jest
-        .spyOn(JsonSerializer, "serialize")
+        .spyOn(JsonSerializer, "serializeToString")
         .mockImplementation(() => {
           throw new Error("Serialization failed");
         });

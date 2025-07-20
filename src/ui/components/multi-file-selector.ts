@@ -79,7 +79,7 @@ export class MultiFileSelector {
     this.container = container;
     this.createInterface();
     this.setupEventHandlers();
-    this.updateSelectionDisplay();
+    this.updateSelectionSummary();
     this.isInitialized = true;
   }
 

@@ -1,0 +1,70 @@
+name: Test Pipeline
+on:
+  push:
+    branches: [main, develop, descoping]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.44.0-focal
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type checking
+        run: npm run type-check
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm run test:unit -- --runInBand --coverage
+
+      - name: Upload unit test coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unit
+
+      - name: Run Playwright integration tests
+        run: npm run test:integration
+        env:
+          PLAYWRIGHT_MCP_SERVER: ${{ secrets.MCP_SERVER_URL }}
+          PLAYWRIGHT_MCP_API_KEY: ${{ secrets.MCP_SERVER_KEY }}
+
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_MCP_SERVER: ${{ secrets.MCP_SERVER_URL }}
+          PLAYWRIGHT_MCP_API_KEY: ${{ secrets.MCP_SERVER_KEY }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7

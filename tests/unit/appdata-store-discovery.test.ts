@@ -40,18 +40,33 @@ describe("Appdata Store Discovery", () => {
   describe("discoverAppDataStore", () => {
     it("should discover existing Priority #0 store", async () => {
       const mockPriorityStore: TierStorageSchema = {
-        tier: "priority-0",
-        version: "1.0.0",
+        schema: "priority-tier-v1",
+        tier: "personal",
         snippets: [
           {
             id: "priority-snippet-1",
             trigger: "hp",
             content: "High Priority Snippet",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            contentType: "plaintext" as const,
+            snipDependencies: [],
+            description: "High priority snippet for testing",
+            scope: "personal" as const,
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(),
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(),
+            updatedBy: "test-user",
           },
         ],
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+          description: "Priority store for testing",
+        },
       };
 
       (
@@ -65,8 +80,8 @@ describe("Appdata Store Discovery", () => {
       expect(result.snippets[0].trigger).toBe("hp");
       expect(result.storeInfo).toEqual({
         name: "Priority #0 Store",
-        tier: "priority-0",
-        lastModified: mockPriorityStore.lastModified,
+        tier: "personal",
+        lastModified: mockPriorityStore.metadata.modified,
       });
     });
 
@@ -106,25 +121,49 @@ describe("Appdata Store Discovery", () => {
   describe("Priority #0 Store Integration", () => {
     it("should return store with correct tier information", async () => {
       const mockPriorityStore: TierStorageSchema = {
-        tier: "priority-0",
-        version: "1.0.0",
+        schema: "priority-tier-v1",
+        tier: "personal",
         snippets: [
           {
             id: "priority-snippet-1",
             trigger: "urgent",
             content: "Urgent message template",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            contentType: "plaintext" as const,
+            snipDependencies: [],
+            description: "Urgent message template",
+            scope: "personal" as const,
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(),
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(),
+            updatedBy: "test-user",
           },
           {
             id: "priority-snippet-2",
             trigger: "crit",
             content: "Critical issue template",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            contentType: "plaintext" as const,
+            snipDependencies: [],
+            description: "Critical issue template",
+            scope: "personal" as const,
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(),
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(),
+            updatedBy: "test-user",
           },
         ],
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+          description: "Priority store for testing",
+        },
       };
 
       (
@@ -146,18 +185,33 @@ describe("Appdata Store Discovery", () => {
     it("should preserve snippet metadata from appdata store", async () => {
       const mockDate = new Date("2023-01-01T00:00:00Z");
       const mockPriorityStore: TierStorageSchema = {
-        tier: "priority-0",
-        version: "1.0.0",
+        schema: "priority-tier-v1",
+        tier: "personal",
         snippets: [
           {
             id: "priority-snippet-1",
             trigger: "test",
             content: "Test content",
-            createdAt: mockDate,
-            updatedAt: mockDate,
+            contentType: "plaintext" as const,
+            snipDependencies: [],
+            description: "Test content snippet",
+            scope: "personal" as const,
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: mockDate.toISOString(),
+            createdBy: "test-user",
+            updatedAt: mockDate.toISOString(),
+            updatedBy: "test-user",
           },
         ],
-        lastModified: "2023-01-01T00:00:00Z",
+        metadata: {
+          version: "1.0.0",
+          created: "2023-01-01T00:00:00Z",
+          modified: "2023-01-01T00:00:00Z",
+          owner: "test-user",
+          description: "Test priority store",
+        },
       };
 
       (

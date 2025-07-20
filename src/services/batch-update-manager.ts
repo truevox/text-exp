@@ -382,13 +382,23 @@ export class BatchUpdateManager {
           console.log(
             `🔀 Merging with existing snippet in ${store.storeFileName}`,
           );
-          operation.snippet = await this.mergeSnippets(
-            existingSnippet,
+          const enhancedOperation = this.convertToEnhancedSnippet(
             operation.snippet,
+            store,
           );
+          const mergedEnhanced = await this.mergeSnippets(
+            existingSnippet,
+            enhancedOperation,
+          );
+          // Convert back to TextSnippet for operation
+          operation.snippet = this.convertToTextSnippet(mergedEnhanced);
           break;
       }
       result.previousVersion = existingSnippet;
+    }
+
+    if (!operation.snippet) {
+      throw new Error("Snippet data required for create operation");
     }
 
     const enhancedSnippet = this.convertToEnhancedSnippet(
@@ -512,6 +522,30 @@ export class BatchUpdateManager {
       createdBy: "user",
       updatedAt: snippet.updatedAt.toISOString(),
       updatedBy: "user",
+    };
+  }
+
+  /**
+   * Convert EnhancedSnippet to TextSnippet
+   */
+  private convertToTextSnippet(snippet: EnhancedSnippet): TextSnippet {
+    return {
+      id: snippet.id,
+      trigger: snippet.trigger,
+      content: snippet.content,
+      contentType: snippet.contentType === "html" ? "html" : "plaintext",
+      description: snippet.description,
+      scope: snippet.scope,
+      variables: snippet.variables?.map((v) => ({
+        name: v.name,
+        placeholder: v.prompt || v.name,
+        defaultValue: "",
+        required: false,
+        type: "text",
+      })) || [],
+      tags: snippet.tags,
+      createdAt: new Date(snippet.createdAt),
+      updatedAt: new Date(snippet.updatedAt),
     };
   }
 

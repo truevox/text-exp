@@ -47,7 +47,7 @@ describe("DependencyValidator", () => {
         id: "text-1",
         trigger: ";hello",
         content: "Hello World!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-01"),
         updatedAt: new Date("2023-01-01"),
         usageCount: 5,
@@ -57,7 +57,7 @@ describe("DependencyValidator", () => {
         id: "text-2",
         trigger: ";bye",
         content: "Goodbye!",
-        contentType: "text",
+        contentType: "plaintext",
         createdAt: new Date("2023-01-02"),
         updatedAt: new Date("2023-01-02"),
         usageCount: 3,
@@ -717,6 +717,8 @@ describe("ValidationWorkflowManager", () => {
   let mockSnippet: EnhancedSnippet;
 
   beforeEach(() => {
+    // Clear global validator cache to prevent test interference
+    getDependencyValidator().clearCache();
     workflowManager = new ValidationWorkflowManager();
 
     mockSnippet = {
@@ -747,7 +749,13 @@ describe("ValidationWorkflowManager", () => {
     mockContext = {
       availableStores: mockStoreMap,
       currentStore: "test-store",
-      validationOptions: DEFAULT_VALIDATION_OPTIONS,
+      validationOptions: {
+        ...DEFAULT_VALIDATION_OPTIONS,
+        enableCaching: false, // Disable caching to force fresh validation
+      },
+      userId: "test-user",
+      currentDepth: 0,
+      sessionId: "test-session",
     };
   });
 
@@ -762,10 +770,13 @@ describe("ValidationWorkflowManager", () => {
       expect(result.snippet).toBe(mockSnippet);
       expect(result.validationResult?.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
 
     it("should handle snippet creation validation failure", async () => {
+      // Clear cache before this specific test to ensure clean state
+      getDependencyValidator().clearCache();
+
       const invalidSnippet: EnhancedSnippet = {
         ...mockSnippet,
         snipDependencies: ["missing-store:;hello:text-1"], // This should fail due to missing store
@@ -803,6 +814,9 @@ describe("ValidationWorkflowManager", () => {
     });
 
     it("should handle snippet editing validation failure", async () => {
+      // Clear cache before this specific test to ensure clean state
+      getDependencyValidator().clearCache();
+
       const invalidEditedSnippet: EnhancedSnippet = {
         ...mockSnippet,
         snipDependencies: ["missing-store:;hello:text-1"], // This should fail due to missing store

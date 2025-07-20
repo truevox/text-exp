@@ -376,6 +376,37 @@ export class DependencyValidator {
       },
     );
 
+    // Safety net: If resolver incorrectly validates missing stores as valid, catch them here
+    if (
+      resolverResult.isValid &&
+      context.validationOptions.validateStoreExistence
+    ) {
+      const availableStoreIds = Object.keys(context.availableStores);
+
+      for (const dependency of dependencies) {
+        const storeId = dependency.split(":")[0];
+
+        if (storeId && !availableStoreIds.includes(storeId)) {
+          const error: ValidationError = {
+            type: "MISSING_STORE",
+            dependency,
+            message: `Store "${storeId}" does not exist`,
+            severity: "ERROR",
+          };
+
+          return this.createValidationResult(
+            false,
+            [error],
+            [],
+            [],
+            [],
+            context,
+            startTime,
+          );
+        }
+      }
+    }
+
     // Convert resolver result to validation result
     let validationResult = this.convertResolverResult(
       resolverResult,
@@ -398,7 +429,8 @@ export class DependencyValidator {
     // Perform deep validation if enabled
     if (
       context.validationOptions.deepValidation &&
-      context.currentDepth < context.validationOptions.maxValidationDepth
+      (context.currentDepth || 0) <
+        (context.validationOptions.maxValidationDepth || 10)
     ) {
       validationResult = await this.performDeepValidation(
         validationResult,
@@ -494,7 +526,7 @@ export class DependencyValidator {
         const validationError: ValidationError = {
           type: "VALIDATION_TIMEOUT",
           dependency: snippet.id,
-          message: `Validation failed for snippet "${snippet.id}": ${error.message}`,
+          message: `Validation failed for snippet "${snippet.id}": ${(error as Error).message}`,
           severity: "ERROR",
           affectedSnippets: [snippet.id],
         };
@@ -588,7 +620,7 @@ export class DependencyValidator {
           deepErrors.push({
             type: "VALIDATION_TIMEOUT",
             dependency,
-            message: `Deep validation failed for dependency "${dependency}": ${error.message}`,
+            message: `Deep validation failed for dependency "${dependency}": ${(error as Error).message}`,
             severity: "ERROR",
           });
         }
@@ -674,7 +706,7 @@ export class DependencyValidator {
       (warning) => ({
         message: warning,
         dependency: warning,
-        severity: "WARNING" as ValidationSeverity,
+        severity: "WARNING",
       }),
     );
 
@@ -1099,7 +1131,7 @@ export class ValidationWorkflowManager {
       const validationError: ValidationError = {
         type: "VALIDATION_TIMEOUT",
         dependency: snippet.id,
-        message: `Snippet creation validation failed: ${error.message}`,
+        message: `Snippet creation validation failed: ${(error as Error).message}`,
         severity: "ERROR",
       };
 
@@ -1172,7 +1204,7 @@ export class ValidationWorkflowManager {
       const validationError: ValidationError = {
         type: "VALIDATION_TIMEOUT",
         dependency: editedSnippet.id,
-        message: `Snippet editing validation failed: ${error.message}`,
+        message: `Snippet editing validation failed: ${(error as Error).message}`,
         severity: "ERROR",
       };
 
@@ -1243,7 +1275,7 @@ export class ValidationWorkflowManager {
       const validationError: ValidationError = {
         type: "VALIDATION_TIMEOUT",
         dependency: snippet.id,
-        message: `Storage operation validation failed: ${error.message}`,
+        message: `Storage operation validation failed: ${(error as Error).message}`,
         severity: "ERROR",
       };
 

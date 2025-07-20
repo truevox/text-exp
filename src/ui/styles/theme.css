@@ -1,0 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --primary-blue: #0087d2;
+  --light-blue: #7fd5ff;
+  --pale-blue: #c0eaff;
+  --background: #f8fcff;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --text-dark: #1a365d;
+  --text-light: #4a5568;
+  --accent-coral: #ff6b47;
+  --accent-yellow: #ffd93d;
+  --accent-purple: #a855f7;
+  --accent-pink: #ec4899;
+  --accent-green: #10b981;
+  --glow-blue: rgba(0, 135, 210, 0.6);
+  --glow-coral: rgba(255, 107, 71, 0.4);
+
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Fredoka", sans-serif;
+}

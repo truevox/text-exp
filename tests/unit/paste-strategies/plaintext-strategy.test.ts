@@ -270,7 +270,7 @@ describe("PlaintextPasteStrategy", () => {
 
       expect(result.success).toBe(true);
       expect(result.method).toBe("direct");
-      expect(mockInputTarget.element.value).toBe("existpasted texting text");
+      expect((mockInputTarget.element as any).value).toBe("existpasted texting text");
       expect(mockSetSelectionRange).toHaveBeenCalledWith(16, 16);
     });
 
@@ -292,7 +292,7 @@ describe("PlaintextPasteStrategy", () => {
 
       expect(result.success).toBe(true);
       expect(result.method).toBe("direct");
-      expect(mockTextareaTarget.element.value).toBe("existpasted texting text");
+      expect((mockTextareaTarget.element as any).value).toBe("existpasted texting text");
     });
 
     test("should handle paste errors", async () => {

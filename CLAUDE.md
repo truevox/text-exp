@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**IMPORTANT: For latest context and priorities and direction, see PICK-UP-HERE.md**
+
 ## Preamble
 
 My name is Marvin Bentley II. If you expect me to test something, you must have bumped the version number (either fix or feature) from the last time you had me test.
@@ -232,12 +234,22 @@ Examples:
 
 ---
 
-## 🤖 Agent Behaviour Notes
+## 🤖 Task Organization & Agent Behaviour Notes
+
+### 📋 **Important: "Agent" Terminology Clarification**
+
+When this documentation refers to "agents" in planning contexts (e.g., "Agent-PriorityTier", "second agent"), these are **organizational task group labels**, NOT separate files or programs. These represent:
+
+- **Task groups** that Claude tackles systematically
+- **Potential use** of the Task tool to spawn Gemini sub‑agents when more token-efficient
+- **Organizational methodology** for complex multi-step work, not literal separate entities
+
+### 🎯 **Systematic Approach**
 
 - Follow **Think → Plan → Code → Commit**.
-- Use **sub‑agents** for large scopes.
+- Use **Gemini sub‑agents** (via Task tool) for large scopes when token-efficient.
 - Always start with failing tests.
-- Request peer review / second agent where useful.
+- Consider spawning focused sub-agents for research-heavy tasks or large file analysis.
 
 ---
 

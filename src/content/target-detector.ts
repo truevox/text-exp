@@ -92,9 +92,10 @@ export class TargetDetector {
           return (
             (window.location.hostname.includes("mail.google.com") &&
               element.getAttribute("aria-label")?.includes("Message Body")) ||
-            element
-              .closest('[role="main"]')
-              ?.querySelector("[data-subject]") !== null
+            (element.closest('[role="main"]') !== null &&
+              element
+                .closest('[role="main"]')
+                ?.querySelector("[data-subject]") !== null)
           );
         },
         extractor: (element) => ({
@@ -443,17 +444,27 @@ export class TargetDetector {
       return this.detectionCache.get(targetElement)!;
     }
 
-    // Try each detection rule
-    for (const rule of this.detectionRules) {
-      const matchedElement = targetElement.closest(
-        rule.selector,
-      ) as HTMLElement;
-      if (matchedElement && rule.condition(matchedElement)) {
-        const surface = this.buildTargetSurface(matchedElement, rule);
-        this.detectionCache.set(targetElement, surface);
-        this.lastDetection = surface;
-        return surface;
+    try {
+      // Try each detection rule
+      for (const rule of this.detectionRules) {
+        // Safety check for DOM methods
+        if (typeof targetElement.closest !== "function") {
+          continue;
+        }
+
+        const matchedElement = targetElement.closest(
+          rule.selector,
+        ) as HTMLElement;
+        if (matchedElement && rule.condition(matchedElement)) {
+          const surface = this.buildTargetSurface(matchedElement, rule);
+          this.detectionCache.set(targetElement, surface);
+          this.lastDetection = surface;
+          return surface;
+        }
       }
+    } catch (error) {
+      // Gracefully handle DOM method errors
+      console.warn("Target detection error:", error);
     }
 
     // Fallback to unknown type

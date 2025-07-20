@@ -29,7 +29,7 @@ export class FolderPickerComponent {
   private showStatus: StatusCallback;
 
   // Folder picker state
-  private currentFolderScope: "personal" | "department" | "org" | null = null;
+  private currentFolderScope: "personal" | "team" | "org" | null = null;
   private selectedFolder: { id: string; name: string } | null = null;
   private availableFolders: FolderItem[] = [];
   private currentParentId: string = "root";
@@ -87,7 +87,7 @@ export class FolderPickerComponent {
    * Handle folder selection for a given scope
    */
   async handleSelectFolder(
-    scope: "personal" | "department" | "org",
+    scope: "personal" | "team" | "org",
     cloudProvider: string,
   ): Promise<void> {
     try {
@@ -326,14 +326,14 @@ export class FolderPickerComponent {
    * Update the folder input display with selected folder
    */
   private updateFolderInputDisplay(
-    scope: "personal" | "department" | "org",
+    scope: "personal" | "team" | "org",
     displayName: string,
   ): void {
     switch (scope) {
       case "personal":
         this.elements.personalFolderIdInput.value = displayName;
         break;
-      case "department":
+      case "team":
         this.elements.departmentFolderIdInput.value = displayName;
         break;
       case "org":
@@ -518,7 +518,7 @@ export class FolderPickerComponent {
    * Get current folder selection state
    */
   getSelectionState(): {
-    scope: "personal" | "department" | "org" | null;
+    scope: "personal" | "team" | "org" | null;
     folder: { id: string; name: string } | null;
   } {
     return {

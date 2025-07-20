@@ -1,4 +1,7 @@
+import { join } from "path";
 import { defineConfig, devices } from "@playwright/test";
+
+const EXT_PATH = join(__dirname, "build");
 
 /**
  * Playwright configuration for Chrome extension testing
@@ -6,6 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests/playwright",
+  timeout: 40000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -15,15 +19,18 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  reporter: [
+    ["html"],
+    ["json", { outputFile: "playwright-report/results.json" }],
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "chrome-extension://test-extension-id",
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
+    /* Record video on failure */
+    video: "retain-on-failure",
   },
 
   /* Configure projects for major browsers */
@@ -32,12 +39,12 @@ export default defineConfig({
       name: "chromium-extension",
       use: {
         ...devices["Desktop Chrome"],
-        // Chrome extension specific settings
+        headless: false,
         channel: "chrome",
         launchOptions: {
           args: [
-            "--disable-extensions-except=./build",
-            "--load-extension=./build",
+            `--disable-extensions-except=${EXT_PATH}`,
+            `--load-extension=${EXT_PATH}`,
             "--disable-web-security",
             "--disable-features=VizDisplayCompositor",
           ],
@@ -46,5 +53,10 @@ export default defineConfig({
     },
   ],
 
-  /* No web server needed for Chrome extension testing */
+  /* Web server for E2E tests */
+  webServer: {
+    command: "npm run serve:test",
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+  },
 });

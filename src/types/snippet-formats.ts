@@ -10,6 +10,7 @@ import type { SnippetFormat } from "../utils/detectFormat.js";
 export interface VariableDef {
   name: string;
   prompt: string;
+  defaultValue?: string;
 }
 
 /**

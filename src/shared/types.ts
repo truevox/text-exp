@@ -10,7 +10,7 @@ export interface TextSnippet {
   id: string;
   trigger: string;
   content: string;
-  contentType?: "text" | "html"; // Added contentType
+  contentType?: "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX"; // Updated to match canonical definition
   description?: string;
   scope?: SnippetScope; // Added scope
   variables?: SnippetVariable[];
@@ -72,12 +72,7 @@ export type CloudProvider =
 /**
  * Snippet scopes for multi-tier sync architecture
  */
-export type SnippetScope =
-  | "priority-0"
-  | "personal"
-  | "department"
-  | "team"
-  | "org";
+export type SnippetScope = "personal" | "team" | "org";
 
 /**
  * Scoped source configuration

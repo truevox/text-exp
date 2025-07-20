@@ -100,7 +100,7 @@ describe("Google Drive Scope Compliance Security", () => {
         );
         fail("Should have thrown an error");
       } catch (error) {
-        const errorMessage = error.message;
+        const errorMessage = (error as Error).message;
         expect(errorMessage).not.toContain(mockCredentials.accessToken);
         expect(errorMessage).not.toContain(mockCredentials.refreshToken);
       }
@@ -165,8 +165,8 @@ describe("Google Drive Scope Compliance Security", () => {
       );
 
       // Verify prototypes weren't polluted
-      expect(Object.prototype.isAdmin).toBeUndefined();
-      expect({}.constructor.prototype.isAdmin).toBeUndefined();
+      expect((Object.prototype as any).isAdmin).toBeUndefined();
+      expect(({} as any).constructor.prototype.isAdmin).toBeUndefined();
     });
 
     it("should validate JSON content for security", async () => {
@@ -330,18 +330,33 @@ describe("Google Drive Scope Compliance Security", () => {
   describe("Content Security", () => {
     it("should not execute or eval user content", async () => {
       const maliciousContent = {
-        tier: "personal",
-        version: "1.0.0",
+        schema: "priority-tier-v1" as const,
+        tier: "personal" as const,
         snippets: [
           {
             id: "snippet1",
             trigger: "eval",
             content: "eval('alert(\"xss\")')",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            contentType: "plaintext" as const,
+            snipDependencies: [],
+            description: "Malicious eval snippet",
+            scope: "personal" as const,
+            variables: [],
+            images: [],
+            tags: [],
+            createdAt: new Date().toISOString(),
+            createdBy: "test-user",
+            updatedAt: new Date().toISOString(),
+            updatedBy: "test-user",
           },
         ],
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+          description: "Malicious content test",
+        },
       };
 
       const mockResponse = {
@@ -361,16 +376,31 @@ describe("Google Drive Scope Compliance Security", () => {
 
     it("should handle large payloads safely", async () => {
       const largeContent = {
-        tier: "personal",
-        version: "1.0.0",
+        schema: "priority-tier-v1" as const,
+        tier: "personal" as const,
         snippets: Array.from({ length: 10000 }, (_, i) => ({
           id: `snippet${i}`,
           trigger: `trigger${i}`,
           content: "A".repeat(1000), // Large content
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          contentType: "plaintext" as const,
+          snipDependencies: [],
+          description: `Large snippet ${i}`,
+          scope: "personal" as const,
+          variables: [],
+          images: [],
+          tags: [],
+          createdAt: new Date().toISOString(),
+          createdBy: "test-user",
+          updatedAt: new Date().toISOString(),
+          updatedBy: "test-user",
         })),
-        lastModified: new Date().toISOString(),
+        metadata: {
+          version: "1.0.0",
+          created: new Date().toISOString(),
+          modified: new Date().toISOString(),
+          owner: "test-user",
+          description: "Large payload test",
+        },
       };
 
       const mockResponse = {
@@ -409,7 +439,7 @@ describe("Google Drive Scope Compliance Security", () => {
         );
         fail("Should have thrown an error");
       } catch (error) {
-        const errorMessage = error.message;
+        const errorMessage = (error as Error).message;
 
         // Should not expose internal system details
         expect(errorMessage).not.toContain("postgres://");
@@ -440,8 +470,8 @@ describe("Google Drive Scope Compliance Security", () => {
         fail("Should have thrown an error");
       } catch (error) {
         // Error should be thrown but not expose system paths
-        expect(error.message).toBeDefined();
-        expect(error.message).not.toContain("/etc/passwd");
+        expect((error as Error).message).toBeDefined();
+        expect((error as Error).message).not.toContain("/etc/passwd");
       }
     });
   });
@@ -497,7 +527,7 @@ describe("Google Drive Scope Compliance Security", () => {
       const calls = mockFetch.mock.calls;
       calls.forEach((call) => {
         const [url] = call;
-        if (url.includes("drive/v3/files")) {
+        if (url.toString().includes("drive/v3/files")) {
           expect(url).toMatch(/spaces=appDataFolder/);
         }
       });

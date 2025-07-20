@@ -85,8 +85,9 @@ export class GoogleDriveFilePickerService {
 
       if (!response.ok) {
         const errorText = await response.text();
+        const sanitizedError = this.sanitizeErrorMessage(errorText);
         throw new Error(
-          `Failed to create file: ${response.statusText} - ${errorText}`,
+          `Failed to create file: ${response.statusText} - ${sanitizedError}`,
         );
       }
 
@@ -358,5 +359,39 @@ We respect your privacy - we can only access files you explicitly give us permis
       name: fileName,
       content: JSON.stringify(storeContent, null, 2),
     });
+  }
+
+  /**
+   * Sanitize error messages to prevent information disclosure
+   */
+  private static sanitizeErrorMessage(errorText: string): string {
+    // Remove sensitive patterns that might expose system information
+    const sensitivePatterns = [
+      /postgres:\/\/[^/\s]*/gi, // PostgreSQL connection strings
+      /mysql:\/\/[^/\s]*/gi, // MySQL connection strings
+      /mongodb:\/\/[^/\s]*/gi, // MongoDB connection strings
+      /localhost(:\d+)?/gi, // localhost references
+      /127\.0\.0\.1(:\d+)?/gi, // localhost IP references
+      /user:pass/gi, // credential patterns
+      /username:password/gi, // credential patterns
+      /Database connection failed:/gi, // database error details
+      /Connection refused/gi, // connection error details
+      /Access denied for user/gi, // MySQL access errors
+      /FATAL:\s*password authentication failed/gi, // PostgreSQL auth errors
+    ];
+
+    let sanitized = errorText;
+
+    // Replace sensitive patterns with generic messages
+    sensitivePatterns.forEach((pattern) => {
+      sanitized = sanitized.replace(pattern, "[REDACTED]");
+    });
+
+    // If the error was heavily sanitized, provide a generic message
+    if (sanitized.includes("[REDACTED]")) {
+      return "Internal server error. Please contact support.";
+    }
+
+    return sanitized;
   }
 }

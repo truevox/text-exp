@@ -226,7 +226,7 @@ export class JsonSerializer {
               operation: "deserialize",
               startTime,
               duration: performance.now() - startTime,
-              originalSize: jsonString.length,
+              originalSize: jsonString?.length || 0,
               validationWarnings: validation.warnings,
             },
           };
@@ -242,7 +242,7 @@ export class JsonSerializer {
           operation: "deserialize",
           startTime,
           duration: performance.now() - startTime,
-          originalSize: jsonString.length,
+          originalSize: jsonString?.length || 0,
           fieldCount: Object.keys(data).length,
           snippetCount: Array.isArray(data.snippets) ? data.snippets.length : 0,
         },
@@ -255,7 +255,7 @@ export class JsonSerializer {
           operation: "deserialize",
           startTime,
           duration: performance.now() - startTime,
-          originalSize: jsonString.length,
+          originalSize: jsonString?.length || 0,
         },
       };
     }
@@ -823,7 +823,7 @@ export class JsonSerializer {
   /**
    * Synchronous serialize method for backward compatibility
    */
-  static serialize(
+  static serializeToString(
     schema: TierStorageSchema,
     options: JsonSerializationOptions = {},
   ): string {
@@ -914,9 +914,16 @@ export class JsonSerializer {
     for (const field of SCHEMA_FIELD_ORDER) {
       if (field in schema) {
         if (field === "snippets") {
-          ordered[field] = (schema[field] as EnhancedSnippet[]).map((snippet) =>
-            this.orderSnippetFields(snippet),
-          );
+          // Ensure snippets is an array before calling map
+          const snippets = schema[field];
+          if (Array.isArray(snippets)) {
+            ordered[field] = snippets.map((snippet) =>
+              this.orderSnippetFields(snippet),
+            );
+          } else {
+            // If snippets is not an array, preserve as-is for validation to catch
+            ordered[field] = snippets;
+          }
         } else if (field === "metadata") {
           ordered[field] = this.orderMetadataFields(schema[field]);
         } else {

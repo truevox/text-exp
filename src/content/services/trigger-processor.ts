@@ -150,7 +150,7 @@ export class ContentTriggerProcessor {
             result,
           );
         } catch (error) {
-          if (error instanceof Error && error.message === "User cancelled") {
+          if (error instanceof Error && (error as Error).message === "User cancelled") {
             console.log("❌ User cancelled variable input");
             return;
           }
@@ -261,7 +261,7 @@ export class ContentTriggerProcessor {
           result,
         );
       } catch (error) {
-        if (error instanceof Error && error.message === "User cancelled") {
+        if (error instanceof Error && (error as Error).message === "User cancelled") {
           console.log("❌ User cancelled variable input");
           return;
         }
@@ -306,7 +306,7 @@ export class ContentTriggerProcessor {
       );
     } catch (error) {
       console.error("❌ Error expanding text with paste strategy:", error);
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
 
       // Fallback to old replacement system
       try {
@@ -331,7 +331,7 @@ export class ContentTriggerProcessor {
         }
       } catch (fallbackError) {
         console.error("❌ Error in fallback expansion:", fallbackError);
-        errorMessage = `${errorMessage}; Fallback failed: ${fallbackError.message}`;
+        errorMessage = `${errorMessage}; Fallback failed: ${(fallbackError as Error).message}`;
       }
     }
 
@@ -398,7 +398,7 @@ export class ContentTriggerProcessor {
         "❌ Error expanding text with variables via paste strategy:",
         error,
       );
-      errorMessage = error.message;
+      errorMessage = (error as Error).message;
 
       // Fallback to old replacement system
       try {
@@ -419,7 +419,7 @@ export class ContentTriggerProcessor {
           errorMessage = "Invalid replacement context";
         }
       } catch (fallbackError) {
-        errorMessage = `${errorMessage}; Fallback failed: ${fallbackError.message}`;
+        errorMessage = `${errorMessage}; Fallback failed: ${(fallbackError as Error).message}`;
       }
     }
 

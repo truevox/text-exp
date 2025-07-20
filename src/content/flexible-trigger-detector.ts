@@ -115,14 +115,56 @@ export class FlexibleTriggerDetector {
           const endPos = startPos + trigger.length;
 
           // Check if followed by delimiter or end of input
-          if (endPos >= input.length || this.delimiters.has(input[endPos])) {
-            return {
-              isMatch: true,
-              trigger: trigger,
-              content: snippet.content,
-              matchEnd: endPos,
-              state: TriggerState.COMPLETE,
-            };
+          if (endPos < input.length && this.delimiters.has(input[endPos])) {
+            // Explicit delimiter - this is a definitive match, but check for ambiguity
+            const typedText = this.extractTypedText(input, startPos);
+            const possibleMatches = this.findPossibleMatches(typedText);
+            const longerMatches = possibleMatches.filter(
+              (t) => t.length > trigger.length,
+            );
+
+            if (longerMatches.length > 0) {
+              // Complete trigger with longer alternatives - show cycling UI
+              return {
+                isMatch: false,
+                state: TriggerState.AMBIGUOUS,
+                potentialTrigger: trigger,
+                possibleCompletions: possibleMatches,
+              };
+            } else {
+              // Complete trigger with delimiter and no longer alternatives - definitive match
+              return {
+                isMatch: true,
+                trigger: trigger,
+                content: snippet.content,
+                matchEnd: endPos,
+                state: TriggerState.COMPLETE,
+              };
+            }
+          } else if (endPos >= input.length) {
+            // End of input (no delimiter) - check for ambiguity but don't auto-expand
+            const typedText = this.extractTypedText(input, startPos);
+            const possibleMatches = this.findPossibleMatches(typedText);
+            const longerMatches = possibleMatches.filter(
+              (t) => t.length > trigger.length,
+            );
+
+            if (longerMatches.length > 0) {
+              // Complete trigger with longer alternatives - show cycling UI
+              return {
+                isMatch: false,
+                state: TriggerState.AMBIGUOUS,
+                potentialTrigger: trigger,
+                possibleCompletions: possibleMatches,
+              };
+            } else {
+              // Complete trigger at end of input with no longer alternatives
+              return {
+                isMatch: false,
+                state: TriggerState.COMPLETE,
+                potentialTrigger: trigger,
+              };
+            }
           }
         }
       }
@@ -142,12 +184,29 @@ export class FlexibleTriggerDetector {
         );
 
         if (exactMatch) {
-          return {
-            isMatch: false,
-            state: TriggerState.COMPLETE,
-            potentialTrigger: typedText,
-          };
+          // This is a complete trigger - check if there are longer alternatives
+          const longerMatches = possibleMatches.filter(
+            (trigger) => trigger.length > typedText.length,
+          );
+
+          if (longerMatches.length > 0) {
+            // Complete trigger with longer alternatives - show cycling UI
+            return {
+              isMatch: false,
+              state: TriggerState.AMBIGUOUS,
+              potentialTrigger: typedText,
+              possibleCompletions: possibleMatches,
+            };
+          } else {
+            // Complete trigger with no longer alternatives - just complete
+            return {
+              isMatch: false,
+              state: TriggerState.COMPLETE,
+              potentialTrigger: typedText,
+            };
+          }
         } else if (possibleMatches.length === 1) {
+          // Partial trigger with single completion - still typing
           return {
             isMatch: false,
             state: TriggerState.TYPING,
@@ -155,9 +214,11 @@ export class FlexibleTriggerDetector {
             possibleCompletions: possibleMatches,
           };
         } else {
+          // Partial trigger with multiple completions - still typing, NOT ambiguous
+          // Only complete triggers should be ambiguous
           return {
             isMatch: false,
-            state: TriggerState.AMBIGUOUS,
+            state: TriggerState.TYPING,
             potentialTrigger: typedText,
             possibleCompletions: possibleMatches,
           };

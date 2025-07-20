@@ -100,6 +100,37 @@ describe("TriggerDetector", () => {
       expect(result.potentialTrigger).toBe(";ad");
       expect(result.possibleCompletions).toContain(";addr");
     });
+
+    test("REGRESSION: should NOT trigger cycling UI for partial triggers", () => {
+      // This is the critical bug that was fixed:
+      // Partial triggers should never return AMBIGUOUS state
+      // Only complete triggers with longer alternatives should be AMBIGUOUS
+
+      // Test with triggers that would have caused the bug: ";gb" and ";gballs"
+      const buggyDetector = new TriggerDetector([
+        { trigger: ";gb", content: "Goodbye!" },
+        { trigger: ";gballs", content: "Golf balls" },
+      ]);
+
+      // Typing ";g" should be TYPING, not AMBIGUOUS
+      const partialResult = buggyDetector.processInput(";g");
+      expect(partialResult.isMatch).toBe(false);
+      expect(partialResult.state).toBe(TriggerState.TYPING);
+      expect(partialResult.potentialTrigger).toBe(";g");
+
+      // Typing ";gb" should be AMBIGUOUS (complete trigger with longer alternative)
+      const completeResult = buggyDetector.processInput(";gb");
+      expect(completeResult.isMatch).toBe(false);
+      expect(completeResult.state).toBe(TriggerState.AMBIGUOUS);
+      expect(completeResult.potentialTrigger).toBe(";gb");
+      expect(completeResult.possibleCompletions).toContain(";gballs");
+
+      // Typing ";gba" should be TYPING, not AMBIGUOUS
+      const partialLongerResult = buggyDetector.processInput(";gba");
+      expect(partialLongerResult.isMatch).toBe(false);
+      expect(partialLongerResult.state).toBe(TriggerState.TYPING);
+      expect(partialLongerResult.potentialTrigger).toBe(";gba");
+    });
   });
 
   describe("Invalid Input Handling", () => {

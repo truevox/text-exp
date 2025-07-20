@@ -327,16 +327,17 @@ describe("MultiStoreEditor", () => {
     });
 
     test("should not apply without current snippet", () => {
+      const mockUpdateCallback = jest.fn();
       editor = new MultiStoreEditor({
         stores: mockStores,
-        onSnippetUpdate: jest.fn(),
+        onSnippetUpdate: mockUpdateCallback,
       });
 
       editor["handleStoreSelection"]("store1", true);
       editor["applyToSelectedStores"]();
 
       // Should not call callback without current snippet
-      expect(editor.options.onSnippetUpdate).not.toHaveBeenCalled();
+      expect(mockUpdateCallback).not.toHaveBeenCalled();
     });
   });
 
@@ -693,8 +694,20 @@ describe("Multi-Store Editor Integration", () => {
       updatedAt: new Date(),
     };
 
-    editor.options.currentSnippet = testSnippet;
-    editor["applyToSelectedStores"]();
+    // Recreate editor with current snippet
+    await editor.destroy();
+    const editorWithSnippet = new MultiStoreEditor({
+      stores: complexStores,
+      currentSnippet: testSnippet,
+      ...callbacks,
+    });
+    await editorWithSnippet.init(mockContainer);
+    
+    // Select stores and apply
+    editorWithSnippet["handleStoreSelection"]("personal", true);
+    editorWithSnippet["handleStoreSelection"]("team", true);
+    editorWithSnippet["handleStoreSelection"]("org", true);
+    editorWithSnippet["applyToSelectedStores"]();
 
     expect(callbacks.onSnippetUpdate).toHaveBeenCalledTimes(3);
     expect(callbacks.onSnippetUpdate).toHaveBeenCalledWith(

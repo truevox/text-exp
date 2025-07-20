@@ -148,6 +148,7 @@ export class HTMLParser implements FormatParser {
         meta.id ||
         `html-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       trigger: meta.trigger,
+      content: htmlBody,
       snipDependencies: Array.isArray(meta.snipDependencies)
         ? meta.snipDependencies
         : [],
@@ -211,6 +212,7 @@ export class HTMLParser implements FormatParser {
     const meta: SnippetMeta = {
       id: `html-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       trigger,
+      content: htmlBody,
       snipDependencies: [],
       contentType: "html",
       description:
@@ -274,7 +276,7 @@ export class HTMLParser implements FormatParser {
 
   private normalizeContentType(
     contentType: any,
-  ): "plainText" | "markdown" | "html" | "latex" {
+  ): "plaintext" | "markdown" | "html" | "latex" {
     if (typeof contentType === "string") {
       switch (contentType.toLowerCase()) {
         case "text/markdown":
@@ -289,19 +291,19 @@ export class HTMLParser implements FormatParser {
         case "tex":
           return "latex";
         default:
-          return "plainText";
+          return "plaintext";
       }
     }
     return "html"; // Default for HTML files
   }
 
-  private normalizeScope(scope: any): "personal" | "group" | "org" {
+  private normalizeScope(scope: any): "personal" | "team" | "org" {
     if (typeof scope === "string") {
       switch (scope.toLowerCase()) {
         case "group":
         case "team":
         case "department":
-          return "group";
+          return "team";
         case "org":
         case "organization":
         case "company":
@@ -509,6 +511,7 @@ export class HTMLParser implements FormatParser {
     const meta: SnippetMeta = {
       id,
       trigger,
+      content,
       snipDependencies: [],
       contentType: "html",
       description: options.description || `HTML snippet: ${trigger}`,

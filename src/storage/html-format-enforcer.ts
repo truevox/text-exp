@@ -590,7 +590,7 @@ export class HTMLFormatEnforcer {
       /\*\*[^*]+\*\*/, // Bold
       /\*[^*]+\*/, // Italic
       /\[[^\]]+\]\([^)]+\)/, // Links
-      /^[\*\-]\s/m, // Lists
+      /^[*-]\s/m, // Lists
       /`[^`]+`/, // Code
       /```[\s\S]*?```/, // Code blocks
     ];
@@ -628,7 +628,7 @@ export class HTMLFormatEnforcer {
    */
   private hasValidHtmlStructure(content: string): boolean {
     // Basic check for balanced tags
-    const openTags = content.match(/<[^\/!][^>]*>/g) || [];
+    const openTags = content.match(/<[^/!][^>]*>/g) || [];
     const closeTags = content.match(/<\/[^>]*>/g) || [];
 
     // Count self-closing tags

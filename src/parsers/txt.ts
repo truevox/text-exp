@@ -68,6 +68,7 @@ export class TxtParser implements FormatParser {
         meta.id ||
         `txt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       trigger: meta.trigger,
+      content: extracted.body,
       snipDependencies: Array.isArray(meta.snipDependencies)
         ? meta.snipDependencies
         : [],
@@ -117,8 +118,9 @@ export class TxtParser implements FormatParser {
     const meta: SnippetMeta = {
       id: `txt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       trigger,
+      content: content,
       snipDependencies: [],
-      contentType: "plainText",
+      contentType: "plaintext",
       description: `Plain text snippet${fileName ? ` from ${fileName}` : ""}`,
       scope: "personal",
       variables: [],
@@ -255,7 +257,7 @@ export class TxtParser implements FormatParser {
    */
   private normalizeContentType(
     contentType: any,
-  ): "plainText" | "markdown" | "html" | "latex" {
+  ): "plaintext" | "markdown" | "html" | "latex" {
     if (typeof contentType === "string") {
       switch (contentType.toLowerCase()) {
         case "text/markdown":
@@ -270,19 +272,19 @@ export class TxtParser implements FormatParser {
         case "tex":
           return "latex";
         default:
-          return "plainText";
+          return "plaintext";
       }
     }
-    return "plainText";
+    return "plaintext";
   }
 
-  private normalizeScope(scope: any): "personal" | "group" | "org" {
+  private normalizeScope(scope: any): "personal" | "team" | "org" {
     if (typeof scope === "string") {
       switch (scope.toLowerCase()) {
         case "group":
         case "team":
         case "department":
-          return "group";
+          return "team";
         case "org":
         case "organization":
         case "company":
@@ -323,8 +325,9 @@ export class TxtParser implements FormatParser {
     const meta: SnippetMeta = {
       id,
       trigger,
+      content,
       snipDependencies: [],
-      contentType: "plainText",
+      contentType: "plaintext",
       description: options.description || `Plain text snippet: ${trigger}`,
       scope: "personal",
       variables: [],

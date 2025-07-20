@@ -263,7 +263,7 @@ export class SyncManager {
           if (appdataStore.hasStore) {
             console.log("✨ Discovered Priority #0 store in appdata");
             sources.unshift({
-              name: "priority-0" as SnippetScope,
+              name: "personal" as SnippetScope,
               adapter: this.currentAdapter,
               folderId: "appdata-priority-0",
               displayName: "Priority #0 Store",
