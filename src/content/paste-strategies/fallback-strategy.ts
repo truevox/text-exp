@@ -117,7 +117,13 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
       this.focusTarget(element);
 
       // Try different paste methods in order of preference
-      const methods = [
+      // For code editors, prioritize direct content insertion
+      const methods = target.type === "code-editor" ? [
+        () => this.tryDirectContentPaste(html, text, element, target),
+        () => this.tryClipboardApiPaste(html, text, element, target),
+        () => this.tryExecCommandPaste(html, text, element, target),
+        () => this.trySimulatedTypingPaste(text, element, target),
+      ] : [
         () => this.tryClipboardApiPaste(html, text, element, target),
         () => this.tryExecCommandPaste(html, text, element, target),
         () => this.tryDirectContentPaste(html, text, element, target),
@@ -298,6 +304,14 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
     const transformations = ["direct-insert"];
 
     try {
+      this.log("Direct content paste - target type:", target.type);
+      this.log("Direct content paste - element:", element.tagName, element.className);
+      
+      // Special handling for code editors
+      if (target.type === "code-editor") {
+        return await this.insertIntoCodeEditor(text, element, target);
+      }
+      
       // Handle different element types
       if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
         return await this.insertIntoInput(
@@ -322,6 +336,7 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
         );
       }
     } catch (error) {
+      this.log("Direct content paste failed:", error);
       return this.createResult(
         false,
         "direct",
@@ -453,6 +468,235 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
   }
 
   /**
+   * Insert content into code editors (ACE, Monaco, CodeMirror)
+   */
+  private async insertIntoCodeEditor(
+    text: string,
+    element: HTMLElement,
+    target: TargetSurface,
+  ): Promise<PasteResult> {
+    const transformations = ["code-editor-insert"];
+
+    try {
+      this.log("Attempting to insert into code editor:", target.metadata?.editorName);
+      
+      // Try ACE editor first
+      if (target.metadata?.editorName === "Ace" || element.classList.contains("ace_editor")) {
+        const aceResult = await this.insertIntoAceEditor(text, element);
+        if (aceResult.success) {
+          return this.createResult(true, "direct", [...transformations, "ace-api"]);
+        }
+      }
+      
+      // Try Monaco editor
+      if (target.metadata?.editorName === "Monaco" || element.classList.contains("monaco-editor")) {
+        const monacoResult = await this.insertIntoMonacoEditor(text, element);
+        if (monacoResult.success) {
+          return this.createResult(true, "direct", [...transformations, "monaco-api"]);
+        }
+      }
+      
+      // Try CodeMirror editor
+      if (target.metadata?.editorName === "CodeMirror" || element.classList.contains("CodeMirror")) {
+        const codeMirrorResult = await this.insertIntoCodeMirrorEditor(text, element);
+        if (codeMirrorResult.success) {
+          return this.createResult(true, "direct", [...transformations, "codemirror-api"]);
+        }
+      }
+      
+      // Fallback to generic insertion
+      this.log("No specific code editor handler found, falling back to generic insertion");
+      return await this.insertIntoGenericElement(text, element, target);
+      
+    } catch (error) {
+      this.log("Code editor insertion failed:", error);
+      return this.createResult(
+        false,
+        "direct",
+        transformations,
+        error instanceof Error ? error.message : "Code editor insertion failed",
+      );
+    }
+  }
+
+  /**
+   * Insert content into ACE editor
+   */
+  private async insertIntoAceEditor(text: string, element: HTMLElement): Promise<{ success: boolean }> {
+    try {
+      this.log("Attempting ACE editor insertion");
+      
+      // Look for ACE editor instance
+      const aceElement = element.classList.contains("ace_editor") ? element : element.querySelector(".ace_editor");
+      if (!aceElement) {
+        this.log("No ACE editor element found");
+        return { success: false };
+      }
+      
+      // Debug: Log element properties
+      this.log("ACE element properties:", Object.keys(aceElement).filter(k => k.includes('ace') || k.includes('editor')));
+      this.log("ACE element data attributes:", [...aceElement.attributes].map(a => a.name).filter(n => n.includes('ace')));
+      
+      // Try multiple ways to access ACE library
+      let ace = (window as any).ace;
+      
+      // Debug: Log what's actually available on window
+      this.log("Window ACE check:", !!ace);
+      this.log("Window keys containing 'ace':", Object.keys(window).filter(k => k.toLowerCase().includes('ace')));
+      this.log("Window require available:", !!(window as any).require);
+      
+      if (!ace && (window as any).require) {
+        // Try require-based loading (common in ACE)
+        try {
+          ace = (window as any).require("ace/ace");
+          this.log("Found ACE via require");
+        } catch (e) {
+          this.log("ACE not available via require:", e);
+        }
+      }
+      
+      if (!ace) {
+        // Try to find ACE on the aceElement itself
+        ace = (aceElement as any).env?.ace || (aceElement as any).ace;
+        this.log("ACE on element check:", !!ace);
+      }
+      
+      // Try global window search for anything ace-related
+      if (!ace) {
+        const possibleAce = ['ace', 'ACE', 'aceEditor', 'AceEditor', '_ace'];
+        for (const name of possibleAce) {
+          if ((window as any)[name]) {
+            ace = (window as any)[name];
+            this.log(`Found ACE as window.${name}`);
+            break;
+          }
+        }
+      }
+      
+      if (!ace) {
+        this.log("ACE library not found on window, require, or element");
+        this.log("Available window properties:", Object.keys(window).slice(0, 20));
+        return { success: false };
+      }
+      
+      // Get editor instance - try multiple methods
+      let editor;
+      
+      // Method 1: Try ace.edit if we have the library
+      if (ace) {
+        try {
+          editor = ace.edit(aceElement);
+          this.log("Got editor via ace.edit");
+        } catch (e) {
+          this.log("ace.edit failed:", e);
+        }
+      }
+      
+      // Method 2: Check if element has editor reference directly
+      if (!editor) {
+        const possibleEditors = [
+          (aceElement as any).env,
+          (aceElement as any).editor,
+          (aceElement as any).aceEditor,
+          (aceElement as any)._aceEditor,
+          (aceElement as any).$editor
+        ];
+        
+        for (const possibleEditor of possibleEditors) {
+          if (possibleEditor && possibleEditor.insert) {
+            editor = possibleEditor;
+            this.log("Found editor instance on element");
+            break;
+          }
+        }
+      }
+      
+      // Method 3: Search through all element properties for editor-like objects
+      if (!editor) {
+        const allProps = Object.getOwnPropertyNames(aceElement);
+        this.log("Searching element properties for editor:", allProps.slice(0, 10));
+        
+        for (const prop of allProps) {
+          try {
+            const value = (aceElement as any)[prop];
+            if (value && typeof value === 'object' && value.insert && value.getCursorPosition) {
+              editor = value;
+              this.log(`Found editor-like object at property: ${prop}`);
+              break;
+            }
+          } catch (e) {
+            // Ignore property access errors
+          }
+        }
+      }
+      
+      if (!editor) {
+        this.log("Could not find editor instance via any method");
+        return { success: false };
+      }
+      
+      if (!editor.insert) {
+        this.log("Editor instance found but no insert method available:", Object.keys(editor));
+        return { success: false };
+      }
+      
+      // Insert text at cursor position
+      try {
+        editor.insert(text);
+        this.log("Successfully inserted text into ACE editor");
+        return { success: true };
+      } catch (insertError) {
+        this.log("Editor insert failed:", insertError);
+        return { success: false };
+      }
+      
+    } catch (error) {
+      this.log("ACE editor insertion error:", error);
+      return { success: false };
+    }
+  }
+  
+  /**
+   * Insert content into Monaco editor
+   */
+  private async insertIntoMonacoEditor(text: string, element: HTMLElement): Promise<{ success: boolean }> {
+    try {
+      this.log("Attempting Monaco editor insertion");
+      
+      const monaco = (window as any).monaco;
+      if (!monaco) {
+        this.log("Monaco library not found on window");
+        return { success: false };
+      }
+      
+      // Monaco editor integration would go here
+      // For now, return false to fall back to generic insertion
+      return { success: false };
+      
+    } catch (error) {
+      this.log("Monaco editor insertion error:", error);
+      return { success: false };
+    }
+  }
+  
+  /**
+   * Insert content into CodeMirror editor
+   */
+  private async insertIntoCodeMirrorEditor(text: string, element: HTMLElement): Promise<{ success: boolean }> {
+    try {
+      this.log("Attempting CodeMirror editor insertion");
+      
+      // CodeMirror integration would go here
+      // For now, return false to fall back to generic insertion
+      return { success: false };
+      
+    } catch (error) {
+      this.log("CodeMirror editor insertion error:", error);
+      return { success: false };
+    }
+  }
+
+  /**
    * Insert content into generic element
    */
   private async insertIntoGenericElement(
@@ -463,10 +707,68 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
     const transformations = ["generic-insert"];
 
     try {
+      this.log("Generic element insertion - element:", element.tagName, element.className);
+      this.log("Generic element insertion - content:", content.substring(0, 50));
+      this.log("Generic element insertion - current element content:", element.textContent?.substring(0, 100));
+      
       if (target.capabilities.supportsHTML && content.includes("<")) {
-        element.innerHTML += content;
+        // For HTML content, try to insert at cursor position or append
+        try {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const fragment = document.createDocumentFragment();
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = content;
+            
+            while (tempDiv.firstChild) {
+              fragment.appendChild(tempDiv.firstChild);
+            }
+            
+            range.insertNode(fragment);
+            this.log("Inserted HTML at cursor position");
+          } else {
+            element.innerHTML += content;
+            this.log("Appended HTML content");
+          }
+        } catch (htmlError) {
+          this.log("HTML insertion failed, falling back to text append:", htmlError);
+          element.innerHTML += content;
+        }
       } else {
-        element.textContent += content;
+        // For text content, check if editor is corrupted and needs clearing
+        const currentContent = element.textContent || "";
+        const hasCorruptedContent = currentContent.includes("ה") || currentContent.includes("ר") || currentContent.length > 1000;
+        
+        if (hasCorruptedContent) {
+          this.log("Detected corrupted editor content, clearing and setting clean content");
+          element.textContent = content;
+        } else {
+          // Try to insert at cursor position for clean editors
+          try {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const textNode = document.createTextNode(content);
+              range.insertNode(textNode);
+              
+              // Move cursor after inserted text
+              range.setStartAfter(textNode);
+              range.setEndAfter(textNode);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              
+              this.log("Inserted text at cursor position");
+            } else {
+              // Fallback: Just set the text content
+              this.log("No selection available, setting text content directly");
+              element.textContent = content;
+            }
+          } catch (textError) {
+            this.log("Text insertion failed, clearing content and setting directly:", textError);
+            element.textContent = content;
+          }
+        }
       }
 
       // Trigger generic events
@@ -474,6 +776,7 @@ export class FallbackPasteStrategy extends BasePasteStrategy {
 
       return this.createResult(true, "direct", transformations);
     } catch (error) {
+      this.log("Generic insertion failed:", error);
       return this.createResult(
         false,
         "direct",

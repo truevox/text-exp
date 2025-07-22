@@ -72,7 +72,12 @@ export type CloudProvider =
 /**
  * Snippet scopes for multi-tier sync architecture
  */
-export type SnippetScope = "personal" | "team" | "org";
+export type SnippetScope =
+  | "priority-0"
+  | "personal"
+  | "department"
+  | "team"
+  | "org";
 
 /**
  * Scoped source configuration
@@ -183,15 +188,6 @@ export interface CloudAdapter {
   selectFolder?(): Promise<{ folderId: string; folderName: string }>;
 
   /**
-   * Get folders from cloud provider (optional, for Google Drive)
-   */
-  getFolders?(
-    parentId?: string,
-  ): Promise<
-    Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
-  >;
-
-  /**
    * Create folder in cloud provider (optional, for Google Drive)
    */
   createFolder?(
@@ -226,6 +222,9 @@ export interface ExtensionSettings {
   triggerPrefix: string;
   excludePasswords: boolean;
   configuredSources: ConfiguredScopedSource[]; // New field
+  // Default store settings
+  defaultStoreInitialized?: boolean;
+  appdataStoreEnabled?: boolean;
   // Global toggle settings
   globalToggleEnabled: boolean;
   globalToggleShortcut: string;
@@ -254,7 +253,13 @@ export type MessageType =
   | "VARIABLE_PROMPT"
   | "AUTHENTICATE_CLOUD"
   | "SELECT_CLOUD_FOLDER"
-  | "DISCONNECT_CLOUD";
+  | "DISCONNECT_CLOUD"
+  | "GET_DEFAULT_STORE_STATUS"
+  | "INITIALIZE_DEFAULT_STORE"
+  | "CREATE_CUSTOM_STORE"
+  | "SELECT_EXISTING_STORE"
+  | "VALIDATE_STORE_FILE"
+  | "GET_FILE_FROM_SHARE_LINK";
 
 /**
  * Base message structure for extension communication

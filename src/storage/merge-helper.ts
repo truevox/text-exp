@@ -138,7 +138,9 @@ const DEFAULT_ENHANCED_MERGE_OPTIONS: Required<MergeOptions> = {
  * Priority tier rankings for Phase 2 conflict resolution
  */
 const TIER_PRIORITY: Record<PriorityTier, number> = {
-  personal: 3,
+  "priority-0": 5,
+  personal: 4,
+  department: 3,
   team: 2,
   org: 1,
 };

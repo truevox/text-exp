@@ -304,17 +304,32 @@ export class GoogleDriveAppDataManager {
     const query = `name='${fileName}'`;
     const url = `${this.DRIVE_API}/files?spaces=appDataFolder&q=${encodeURIComponent(query)}&fields=files(id)`;
 
+    console.log(`🔍 Searching appdata for file: ${fileName}`);
+    console.log(`🔍 Request URL: ${url}`);
+
     const response = await fetch(url, {
       headers: GoogleDriveAuthService.getAuthHeaders(credentials),
     });
 
+    console.log(
+      `🔍 Response status: ${response.status} ${response.statusText}`,
+    );
+
     if (!response.ok) {
-      throw new Error(`Failed to search appdata: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(
+        `❌ Failed to search appdata: ${response.status} ${response.statusText}`,
+      );
+      console.error(`❌ Error response body: ${errorText}`);
+      throw new Error(
+        `Failed to search appdata: ${response.statusText} - ${errorText}`,
+      );
     }
 
     const data = await response.json();
     const files = data.files || [];
 
+    console.log(`✅ Found ${files.length} files matching query`);
     return files.length > 0 ? files[0].id : null;
   }
 

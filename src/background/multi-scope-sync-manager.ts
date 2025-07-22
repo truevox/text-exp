@@ -8,8 +8,10 @@ import type { Snippet, SyncedSource, SnippetScope } from "../shared/types";
 import { multiFormatSyncService } from "./multi-format-sync-service.js";
 
 const scopePriority: Record<SnippetScope, number> = {
+  "priority-0": 5,
   personal: 4,
-  team: 3,
+  department: 3,
+  team: 2,
   org: 1,
 };
 
@@ -70,7 +72,7 @@ export class MultiScopeSyncManager {
 
       // Handle appdata store specially
       if (
-        source.name === "personal" &&
+        source.name === "priority-0" &&
         source.folderId === "appdata-priority-0"
       ) {
         console.log("🔍 Fetching Priority #0 store from appdata");

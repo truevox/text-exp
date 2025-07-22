@@ -128,13 +128,25 @@ export class ContentTriggerProcessor {
   ): Promise<void> {
     console.log("🚀 expandSnippet called with:", { snippet, element, result });
 
+    // Validate snippet content before processing
+    if (!snippet.content || snippet.content === "undefined") {
+      console.warn("⚠️ Snippet has no content, skipping expansion:", {
+        trigger: snippet.trigger,
+        content: snippet.content,
+        id: snippet.id
+      });
+      return;
+    }
+
     try {
       // STEP 1: Resolve dependencies first
       console.log("🔗 Resolving dependencies for snippet:", snippet.trigger);
       const resolvedSnippet = await this.resolveDependencies(snippet);
       console.log(
         "✅ Dependencies resolved, using content:",
-        resolvedSnippet.content.substring(0, 100) + "...",
+        resolvedSnippet.content 
+          ? resolvedSnippet.content.substring(0, 100) + "..."
+          : "(no content)",
       );
 
       // STEP 2: Handle variables if present
@@ -209,7 +221,9 @@ export class ContentTriggerProcessor {
 
       if (expansionResult.success) {
         console.log("✅ Dependencies resolved successfully", {
-          originalContent: snippet.content.substring(0, 50) + "...",
+          originalContent: snippet.content 
+            ? snippet.content.substring(0, 50) + "..."
+            : "(no content)",
           resolvedContent:
             expansionResult.expandedContent.substring(0, 50) + "...",
           dependenciesResolved: expansionResult.resolvedDependencies.length,
@@ -250,6 +264,16 @@ export class ContentTriggerProcessor {
       element,
       result,
     });
+
+    // Validate snippet content before processing
+    if (!snippet.content || snippet.content === "undefined") {
+      console.warn("⚠️ Fallback: Snippet has no content, skipping expansion:", {
+        trigger: snippet.trigger,
+        content: snippet.content,
+        id: snippet.id
+      });
+      return;
+    }
 
     // Check if snippet has variables that need user input
     if (snippet.variables && snippet.variables.length > 0) {
@@ -308,7 +332,7 @@ export class ContentTriggerProcessor {
 
       // Log expansion for analytics
       console.log(
-        `✨ Expanded "${snippet.trigger}" → "${snippet.content.substring(0, 50)}..."`,
+        `✨ Expanded "${snippet.trigger}" → "${snippet.content ? snippet.content.substring(0, 50) + "..." : "(no content)"}`,
       );
     } catch (error) {
       console.error("❌ Error expanding text with paste strategy:", error);
@@ -397,7 +421,7 @@ export class ContentTriggerProcessor {
       expansionSuccess = true;
 
       console.log(
-        `✨ Expanded "${snippet.trigger}" with variables → "${processedContent.substring(0, 50)}..."`,
+        `✨ Expanded "${snippet.trigger}" with variables → "${processedContent ? processedContent.substring(0, 50) + "..." : "(no content)"}`,
       );
     } catch (error) {
       console.error(
@@ -460,46 +484,66 @@ export class ContentTriggerProcessor {
   ): Promise<void> {
     console.log("🎯 Using paste strategy system for expansion");
 
-    // First, remove the trigger text from the element
-    const context = this.createReplacementContext(
-      element,
-      snippet.trigger,
-      snippet,
-    );
-
-    if (context) {
-      // Remove the trigger text
-      if (this.isFormInput(element)) {
-        const input = element as HTMLInputElement | HTMLTextAreaElement;
-        const currentValue = input.value;
-        const beforeText = currentValue.substring(0, context.startOffset);
-        const afterText = currentValue.substring(context.endOffset);
-        input.value = beforeText + afterText;
-        input.setSelectionRange(context.startOffset, context.startOffset);
-      } else if (isContentEditable(element)) {
-        const text = getElementText(element);
-        const beforeText = text.substring(0, context.startOffset);
-        const afterText = text.substring(context.endOffset);
-        element.textContent = beforeText + afterText;
-
-        // Set cursor position
-        const range = document.createRange();
-        const selection = window.getSelection();
-        if (selection) {
-          range.setStart(element.firstChild || element, context.startOffset);
-          range.setEnd(element.firstChild || element, context.startOffset);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-      }
-    }
-
-    // Detect target surface
+    // Detect target surface first
     const targetSurface = targetDetector.detectTargetSurface(element);
     console.log("🎯 Detected target surface:", targetSurface);
+    console.log("🎯 Target surface details:", {
+      type: targetSurface?.type,
+      element: targetSurface?.element?.tagName + "." + targetSurface?.element?.className,
+      editorName: targetSurface?.metadata?.editorName,
+      capabilities: targetSurface?.capabilities
+    });
 
     if (!targetSurface) {
       throw new Error("Unable to detect target surface for paste operation");
+    }
+
+    // Special handling for code editors - remove trigger first using clipboard approach
+    if (targetSurface.type === "code-editor" || element.classList.contains("ace_editor")) {
+      console.log("🧹 Removing trigger from code editor using clipboard approach");
+      await this.clipboardBasedTriggerRemoval(element, snippet.trigger);
+    } else {
+      // Standard trigger removal for other element types
+      const context = this.createReplacementContext(
+        element,
+        snippet.trigger,
+        snippet,
+      );
+
+      if (context) {
+        // Remove the trigger text
+        if (this.isFormInput(element)) {
+          const input = element as HTMLInputElement | HTMLTextAreaElement;
+          const currentValue = input.value;
+          const beforeText = currentValue.substring(0, context.startOffset);
+          const afterText = currentValue.substring(context.endOffset);
+          input.value = beforeText + afterText;
+          input.setSelectionRange(context.startOffset, context.startOffset);
+        } else if (isContentEditable(element)) {
+          const text = getElementText(element);
+          const beforeText = text.substring(0, context.startOffset);
+          const afterText = text.substring(context.endOffset);
+          element.textContent = beforeText + afterText;
+
+          // Set cursor position
+          const range = document.createRange();
+          const selection = window.getSelection();
+          if (selection) {
+            range.setStart(element.firstChild || element, context.startOffset);
+            range.setEnd(element.firstChild || element, context.startOffset);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        } else {
+          // Debug: Log what element we're dealing with
+          console.log("🔍 Unknown element type for trigger removal:", {
+            tagName: element.tagName,
+            className: element.className,
+            isContentEditable: element.contentEditable,
+            isFormInput: this.isFormInput(element)
+          });
+        }
+      }
     }
 
     // Create paste content
@@ -681,6 +725,108 @@ export class ContentTriggerProcessor {
     this.currentCyclingTrigger = "";
     this.currentCyclingOptions = [];
     this.cyclingUI.hide();
+  }
+
+  /**
+   * Remove trigger text from ACE editor using clipboard-based approach
+   */
+  private async removeACETrigger(
+    element: HTMLElement,
+    trigger: string,
+    context: ReplacementContext,
+  ): Promise<void> {
+    try {
+      console.log("🔄 Using clipboard-based trigger removal for ACE editor");
+      await this.clipboardBasedTriggerRemoval(element, trigger);
+    } catch (error) {
+      console.error("❌ Error removing ACE trigger:", error);
+    }
+  }
+  
+  /**
+   * Remove trigger using clipboard-based approach
+   */
+  private async clipboardBasedTriggerRemoval(element: HTMLElement, trigger: string): Promise<void> {
+    try {
+      console.log("📋 Starting clipboard-based trigger removal for:", {
+        trigger,
+        triggerLength: trigger.length,
+        triggerChars: trigger.split('')
+      });
+      
+      // Focus the element first
+      element.focus();
+      
+      // Give element time to focus
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Method 1: Use multiple backspace events (most reliable for ACE)
+      console.log(`⌨️ Using backspace method to remove ${trigger.length} characters`);
+      for (let i = 0; i < trigger.length; i++) {
+        console.log(`⌨️ Backspace ${i + 1}/${trigger.length}`);
+        
+        // Create and dispatch keydown event
+        const backspaceDown = new KeyboardEvent('keydown', {
+          key: 'Backspace',
+          code: 'Backspace',
+          keyCode: 8,
+          which: 8,
+          bubbles: true,
+          cancelable: true
+        });
+        
+        // Create and dispatch keyup event
+        const backspaceUp = new KeyboardEvent('keyup', {
+          key: 'Backspace',
+          code: 'Backspace',
+          keyCode: 8,
+          which: 8,
+          bubbles: true,
+          cancelable: true
+        });
+        
+        element.dispatchEvent(backspaceDown);
+        await new Promise(resolve => setTimeout(resolve, 15));
+        element.dispatchEvent(backspaceUp);
+        await new Promise(resolve => setTimeout(resolve, 15));
+      }
+      
+      console.log("✅ Backspace-based trigger removal completed");
+      
+    } catch (error) {
+      console.error("❌ Backspace-based trigger removal failed:", error);
+      
+      // Fallback: Try selection + delete approach
+      try {
+        console.log("🔄 Trying selection + delete fallback");
+        
+        // Select the trigger text using keyboard shortcuts
+        for (let i = 0; i < trigger.length; i++) {
+          const selectEvent = new KeyboardEvent('keydown', {
+            key: 'ArrowLeft',
+            code: 'ArrowLeft',
+            shiftKey: true,
+            bubbles: true,
+            cancelable: true
+          });
+          
+          element.dispatchEvent(selectEvent);
+          await new Promise(resolve => setTimeout(resolve, 5));
+        }
+        
+        // Delete selected text
+        const deleteEvent = new KeyboardEvent('keydown', {
+          key: 'Delete',
+          code: 'Delete',
+          bubbles: true,
+          cancelable: true
+        });
+        element.dispatchEvent(deleteEvent);
+        
+      } catch (fallbackError) {
+        console.error("❌ Selection + delete fallback failed:", fallbackError);
+      }
+    }
   }
 
   /**

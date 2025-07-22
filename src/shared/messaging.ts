@@ -11,6 +11,7 @@ import type {
   CloudProvider,
   SnippetScope,
 } from "./types.js";
+import type { EnhancedSnippet } from "../types/snippet-formats.js";
 
 /**
  * Message sender utility class
@@ -188,20 +189,22 @@ export class SnippetMessages {
   }
 
   /**
-   * Add a new snippet
+   * Add a new snippet (supports both TextSnippet and EnhancedSnippet)
    */
   static async addSnippet(
-    snippet: Omit<TextSnippet, "id" | "createdAt" | "updatedAt">,
-  ): Promise<TextSnippet> {
+    snippet:
+      | Omit<TextSnippet, "id" | "createdAt" | "updatedAt">
+      | Omit<EnhancedSnippet, "id" | "createdAt" | "updatedAt">,
+  ): Promise<TextSnippet | EnhancedSnippet> {
     return MessageSender.sendToBackground("ADD_SNIPPET", { snippet });
   }
 
   /**
-   * Update an existing snippet
+   * Update an existing snippet (supports both TextSnippet and EnhancedSnippet)
    */
   static async updateSnippet(
     id: string,
-    updates: Partial<TextSnippet>,
+    updates: Partial<TextSnippet> | Partial<EnhancedSnippet>,
   ): Promise<void> {
     return MessageSender.sendToBackground("UPDATE_SNIPPET", { id, updates });
   }

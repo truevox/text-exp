@@ -242,7 +242,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         snippets: priorityStore.snippets.map((snippet) => ({
           id: snippet.id,
           trigger: snippet.trigger,
-          content: snippet.content,
+          content: snippet.content || "",
           contentType: snippet.contentType,
           description: snippet.description,
           scope: snippet.scope,
@@ -260,7 +260,7 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
         })),
         storeInfo: {
           name: "Priority #0 Store",
-          tier: "personal",
+          tier: priorityStore.tier,
           lastModified: priorityStore.metadata.modified,
         },
       };
@@ -274,33 +274,14 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
   }
 
   /**
-   * List all files in a folder with their metadata
+   * REMOVED: listFiles method violates OAuth compliance
+   * Extension should only access files explicitly granted through drive.file and drive.appdata scopes
    */
-  async listFiles(folderId?: string): Promise<
-    Array<{
-      id: string;
-      name: string;
-      mimeType?: string;
-      modifiedTime?: string;
-    }>
-  > {
-    if (!this.credentials) {
-      throw new Error("Not authenticated");
-    }
-
-    return GoogleDriveFileService.listFiles(this.credentials, folderId);
-  }
 
   /**
-   * Download raw file content by ID
+   * REMOVED: downloadFileContent method was part of file discovery system
+   * OAuth-compliant file access should only be through explicitly selected files
    */
-  async downloadFileContent(fileId: string): Promise<string> {
-    if (!this.credentials) {
-      throw new Error("Not authenticated");
-    }
-
-    return GoogleDriveFileService.downloadFileContent(this.credentials, fileId);
-  }
 
   /**
    * Check if the adapter is authenticated (has valid credentials)
@@ -411,9 +392,9 @@ export class GoogleDriveAdapter extends BaseCloudAdapter {
 
       // Step 3: Test file listing through normal flow
       console.log(
-        "🐛 [DEBUG] Step 3: Testing file listing through normal flow...",
+        "🐛 [DEBUG] Step 3: OAuth compliance check - skipping file listing...",
       );
-      const fileListResult = await this.listFiles(folderId);
+      // REMOVED: File listing violates OAuth scope restrictions
 
       return {
         authSuccess: true,

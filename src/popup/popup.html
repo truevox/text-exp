@@ -148,74 +148,28 @@
       </footer>
     </div>
 
-    <!-- Add/Edit Snippet Modal -->
+    <!-- Advanced Snippet Editor Modal -->
     <div id="snippetModal" class="modal hidden">
-      <div class="modal-content">
+      <div class="modal-content advanced-editor-modal">
         <div class="modal-header">
           <h2 id="modalTitle">Add Snippet</h2>
           <button id="modalClose" class="close-button">&times;</button>
         </div>
 
-        <form id="snippetForm" class="modal-body">
-          <div class="form-group">
-            <label for="triggerInput">Trigger</label>
-            <input
-              type="text"
-              id="triggerInput"
-              required
-              placeholder="e.g., ;hello"
-            />
-            <small class="form-help">Type this text to trigger expansion</small>
-          </div>
-
-          <div class="form-group">
-            <label for="contentTextarea">Content</label>
-            <textarea
-              id="contentTextarea"
-              required
-              placeholder="Hello there! How are you?"
-            ></textarea>
-            <small class="form-help"
-              >Text to expand when trigger is typed</small
-            >
-          </div>
-
-          <div class="form-group">
-            <label for="descriptionInput">Description (optional)</label>
-            <input
-              type="text"
-              id="descriptionInput"
-              placeholder="Friendly greeting"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="tagsInput">Tags (optional)</label>
-            <input type="text" id="tagsInput" placeholder="greeting, casual" />
-            <small class="form-help"
-              >Comma-separated tags for organization</small
-            >
-          </div>
-
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="sharedCheckbox" />
-              Share with team
-            </label>
-          </div>
-        </form>
+        <div class="modal-body">
+          <!-- Advanced snippet editor will be initialized here -->
+          <div
+            id="advancedSnippetEditor"
+            class="advanced-snippet-editor-container"
+          ></div>
+        </div>
 
         <div class="modal-footer">
           <button type="button" id="modalCancel" class="secondary-button">
             Cancel
           </button>
-          <button
-            type="submit"
-            form="snippetForm"
-            id="modalSave"
-            class="primary-button"
-          >
-            Save
+          <button type="button" id="modalSave" class="primary-button">
+            Save Snippet
           </button>
         </div>
       </div>

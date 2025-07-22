@@ -8,26 +8,9 @@ import type { CloudAdapter, TextSnippet } from "../shared/types.js";
 import type { SnippetDoc } from "../types/snippet-formats.js";
 
 /**
- * Interface for cloud adapters that support file discovery
+ * OAuth-compliant cloud adapter interface - REMOVED file discovery to prevent unauthorized access
+ * Extension can only access files explicitly granted through drive.file and drive.appdata scopes
  */
-interface FileDiscoveryAdapter extends CloudAdapter {
-  /**
-   * List all files in a folder with their metadata
-   */
-  listFiles?(folderId?: string): Promise<
-    Array<{
-      id: string;
-      name: string;
-      mimeType?: string;
-      modifiedTime?: string;
-    }>
-  >;
-
-  /**
-   * Download raw file content by ID
-   */
-  downloadFileContent?(fileId: string): Promise<string>;
-}
 
 /**
  * Service that handles multi-format snippet synchronization
@@ -52,134 +35,22 @@ export class MultiFormatSyncService {
   ];
 
   /**
-   * Enhanced snippet download that supports multiple formats
+   * OAuth-compliant snippet download - ONLY accesses explicitly selected files
    */
   async downloadSnippetsWithFormats(
     adapter: CloudAdapter,
     folderId?: string,
   ): Promise<TextSnippet[]> {
-    // Check if adapter supports file discovery
-    if (this.supportsFileDiscovery(adapter)) {
-      return this.downloadFromMultipleFiles(adapter, folderId || "");
-    } else {
-      // Fallback to original single-file approach
-      return adapter.downloadSnippets(folderId || "");
-    }
+    // CRITICAL: Only use single-file approach to maintain OAuth compliance
+    // File discovery functionality removed to prevent access to unauthorized files
+    console.log("🔒 Using OAuth-compliant single-file download approach");
+    return adapter.downloadSnippets(folderId || "");
   }
 
   /**
-   * Check if adapter supports file discovery
+   * REMOVED: File discovery methods violate OAuth compliance
+   * Extension should only access explicitly authorized files
    */
-  private supportsFileDiscovery(
-    adapter: CloudAdapter,
-  ): adapter is FileDiscoveryAdapter {
-    return (
-      typeof (adapter as FileDiscoveryAdapter).listFiles === "function" &&
-      typeof (adapter as FileDiscoveryAdapter).downloadFileContent ===
-        "function"
-    );
-  }
-
-  /**
-   * Download snippets from multiple files in different formats
-   */
-  private async downloadFromMultipleFiles(
-    adapter: FileDiscoveryAdapter,
-    folderId?: string,
-  ): Promise<TextSnippet[]> {
-    try {
-      console.log(
-        `🔍 Discovering snippet files in folder: ${folderId || "root"}`,
-      );
-
-      // List all files in the folder
-      const files = await adapter.listFiles!(folderId);
-      console.log(`📁 Found ${files.length} total files`);
-
-      // Filter for supported snippet files
-      const snippetFiles = files.filter((file) =>
-        this.isSnippetFile(file.name),
-      );
-      console.log(
-        `📋 Found ${snippetFiles.length} snippet files:`,
-        snippetFiles.map((f) => f.name),
-      );
-
-      if (snippetFiles.length === 0) {
-        console.log("⚠️ No snippet files found");
-        return [];
-      }
-
-      // Download and parse each file
-      const allSnippets: TextSnippet[] = [];
-
-      for (const file of snippetFiles) {
-        let content: string | undefined;
-        try {
-          console.log(`📥 Downloading file: ${file.name}`);
-          content = await adapter.downloadFileContent!(file.id);
-
-          console.log(
-            `🔄 Parsing file: ${file.name} (${content.length} chars)`,
-          );
-          const parsedDocs = multiFormatParser.parse(content, file.name);
-          const docsArray = Array.isArray(parsedDocs)
-            ? parsedDocs
-            : [parsedDocs];
-
-          // Convert parsed docs to TextSnippets
-          const snippets = this.convertDocsToSnippets(docsArray, file.name);
-          allSnippets.push(...snippets);
-
-          console.log(
-            `✅ Parsed ${snippets.length} snippets from ${file.name}`,
-          );
-
-          // DEBUG: Log detailed snippet data
-          console.log(
-            `🔍 [SNIPPET-DEBUG] Detailed snippet data from ${file.name}:`,
-          );
-          snippets.forEach((snippet, index) => {
-            console.log(`  📋 Snippet ${index + 1}:`, {
-              id: snippet.id,
-              trigger: snippet.trigger,
-              content:
-                snippet.content?.substring(0, 100) +
-                (snippet.content?.length > 100 ? "..." : ""),
-              description: snippet.description,
-              tags: snippet.tags,
-              createdAt: snippet.createdAt,
-              updatedAt: snippet.updatedAt,
-              source: (snippet as any).source,
-              hasRequiredFields: !!(
-                snippet.id &&
-                snippet.trigger &&
-                snippet.content
-              ),
-            });
-          });
-        } catch (error) {
-          console.warn(`⚠️ Failed to parse file ${file.name}:`, error);
-          console.warn(`📄 File content was:`, content?.substring(0, 200));
-          // Continue with other files
-        }
-      }
-
-      console.log(
-        `🎉 Successfully loaded ${allSnippets.length} snippets from ${snippetFiles.length} files`,
-      );
-      return allSnippets;
-    } catch (error) {
-      console.error("❌ Failed to download multi-format snippets:", error);
-      // Fallback to original method
-      try {
-        return await adapter.downloadSnippets(folderId || "");
-      } catch (fallbackError) {
-        console.error("❌ Fallback download also failed:", fallbackError);
-        return [];
-      }
-    }
-  }
 
   /**
    * Check if a file is a snippet file based on blacklist approach
@@ -314,6 +185,14 @@ export class MultiFormatSyncService {
    */
   getCommonTextFormats(): string[] {
     return [...this.commonTextExtensions];
+  }
+
+  /**
+   * Check if adapter supports file discovery (currently disabled for OAuth compliance)
+   */
+  supportsFileDiscovery(adapter: CloudAdapter): boolean {
+    // File discovery removed for OAuth compliance - only use explicit file access
+    return false;
   }
 
   /**

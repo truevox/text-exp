@@ -84,12 +84,12 @@ describe("SecondaryStoreUsageSync - Phase 3 Task 4", () => {
       }),
       getRecentUsage: jest.fn().mockResolvedValue([
         {
-          snippet_id: "snippet-1",
-          usage_count: 5,
-          first_used: "2025-07-15T10:00:00.000Z",
-          last_used: "2025-07-18T15:30:00.000Z",
-          content_type: "text",
-          tags: ["test"],
+          snippetId: "snippet-1",
+          eventType: "used",
+          timestamp: new Date("2025-07-18T15:30:00.000Z"),
+          userId: "user-1",
+          userName: "Test User",
+          metadata: { contentType: "text", tags: ["test"] },
         },
       ]),
     };

@@ -23,6 +23,7 @@ export interface TinyMCEConfig {
   content_css?: string | string[] | false;
   skin?: string | false;
   theme?: string;
+  license_key?: string;
 }
 
 export interface TinyMCEWrapperEvents {
@@ -54,35 +55,32 @@ export class TinyMCEWrapper {
 
   private readonly options: TinyMCEWrapperOptions;
   private readonly defaultConfig: TinyMCEConfig = {
+    license_key: 'gpl',
     height: 300,
     menubar: false,
     statusbar: false,
     branding: false,
+    skin: false,
+    content_css: false,
     plugins: [
       "lists",
       "link",
-      "image",
       "charmap",
-      "preview",
       "searchreplace",
       "visualblocks",
       "code",
       "fullscreen",
       "insertdatetime",
-      "media",
       "table",
-      "help",
       "wordcount",
     ],
     toolbar:
       "undo redo | blocks | " +
       "bold italic forecolor | alignleft aligncenter " +
       "alignright alignjustify | bullist numlist outdent indent | " +
-      "removeformat | help",
+      "removeformat",
     content_style:
       "body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }",
-    skin: false,
-    content_css: false,
   };
 
   constructor(options: TinyMCEWrapperOptions = {}) {

@@ -47,38 +47,7 @@
           </div>
         </div>
 
-        <!-- Google Drive Authentication -->
-        <section class="settings-section auth-section">
-          <div class="section-header">
-            <div class="section-icon">🔐</div>
-            <div class="section-title-group">
-              <h2 class="section-title">Google Drive Authentication</h2>
-              <p class="section-subtitle">
-                Connect your Google Drive to sync snippets
-              </p>
-            </div>
-          </div>
-          <div class="settings-content">
-            <div class="auth-status" id="authStatus">
-              <div class="auth-disconnected">
-                <p>Not connected to Google Drive</p>
-                <button id="connectGoogleDriveButton" class="primary-button">
-                  Connect Google Drive
-                </button>
-              </div>
-              <div class="auth-connected hidden">
-                <p>✅ Connected to Google Drive</p>
-                <p class="auth-email" id="authEmail"></p>
-                <button
-                  id="disconnectGoogleDriveButton"
-                  class="secondary-button"
-                >
-                  Disconnect
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- Authentication happens automatically in background -->
 
         <!-- Dynamic Folder Pickers -->
         <section class="settings-section folders-section">
@@ -93,26 +62,79 @@
             </div>
           </div>
           <div class="settings-content">
-            <div class="folder-pickers" id="folderPickers">
-              <!-- Dynamic folder pickers will be added here -->
-            </div>
-            <div
-              class="folder-picker-template hidden"
-              id="folderPickerTemplate"
-            >
-              <div class="folder-picker-item" data-priority="1">
-                <div class="folder-picker-header">
-                  <span class="folder-priority">Priority 1</span>
-                  <button class="folder-remove-btn" title="Remove this folder">
-                    ×
-                  </button>
+            <!-- Default Store Status -->
+            <div id="defaultStoreStatus" class="default-store-section">
+              <div class="store-info">
+                <h3>Default Appdata Store</h3>
+                <p class="store-description">
+                  Your primary snippet store, automatically synced to Google
+                  Drive's application data folder.
+                </p>
+                <div id="defaultStoreInfo" class="store-status">
+                  <span class="status-indicator pending"></span>
+                  <span class="status-text">Checking status...</span>
                 </div>
-                <div class="folder-picker-content">
-                  <div class="folder-display">
-                    <span class="folder-name">Select a folder...</span>
-                    <span class="folder-id"></span>
+              </div>
+              <div class="store-actions">
+                <button id="initializeDefaultStore" class="primary-button">
+                  🚀 Initialize Default Store
+                </button>
+              </div>
+            </div>
+
+            <!-- Store List Section -->
+            <div id="storeListSection" class="store-list-section">
+              <div class="section-actions">
+                <h3>Snippet Stores</h3>
+                <button
+                  id="addStoreButton"
+                  class="add-store-btn primary-button"
+                >
+                  <span class="btn-icon">➕</span>
+                  Add Store
+                </button>
+              </div>
+              <p class="section-description">
+                Manage your snippet stores in priority order. Drag to reorder,
+                higher stores take precedence.
+              </p>
+
+              <!-- Active Stores List (draggable) -->
+              <div
+                id="activeStoresList"
+                class="active-stores-list"
+                data-sortable="true"
+              >
+                <!-- Default store and additional stores will be added here dynamically -->
+              </div>
+            </div>
+
+            <!-- Store Manager Section (for legacy support) -->
+            <div id="storeManagerSection" class="hidden">
+              <div class="folder-pickers" id="folderPickers">
+                <!-- Dynamic folder pickers will be added here -->
+              </div>
+              <div
+                class="folder-picker-template hidden"
+                id="folderPickerTemplate"
+              >
+                <div class="folder-picker-item" data-priority="1">
+                  <div class="folder-picker-header">
+                    <span class="folder-priority">Priority 1</span>
+                    <button
+                      class="folder-remove-btn"
+                      title="Remove this folder"
+                    >
+                      ×
+                    </button>
                   </div>
-                  <button class="folder-select-btn">Select Folder</button>
+                  <div class="folder-picker-content">
+                    <div class="folder-display">
+                      <span class="folder-name">Select a folder...</span>
+                      <span class="folder-id"></span>
+                    </div>
+                    <button class="folder-select-btn">Select Folder</button>
+                  </div>
                 </div>
               </div>
             </div>

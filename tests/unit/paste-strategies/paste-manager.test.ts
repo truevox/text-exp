@@ -296,11 +296,12 @@ describe("PasteManager", () => {
 
       const applicableStrategies = manager.getApplicableStrategies(mockTarget);
 
-      // Should include 2 mock strategies + fallback strategy (which handles everything)
-      expect(applicableStrategies).toHaveLength(3);
+      // Should include 2 mock strategies + plaintext-paste + fallback strategy
+      expect(applicableStrategies).toHaveLength(4);
       expect(applicableStrategies[0].strategy).toBe(highPriorityStrategy);
-      expect(applicableStrategies[1].strategy).toBe(lowPriorityStrategy);
-      expect(applicableStrategies[2].strategy.name).toBe("fallback-paste");
+      expect(applicableStrategies[1].strategy.name).toBe("plaintext-paste");
+      expect(applicableStrategies[2].strategy).toBe(lowPriorityStrategy);
+      expect(applicableStrategies[3].strategy.name).toBe("fallback-paste");
     });
   });
 
@@ -333,6 +334,7 @@ describe("PasteManager", () => {
       expect(result.confidence).toBe(0.5);
       expect(result.attemptedStrategies).toEqual([
         "mock-high-priority",
+        "plaintext-paste",
         "mock-low-priority",
       ]);
     });

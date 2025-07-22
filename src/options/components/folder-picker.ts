@@ -90,13 +90,26 @@ export class FolderPickerComponent {
     scope: "personal" | "team" | "org",
     cloudProvider: string,
   ): Promise<void> {
+    console.log("🔍 [FOLDER-PICKER] handleSelectFolder called:", {
+      scope,
+      cloudProvider,
+      currentFolderScope: this.currentFolderScope,
+    });
+
     try {
       if (cloudProvider === "local") {
+        console.log(
+          "⚠️ [FOLDER-PICKER] Local provider selected, showing warning",
+        );
         this.showStatus("Please select a cloud provider first.", "warning");
         return;
       }
 
       if (cloudProvider !== "google-drive") {
+        console.log(
+          "⚠️ [FOLDER-PICKER] Non-Google Drive provider selected:",
+          cloudProvider,
+        );
         this.showStatus(
           "Folder picker is currently only available for Google Drive.",
           "warning",
@@ -104,13 +117,46 @@ export class FolderPickerComponent {
         return;
       }
 
+      // Verify Google Drive connection before proceeding
+      console.log("🔍 [FOLDER-PICKER] Checking Google Drive connection...");
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: "CHECK_GOOGLE_DRIVE_CONNECTION",
+        });
+
+        if (!response?.success) {
+          console.log("⚠️ [FOLDER-PICKER] Google Drive not connected");
+          this.showStatus(
+            "Please connect to Google Drive first before selecting folders.",
+            "warning",
+          );
+          return;
+        }
+        console.log("✅ [FOLDER-PICKER] Google Drive connection verified");
+      } catch (connectionError) {
+        console.error(
+          "❌ [FOLDER-PICKER] Failed to check Google Drive connection:",
+          connectionError,
+        );
+        this.showStatus(
+          "Unable to verify Google Drive connection. Please try reconnecting.",
+          "error",
+        );
+        return;
+      }
+
       // Store the current scope for use in confirmation
       this.currentFolderScope = scope;
+      console.log("✅ [FOLDER-PICKER] Scope set, opening folder picker modal");
 
       // Open the folder picker modal
       await this.openFolderPicker();
+      console.log("✅ [FOLDER-PICKER] Folder picker modal opened successfully");
     } catch (error) {
-      console.error(`Failed to open folder picker for ${scope}:`, error);
+      console.error(
+        `❌ [FOLDER-PICKER] Failed to open folder picker for ${scope}:`,
+        error,
+      );
       this.showStatus(
         `Failed to open folder picker: ${error instanceof Error ? error.message : String(error)}`,
         "error",
@@ -150,23 +196,52 @@ export class FolderPickerComponent {
    * Load available folders from Google Drive
    */
   private async loadAvailableFolders(parentId?: string): Promise<void> {
+    const effectiveParentId = parentId || this.currentParentId;
+    console.log("🔍 [FOLDER-PICKER] loadAvailableFolders called:", {
+      parentId,
+      currentParentId: this.currentParentId,
+      effectiveParentId,
+      currentFolderScope: this.currentFolderScope,
+    });
+
     try {
       // Call the background script to get folders without auto-selecting
-      const response = await chrome.runtime.sendMessage({
+      const message = {
         type: "GET_GOOGLE_DRIVE_FOLDERS",
-        parentId: parentId || this.currentParentId,
+        parentId: effectiveParentId,
+      };
+      console.log("🔍 [FOLDER-PICKER] Sending message to background:", message);
+
+      const response = await chrome.runtime.sendMessage(message);
+      console.log("🔍 [FOLDER-PICKER] Response from background:", {
+        success: response?.success,
+        dataLength: response?.data?.length,
+        error: response?.error,
+        fullResponse: response,
       });
 
-      if (response.success) {
+      if (response?.success) {
         this.availableFolders = response.data;
+        console.log(
+          "✅ [FOLDER-PICKER] Folders loaded successfully:",
+          this.availableFolders.length,
+        );
         this.renderFolderList();
       } else {
-        throw new Error(response.error || "Failed to fetch folders");
+        const errorMessage = response?.error || "Failed to fetch folders";
+        console.error(
+          "❌ [FOLDER-PICKER] Failed to load folders:",
+          errorMessage,
+        );
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      throw new Error(
-        `Failed to load Google Drive folders: ${error instanceof Error ? error.message : String(error)}`,
+      const errorMessage = `Failed to load Google Drive folders: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(
+        "❌ [FOLDER-PICKER] Exception in loadAvailableFolders:",
+        error,
       );
+      throw new Error(errorMessage);
     }
   }
 

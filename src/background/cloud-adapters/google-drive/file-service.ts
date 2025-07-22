@@ -144,96 +144,10 @@ export class GoogleDriveFileService {
   }
 
   /**
-   * List all files in a folder with their metadata
+   * REMOVED: listFiles method violates OAuth compliance
+   * Extension can only access files explicitly authorized through drive.file scope
+   * This method was accessing ALL user files, which violates privacy and OAuth principles
    */
-  static async listFiles(
-    credentials: CloudCredentials,
-    folderId?: string,
-  ): Promise<
-    Array<{
-      id: string;
-      name: string;
-      mimeType?: string;
-      modifiedTime?: string;
-    }>
-  > {
-    const targetFolderId = folderId || "root";
-    console.log(
-      `📁 [ENHANCED] Listing files in Google Drive folder: ${targetFolderId}`,
-    );
-
-    // Enhanced logging for debugging
-    const query = `parents in '${targetFolderId}' and mimeType!='application/vnd.google-apps.folder'`;
-    const fields = `files(id,name,mimeType,modifiedTime)`;
-    const orderBy = `name`;
-
-    const url = `${this.DRIVE_API}/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&orderBy=${orderBy}`;
-
-    console.log(`🔍 [DEBUG] API Request Details:`);
-    console.log(`  - URL: ${url}`);
-    console.log(`  - Query: ${query}`);
-    console.log(`  - Fields: ${fields}`);
-    console.log(`  - Target Folder ID: ${targetFolderId}`);
-    console.log(
-      `  - Token starts with: ${credentials.accessToken.substring(0, 20)}...`,
-    );
-
-    const headers = GoogleDriveAuthService.getAuthHeaders(credentials);
-    console.log(`  - Headers:`, Object.keys(headers));
-
-    const response = await fetch(url, { headers });
-
-    console.log(`🔍 [DEBUG] API Response Details:`);
-    console.log(`  - Status: ${response.status} ${response.statusText}`);
-    console.log(
-      `  - Headers:`,
-      response.headers?.entries
-        ? Object.fromEntries(response.headers.entries())
-        : "Headers not available",
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ [ERROR] API Error Response:`, errorText);
-
-      // Try to parse error for more details
-      try {
-        const errorData = JSON.parse(errorText);
-        console.error(`❌ [ERROR] Parsed error:`, errorData);
-      } catch (parseError) {
-        console.error(`❌ [ERROR] Could not parse error response:`, parseError);
-      }
-
-      throw new Error(
-        `Failed to list files: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const data = await response.json();
-    const files = data.files || [];
-
-    console.log(
-      `📁 [ENHANCED] Found ${files.length} files in folder ${targetFolderId}:`,
-    );
-    if (files.length > 0) {
-      console.log(
-        `📋 [ENHANCED] File details:`,
-        files.map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          mimeType: f.mimeType,
-          modifiedTime: f.modifiedTime,
-        })),
-      );
-    } else {
-      console.warn(
-        `⚠️ [ENHANCED] No files found! This might indicate a permissions issue.`,
-      );
-      console.log(`🔍 [ENHANCED] Raw API response:`, data);
-    }
-
-    return files;
-  }
 
   /**
    * Download file content by file ID

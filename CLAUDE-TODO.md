@@ -38,9 +38,129 @@
 
 ---
 
-### 🚀 **PHASE 8: COMPREHENSIVE QUALITY FOUNDATION** (IN PROGRESS)
+### 🚨 **EMERGENCY DEBUGGING: FOLDER SELECTION ERROR** (ACTIVE)
 
-**Current Status**: Excellent foundation (99.57% success rate) ready for quality enhancement
+**Priority**: CRITICAL - User-blocking issue with folder selection functionality
+
+**Current Status**: Investigating folder picker error when selecting store folder
+
+**Emergency Debugging Tasks**:
+
+- [x] **🚨 PRIORITY 1: Debug folder selection error when picking a store** (IN PROGRESS)
+  - **Goal**: Quickly identify and resolve immediate folder selection error
+  - **Approach**: Systematic debugging of authentication flow and cloud provider initialization
+  - **Status**: IN PROGRESS - Analysis phase
+
+- [ ] **Check browser console logs and authentication status** (PENDING)
+  - **Goal**: Examine console output and verify Google Drive auth state
+  - **Priority**: HIGH
+  - **Impact**: Essential for root cause analysis
+
+- [x] **Add debug logging to syncManager.getCloudFolders() method** (COMPLETED)
+  - **Goal**: Add comprehensive logging to trace execution path
+  - **Priority**: HIGH
+  - **Impact**: Critical for identifying where the flow breaks
+  - **Status**: ✅ Comprehensive logging added with error tracing
+
+- [ ] **Verify Google Drive authentication and currentAdapter initialization** (PENDING)
+  - **Goal**: Ensure authentication completed and adapter is properly set
+  - **Priority**: HIGH
+  - **Impact**: Core requirement for folder operations
+
+- [ ] **Test chrome.runtime.sendMessage communication flow** (PENDING)
+  - **Goal**: Verify message passing between options page and service worker
+  - **Priority**: HIGH
+  - **Impact**: Essential communication mechanism
+
+- [x] **Add comprehensive error logging to folder picker component** (COMPLETED)
+  - **Goal**: Enhance error reporting in FolderPickerComponent
+  - **Priority**: MEDIUM
+  - **Impact**: Better user experience and debugging
+  - **Status**: ✅ Enhanced logging added to folder picker flow
+
+- [ ] **Create automated test scenarios for folder selection** (PENDING)
+  - **Goal**: Build regression tests for folder picker functionality
+  - **Priority**: MEDIUM
+  - **Impact**: Prevent future issues
+
+- [ ] **USER TESTING: Folder Selection Debug Session** (READY)
+  - **Goal**: Test folder selection with enhanced debug logging
+  - **Priority**: HIGH
+  - **Impact**: Identify exact failure point
+  - **Instructions**:
+    1. Load extension v0.113.10 in Chrome (from `build/` folder)
+    2. Open browser DevTools Console (F12)
+    3. Navigate to extension options page
+    4. Try to select a folder for any store priority
+    5. Monitor console output for debug messages starting with 🔍 [DEBUG] or ❌ [DEBUG]
+    6. Report the exact error sequence and auth status
+  - **Expected Debug Output**: Should see initialization, authentication checks, and specific failure point
+
+- [ ] **Investigate if Playwright MCP server is available for automated testing** (DEFERRED)
+  - **Goal**: Check VS Code Playwright integration capabilities
+  - **Priority**: LOW
+  - **Impact**: Enhanced testing infrastructure
+  - **Status**: Deferred until after manual debugging session
+
+---
+
+### 🎯 **NEW FEATURE IMPLEMENTATION: MULTI-STORE SNIPPET CREATION**
+
+**Priority**: HIGH - Critical UX improvement implemented but needs completion
+
+**Current Status**: ✅ PHASE 1 COMPLETE - Multi-store selector UI working in v0.113.10
+
+**Completed in Phase 1**:
+
+- [x] **✅ COMPLETED: Blue field multi-store selector UI** (v0.113.10)
+  - **Goal**: Replace "PRIORITY-0 TIER" badge with functional multi-store checkbox selector
+  - **Status**: ✅ IMPLEMENTED - Blue field now shows store checkboxes with names
+  - **Components Modified**:
+    - ComprehensiveSnippetEditor: Added store selector UI
+    - PopupApp: Integrated getAllAvailableStores() method
+    - Enhanced with store selection, clear/select all buttons
+  - **Features**: Checkbox interface, store counts, read-only badges, select all/writable/clear buttons
+
+**Phase 2 Implementation Needed**:
+
+- [ ] **🚨 PRIORITY 1: Implement multi-store saving functionality** (CRITICAL)
+  - **Goal**: Actually save snippets to selected stores instead of just default store
+  - **Current Gap**: UI selects stores but save logic only uses default store
+  - **Impact**: User expects selected stores to receive the snippet
+  - **Implementation**:
+    1. Modify handleSnippetSave() in popup.ts to process selectedStores array
+    2. Add background message handlers for multi-store snippet creation
+    3. Update snippet storage logic to write to multiple stores
+    4. Add validation for read-only stores
+  - **Priority**: HIGH - Core functionality completion
+
+- [ ] **PRIORITY 2: Add store validation and error handling** (HIGH)
+  - **Goal**: Validate store permissions and handle save failures gracefully
+  - **Requirements**:
+    - Validate write permissions for selected stores
+    - Handle partial save failures (some stores succeed, some fail)
+    - Provide clear user feedback on save results
+  - **Impact**: Professional user experience and error resilience
+
+- [ ] **PRIORITY 3: USER TESTING: Multi-store snippet creation** (READY)
+  - **Goal**: Test the complete multi-store creation workflow
+  - **Instructions**:
+    1. Load extension v0.113.10 in Chrome
+    2. Open popup → "Create New Snippet"
+    3. Verify blue field shows store checkboxes with store names
+    4. Select multiple stores and create a snippet
+    5. Verify snippet appears in all selected stores
+  - **Expected Behavior**:
+    - Phase 1: ✅ Blue field shows store selector (WORKING)
+    - Phase 2: Snippet should save to all selected stores (PENDING)
+
+---
+
+### 🚀 **PHASE 8: COMPREHENSIVE QUALITY FOUNDATION** (PAUSED)
+
+**Current Status**: Paused to address critical folder selection issue
+
+**Note**: Phase 8 work suspended temporarily to resolve user-blocking bug
 
 **🔥 APPROVED STRATEGY**: Comprehensive Quality Foundation - establish rock-solid code quality before further development
 

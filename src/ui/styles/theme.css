@@ -16,6 +16,48 @@
   --glow-blue: rgba(0, 135, 210, 0.6);
   --glow-coral: rgba(255, 107, 71, 0.4);
 
+  /* Popup color scheme */
+  --popup-seafoam: #2dd4bf;
+  --popup-seafoam-light: #5eead4;
+  --popup-seafoam-pale: #99f6e4;
+  --popup-seafoam-dark: #14b8a6;
+  --popup-dark-blue: #1e3a8a;
+  --popup-dark-blue-light: #3b82f6;
+  --popup-dark-blue-deep: #1e40af;
+
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: "Fredoka", sans-serif;
 }
+
+/* Dark mode disabled for now - will be re-implemented later with proper styling */
+/*
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a1a;
+    --card-bg: #353535;
+    --text-dark: #ffffff !important;
+    --text-light: #ffffff !important;
+    --primary-blue: #4299e1;
+    --light-blue: #90cdf4;
+    --pale-blue: #bee3f8;
+  }
+
+  body,
+  p,
+  span,
+  div,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #ffffff !important;
+  }
+
+  .section-subtitle,
+  .section-title-group p {
+    color: #ffffff !important;
+  }
+}
+*/

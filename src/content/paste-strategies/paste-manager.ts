@@ -404,7 +404,7 @@ export class PasteManager {
  * Global paste manager instance
  */
 export const pasteManager = new PasteManager({
-  enableLogging: false, // Set to true for debugging
+  enableLogging: true, // Enable logging to debug paste issues
 });
 
 /**

@@ -337,7 +337,7 @@ export class ExpansionUsageLogger {
       id: snippet.id,
       trigger: snippet.trigger,
       content: snippet.content,
-      contentType: snippet.contentType || "text",
+      contentType: snippet.contentType || "plaintext",
       scope: snippet.scope || "personal",
       description: snippet.description || "",
       snipDependencies: [],

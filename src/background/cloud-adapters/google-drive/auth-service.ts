@@ -332,6 +332,16 @@ export class GoogleDriveAuthService {
       throw new Error("No access token available in credentials");
     }
 
+    // Check if token is expired
+    if (credentials.expiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(credentials.expiresAt);
+      if (now >= expiresAt) {
+        console.warn("⚠️ Access token has expired, authentication needed");
+        throw new Error("Access token expired - re-authentication required");
+      }
+    }
+
     // Always use "Bearer" (capital B) as Google APIs are case-sensitive
     const tokenType = "Bearer";
 

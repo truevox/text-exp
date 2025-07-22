@@ -66,6 +66,7 @@ export default defineConfig(({ mode }) => {
           // UI components as ES modules
           "popup/popup": resolve(__dirname, "src/popup/popup.ts"),
           "options/options": resolve(__dirname, "src/options/options.ts"),
+          "add-snippet/add-snippet": resolve(__dirname, "src/add-snippet/add-snippet.ts"),
         },
         output: {
           entryFileNames: "[name].js",
@@ -104,6 +105,14 @@ export default defineConfig(({ mode }) => {
           {
             src: "src/options/options-enhanced.css",
             dest: "options",
+          },
+          {
+            src: "src/add-snippet/add-snippet.css",
+            dest: "add-snippet",
+          },
+          {
+            src: "src/ui/styles/*",
+            dest: "ui/styles",
           },
           {
             src: "src/assets/icons/*",

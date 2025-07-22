@@ -48,14 +48,59 @@ export class ExtensionStorage {
     }
 
     // Use whichever source has more data (handles race conditions)
-    const finalSnippets =
+    let finalSnippets =
       indexedDBSnippets.length >= chromeStorageSnippets.length
         ? indexedDBSnippets
         : chromeStorageSnippets;
 
+    // Fix corrupted snippets with "undefined" content
+    const corruptedSnippets = finalSnippets.filter(s => s.content === "undefined" || !s.content);
+    if (corruptedSnippets.length > 0) {
+      console.warn(`🚨 Found ${corruptedSnippets.length} corrupted snippets, attempting to fix...`);
+      
+      // Create fixed versions by providing default content based on trigger
+      finalSnippets = finalSnippets.map(snippet => {
+        if (snippet.content === "undefined" || !snippet.content) {
+          let fixedContent = "";
+          
+          // Provide default content based on trigger
+          if (snippet.trigger === ";hello") {
+            fixedContent = "Hello! Welcome to PuffPuffPaste! 👋";
+          } else if (snippet.trigger === ";email") {
+            fixedContent = "${email}";
+          } else if (snippet.trigger === ";signature") {
+            fixedContent = "Best regards,<br>${name}<br>${title}";
+          } else {
+            fixedContent = `[Content for ${snippet.trigger}]`;
+          }
+          
+          console.log(`🔧 Fixed snippet "${snippet.trigger}": "${fixedContent}"`);
+          
+          return {
+            ...snippet,
+            content: fixedContent
+          };
+        }
+        return snippet;
+      });
+      
+      // Save the fixed snippets back to storage
+      try {
+        await Promise.all([
+          chrome.storage.local.set({
+            [STORAGE_KEYS.SNIPPETS]: finalSnippets,
+          }),
+          indexedDB.saveSnippets(finalSnippets),
+        ]);
+        console.log(`✅ [CORRUPTION-FIX] Fixed ${corruptedSnippets.length} corrupted snippets`);
+      } catch (error) {
+        console.error("Failed to save fixed snippets:", error);
+      }
+    }
+
     console.log(
       `✅ [STORAGE-RETRIEVAL] Using ${finalSnippets.length} snippets from ${
-        finalSnippets === indexedDBSnippets
+        indexedDBSnippets.length >= chromeStorageSnippets.length
           ? "IndexedDB"
           : "chrome.storage.local"
       }`,
@@ -67,7 +112,9 @@ export class ExtensionStorage {
         finalSnippets.map((s) => ({
           id: s.id,
           trigger: s.trigger,
-          content: s.content?.substring(0, 30) + "...",
+          content: s.content
+            ? s.content.substring(0, 30) + "..."
+            : "(no content)",
           source: (s as any).source,
         })),
       );
@@ -103,7 +150,9 @@ export class ExtensionStorage {
       "📋 Snippet list:",
       snippets.map((s) => ({
         trigger: s.trigger,
-        content: s.content.substring(0, 30) + "...",
+        content: s.content
+          ? s.content.substring(0, 30) + "..."
+          : "(no content)",
       })),
     );
 
@@ -177,7 +226,9 @@ export class ExtensionStorage {
       console.log(`✅ [SNIPPET-LOOKUP] Found snippet for "${trigger}":`, {
         id: foundSnippet.id,
         trigger: foundSnippet.trigger,
-        content: foundSnippet.content?.substring(0, 50) + "...",
+        content: foundSnippet.content
+          ? foundSnippet.content.substring(0, 50) + "..."
+          : "(no content)",
         source: (foundSnippet as any).source,
       });
     } else {

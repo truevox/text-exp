@@ -1,6 +1,6 @@
 {
   "name": "puffpuffpaste",
-  "version": "0.109.0",
+  "version": "0.117.1",
   "description": "Blow up your words! A powerful text expansion Chrome extension with multi-provider cloud sync and organizational snippet management",
   "type": "module",
   "scripts": {
@@ -14,6 +14,8 @@
     "test:unit": "jest --testPathPattern=unit",
     "test:integration": "playwright test --grep='integration'",
     "test:e2e": "playwright test",
+    "test:cross-site": "playwright test simple-cross-site-test.spec.ts --project manual --headed",
+    "test:cross-site-manual": "playwright test cross-site-expansion-manual.spec.ts --project manual --headed",
     "test:watch": "jest --watch",
     "lint": "eslint . --ext .js,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.ts,.tsx --fix",

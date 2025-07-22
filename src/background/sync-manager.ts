@@ -53,13 +53,25 @@ export class SyncManager {
    * Initialize sync manager with current settings
    */
   async initialize(): Promise<void> {
+    console.log("🔍 [DEBUG] SyncManager.initialize() called");
+
     const settings = await ExtensionStorage.getSettings();
+    console.log("🔍 [DEBUG] Settings loaded:", {
+      cloudProvider: settings.cloudProvider,
+      autoSync: settings.autoSync,
+      syncInterval: settings.syncInterval,
+    });
+
     await this.setCloudProvider(settings.cloudProvider);
+    console.log("✅ [DEBUG] Cloud provider set in initialize");
 
     // Start auto-sync for cloud providers
     if (settings.autoSync && settings.cloudProvider !== "local") {
+      console.log("🔍 [DEBUG] Starting auto-sync");
       this.syncState.startAutoSync(settings.syncInterval, () => this.syncNow());
     }
+
+    console.log("✅ [DEBUG] SyncManager.initialize() completed");
   }
 
   /**
@@ -184,10 +196,33 @@ export class SyncManager {
   }
 
   /**
+   * Check and fix data corruption issues
+   */
+  private async checkDataIntegrity(): Promise<void> {
+    try {
+      const indexedDB = await ExtensionStorage.getIndexedDB();
+      const snippets = await indexedDB.getSnippets();
+      
+      // Check for "undefined" content corruption
+      const corruptedSnippets = snippets.filter(s => s.content === "undefined");
+      if (corruptedSnippets.length > 0) {
+        console.warn(`🚨 Found ${corruptedSnippets.length} corrupted snippets with "undefined" content`);
+        console.log("🧹 Clearing IndexedDB to force re-sync with clean data");
+        await indexedDB.clearSnippets();
+      }
+    } catch (error) {
+      console.error("❌ Failed to check data integrity:", error);
+    }
+  }
+
+  /**
    * Perform manual sync
    */
   async syncNow(): Promise<void> {
     console.log("🔄 [SYNC-MANAGER] syncNow() called");
+    
+    // Check for data corruption first
+    await this.checkDataIntegrity();
 
     if (this.syncState.isSyncInProgress()) {
       console.warn("⚠️ [SYNC-MANAGER] Sync already in progress, skipping");
@@ -263,7 +298,7 @@ export class SyncManager {
           if (appdataStore.hasStore) {
             console.log("✨ Discovered Priority #0 store in appdata");
             sources.unshift({
-              name: "personal" as SnippetScope,
+              name: "priority-0" as SnippetScope,
               adapter: this.currentAdapter,
               folderId: "appdata-priority-0",
               displayName: "Priority #0 Store",
@@ -288,7 +323,9 @@ export class SyncManager {
         `🔄 Sync completed, downloaded ${cloudSnippets.length} cloud snippets:`,
         cloudSnippets.map((s) => ({
           trigger: s.trigger,
-          content: s.content.substring(0, 50) + "...",
+          content: s.content
+            ? s.content.substring(0, 50) + "..."
+            : "(no content)",
         })),
       );
 
@@ -320,9 +357,10 @@ export class SyncManager {
           {
             id: snippet.id,
             trigger: snippet.trigger,
-            content:
-              snippet.content?.substring(0, 50) +
-              (snippet.content?.length > 50 ? "..." : ""),
+            content: snippet.content
+              ? snippet.content.substring(0, 50) +
+                (snippet.content.length > 50 ? "..." : "")
+              : "(no content)",
             description: snippet.description,
             tags: snippet.tags,
             source: (snippet as any).source,
@@ -607,30 +645,27 @@ export class SyncManager {
   }
 
   /**
-   * Get available folders for current cloud provider
+   * Debug method to check SyncManager state
    */
-  async getCloudFolders(
-    parentId?: string,
-  ): Promise<
-    Array<{ id: string; name: string; parentId?: string; isFolder: boolean }>
-  > {
-    if (!this.currentAdapter) {
-      throw new Error("No cloud provider configured");
-    }
-
-    if (!this.currentAdapter.getFolders) {
-      throw new Error(
-        `Folder listing not supported for ${this.currentAdapter.provider} provider.`,
-      );
-    }
-
-    // Ensure authenticated
-    if (!(await this.isAuthenticated())) {
-      const credentials = await this.authenticate();
-      await this.currentAdapter.initialize(credentials);
-    }
-
-    return await this.currentAdapter.getFolders(parentId);
+  getDebugState(): {
+    hasCurrentAdapter: boolean;
+    currentProvider: CloudProvider | null;
+    adapterMethods: string[];
+    isInitialized: boolean;
+  } {
+    const state = {
+      hasCurrentAdapter: !!this.currentAdapter,
+      currentProvider: this.getCurrentProvider(),
+      adapterMethods: this.currentAdapter
+        ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.currentAdapter))
+        : [],
+      isInitialized:
+        !!this.currentAdapter &&
+        !!this.multiScopeSyncManager &&
+        !!this.indexedDB,
+    };
+    console.log("🔍 [DEBUG] SyncManager state:", state);
+    return state;
   }
 
   /**

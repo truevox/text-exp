@@ -532,7 +532,7 @@ export class BatchUpdateManager {
     return {
       id: snippet.id,
       trigger: snippet.trigger,
-      content: snippet.content,
+      content: snippet.content || "",
       contentType: snippet.contentType === "html" ? "html" : "plaintext",
       description: snippet.description,
       scope: snippet.scope,

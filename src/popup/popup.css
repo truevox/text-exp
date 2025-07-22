@@ -207,20 +207,36 @@ body {
 }
 
 .snippet-item {
-  background: var(--card-bg);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(30, 58, 138, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: white;
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
+  backdrop-filter: blur(10px);
 }
 
 .snippet-item:hover {
-  border-color: var(--primary-blue);
+  background: rgba(20, 184, 166, 0.95);
+  border-color: var(--popup-seafoam);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 135, 210, 0.15);
+  box-shadow: 0 8px 25px rgba(20, 184, 166, 0.3);
+  color: white;
+}
+
+.snippet-item:hover .snippet-trigger {
+  background: linear-gradient(
+    135deg,
+    var(--popup-seafoam-dark),
+    var(--popup-seafoam)
+  );
+  color: white;
+  border-color: var(--popup-seafoam-light);
+  box-shadow: 0 4px 15px rgba(20, 184, 166, 0.4);
+  transform: scale(1.05);
 }
 
 .snippet-item:last-child {
@@ -235,13 +251,26 @@ body {
 }
 
 .snippet-trigger {
-  font-family: "Courier New", Monaco, monospace;
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #667eea;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2),
+    rgba(147, 197, 253, 0.25)
+  );
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e0f2fe;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 3px 10px rgba(59, 130, 246, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .snippet-actions {
@@ -265,13 +294,15 @@ body {
 }
 
 .snippet-content {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.4;
-  margin-bottom: 8px;
-  max-height: 60px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  max-height: 65px;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
+  letter-spacing: 0.1px;
 }
 
 .snippet-meta {
@@ -279,7 +310,7 @@ body {
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .snippet-tags {
@@ -515,6 +546,389 @@ body {
   margin-right: 8px;
 }
 
+/* Advanced Editor Modal Styles */
+.advanced-editor-modal {
+  max-width: 800px;
+  width: 95%;
+  max-height: 95vh;
+}
+
+.advanced-snippet-editor-container {
+  min-height: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Comprehensive Snippet Editor Styles */
+.comprehensive-snippet-editor {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.comprehensive-snippet-editor.compact {
+  font-size: 13px;
+}
+
+/* Editor Header */
+.comprehensive-snippet-editor .editor-header {
+  background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+  color: white;
+  padding: 16px 20px;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 20px;
+}
+
+.comprehensive-snippet-editor .editor-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.comprehensive-snippet-editor .editor-tier-info {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.comprehensive-snippet-editor .tier-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.comprehensive-snippet-editor .snippet-count {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Form Sections */
+.comprehensive-snippet-editor .form-section {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 135, 210, 0.1);
+}
+
+.comprehensive-snippet-editor.compact .form-section {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.comprehensive-snippet-editor .section-title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-blue);
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--pale-blue);
+}
+
+.comprehensive-snippet-editor.compact .section-title {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* Form Groups */
+.comprehensive-snippet-editor .form-group {
+  margin-bottom: 16px;
+}
+
+.comprehensive-snippet-editor.compact .form-group {
+  margin-bottom: 12px;
+}
+
+.comprehensive-snippet-editor .form-group label {
+  display: block;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.comprehensive-snippet-editor.compact .form-group label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* Form Inputs */
+.comprehensive-snippet-editor .form-group input,
+.comprehensive-snippet-editor .form-group textarea,
+.comprehensive-snippet-editor .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+  background: white !important;
+  color: var(--text-dark) !important;
+}
+
+.comprehensive-snippet-editor.compact .form-group input,
+.comprehensive-snippet-editor.compact .form-group textarea,
+.comprehensive-snippet-editor.compact .form-group select {
+  padding: 8px 10px;
+  font-size: 13px;
+  background: white !important;
+  color: var(--text-dark) !important;
+}
+
+.comprehensive-snippet-editor .form-group input:focus,
+.comprehensive-snippet-editor .form-group textarea:focus,
+.comprehensive-snippet-editor .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 135, 210, 0.1);
+}
+
+.comprehensive-snippet-editor .form-group input::placeholder,
+.comprehensive-snippet-editor .form-group textarea::placeholder {
+  color: #a0aec0;
+}
+
+/* Form Help Text */
+.comprehensive-snippet-editor .form-help {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+  display: block;
+}
+
+.comprehensive-snippet-editor.compact .form-help {
+  font-size: 11px;
+}
+
+/* Form Rows */
+.comprehensive-snippet-editor .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.comprehensive-snippet-editor.compact .form-row {
+  gap: 12px;
+}
+
+/* Required Fields */
+.comprehensive-snippet-editor .form-group.required label::after {
+  content: " *";
+  color: var(--accent-coral);
+  font-weight: 700;
+}
+
+/* Editor Container */
+.comprehensive-snippet-editor .editor-container {
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  min-height: 250px;
+}
+
+.comprehensive-snippet-editor.compact .editor-container {
+  min-height: 200px;
+}
+
+/* TinyMCE Styling */
+.comprehensive-snippet-editor .tox-tinymce {
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+}
+
+.comprehensive-snippet-editor .tox-tinymce:focus-within {
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 135, 210, 0.1) !important;
+}
+
+.comprehensive-snippet-editor.compact .tox-toolbar {
+  padding: 4px 8px !important;
+}
+
+.comprehensive-snippet-editor.compact .tox-toolbar__group {
+  padding: 0 4px !important;
+}
+
+/* Buttons */
+.comprehensive-snippet-editor .btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comprehensive-snippet-editor .btn-primary {
+  background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+  color: white;
+}
+
+.comprehensive-snippet-editor .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 135, 210, 0.3);
+}
+
+.comprehensive-snippet-editor .btn-secondary {
+  background: white;
+  color: var(--text-dark);
+  border: 2px solid #e2e8f0;
+}
+
+.comprehensive-snippet-editor .btn-secondary:hover {
+  background: #f7fafc;
+  border-color: var(--primary-blue);
+}
+
+.comprehensive-snippet-editor .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Editor Toolbar */
+.comprehensive-snippet-editor .editor-toolbar {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Variables Container */
+.comprehensive-snippet-editor .variables-list,
+.comprehensive-snippet-editor .dependencies-list {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  min-height: 60px;
+}
+
+.comprehensive-snippet-editor .variables-list:empty::before,
+.comprehensive-snippet-editor .dependencies-list:empty::before {
+  content: "No items yet";
+  color: var(--text-light);
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Validation States */
+.comprehensive-snippet-editor .form-group.error input,
+.comprehensive-snippet-editor .form-group.error textarea,
+.comprehensive-snippet-editor .form-group.error select {
+  border-color: var(--accent-coral);
+  background: white !important;
+  color: var(--text-dark) !important;
+}
+
+.comprehensive-snippet-editor .error-message {
+  color: var(--accent-coral);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* AGGRESSIVE OVERRIDES - Force input visibility */
+.comprehensive-snippet-editor input,
+.comprehensive-snippet-editor textarea,
+.comprehensive-snippet-editor select,
+.comprehensive-snippet-editor input[type="text"],
+.comprehensive-snippet-editor input[type="email"],
+.comprehensive-snippet-editor input[type="password"],
+.comprehensive-snippet-editor input[type="search"],
+.comprehensive-snippet-editor input[name="trigger"],
+.comprehensive-snippet-editor input[id="snippet-trigger"],
+.comprehensive-snippet-editor select[name="contentType"],
+.comprehensive-snippet-editor textarea[name="description"],
+.comprehensive-snippet-editor textarea[id="snippet-description"] {
+  background-color: white !important;
+  background: white !important;
+  color: #1a365d !important;
+  border: 2px solid #e2e8f0 !important;
+  font-size: 14px !important;
+  font-family: "Inter", sans-serif !important;
+}
+
+.comprehensive-snippet-editor input:focus,
+.comprehensive-snippet-editor textarea:focus,
+.comprehensive-snippet-editor select:focus,
+.comprehensive-snippet-editor input[type="text"]:focus,
+.comprehensive-snippet-editor input[type="email"]:focus,
+.comprehensive-snippet-editor input[type="password"]:focus,
+.comprehensive-snippet-editor input[type="search"]:focus,
+.comprehensive-snippet-editor input[name="trigger"]:focus,
+.comprehensive-snippet-editor input[id="snippet-trigger"]:focus,
+.comprehensive-snippet-editor select[name="contentType"]:focus,
+.comprehensive-snippet-editor textarea[name="description"]:focus,
+.comprehensive-snippet-editor textarea[id="snippet-description"]:focus {
+  background-color: white !important;
+  background: white !important;
+  color: #1a365d !important;
+  border-color: #0087d2 !important;
+  box-shadow: 0 0 0 3px rgba(0, 135, 210, 0.1) !important;
+}
+
+/* Force placeholder text visibility */
+.comprehensive-snippet-editor input::placeholder,
+.comprehensive-snippet-editor textarea::placeholder {
+  color: #a0aec0 !important;
+  opacity: 1 !important;
+}
+
+/* Super specific selectors for form elements */
+.comprehensive-snippet-editor .form-group input,
+.comprehensive-snippet-editor .form-group textarea,
+.comprehensive-snippet-editor .form-group select,
+.comprehensive-snippet-editor .form-section input,
+.comprehensive-snippet-editor .form-section textarea,
+.comprehensive-snippet-editor .form-section select,
+.comprehensive-snippet-editor .editor-form input,
+.comprehensive-snippet-editor .editor-form textarea,
+.comprehensive-snippet-editor .editor-form select {
+  background-color: white !important;
+  color: #1a365d !important;
+  border: 2px solid #e2e8f0 !important;
+}
+
+/* NUCLEAR OPTION - Override everything */
+div.comprehensive-snippet-editor input,
+div.comprehensive-snippet-editor textarea,
+div.comprehensive-snippet-editor select {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #1a365d !important;
+  border: 2px solid #e2e8f0 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 10px 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Override any theme styles */
+[data-theme] .comprehensive-snippet-editor input,
+[data-theme] .comprehensive-snippet-editor textarea,
+[data-theme] .comprehensive-snippet-editor select,
+.dark .comprehensive-snippet-editor input,
+.dark .comprehensive-snippet-editor textarea,
+.dark .comprehensive-snippet-editor select {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #1a365d !important;
+}
+
 /* Utility classes */
 .hidden {
   display: none !important;
@@ -544,6 +958,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
+
+/* Removed dark class styles - all items are now dark blue by default */
 
 /* Responsive adjustments */
 @media (max-width: 450px) {

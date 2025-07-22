@@ -133,7 +133,7 @@ describe("Multi-Format Parser System", () => {
       expect(firstDoc.meta.description).toBe("A farewell greeting");
       expect(firstDoc.meta.scope).toBe("personal");
       expect(firstDoc.meta.tags).toEqual(["greeting"]);
-      expect(firstDoc.meta.contentType).toBe("plainText");
+      expect(firstDoc.meta.contentType).toBe("plaintext");
       expect(firstDoc.body).toBe("Bag of Dicks!!");
       expect(firstDoc.format).toBe("json");
 
@@ -248,7 +248,7 @@ describe("Multi-Format Parser System", () => {
       expect(doc.meta.description).toBe("A farewell greeting");
       expect(doc.meta.scope).toBe("personal");
       expect(doc.meta.tags).toEqual(["greeting"]);
-      expect(doc.meta.contentType).toBe("plainText");
+      expect(doc.meta.contentType).toBe("plaintext");
       expect(doc.meta.createdBy).toBe("flat-import");
       expect(doc.format).toBe("json");
     });

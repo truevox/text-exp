@@ -166,7 +166,12 @@ export interface ImageReference {
 /**
  * Priority tier names for the new tier-based architecture
  */
-export type PriorityTier = "personal" | "team" | "org";
+export type PriorityTier =
+  | "priority-0"
+  | "personal"
+  | "department"
+  | "team"
+  | "org";
 
 /**
  * Enhanced snippet for the new priority-tier architecture

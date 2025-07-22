@@ -2151,7 +2151,7 @@ export class ExpansionDependencyManager {
     return {
       id: enhanced.id,
       trigger: enhanced.trigger,
-      content: enhanced.content,
+      content: enhanced.content || "",
       contentType: enhanced.contentType,
       scope: enhanced.scope || "personal",
       description: enhanced.description || "",

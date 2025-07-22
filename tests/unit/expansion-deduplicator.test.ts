@@ -526,10 +526,10 @@ describe("ExpansionDeduplicator", () => {
       ];
 
       const results = deduplicator.deduplicateById(snippetsWithStores, {
-        contentTypes: ["text"],
+        contentTypes: ["plaintext"],
       });
 
-      expect(results).toHaveLength(1); // Should match 'text' default
+      expect(results).toHaveLength(1); // Should match 'plaintext' default
     });
 
     it("should handle large numbers of snippets efficiently", () => {

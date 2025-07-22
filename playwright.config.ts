@@ -1,6 +1,9 @@
-import { join } from "path";
+import { join, dirname } from "path";
 import { defineConfig, devices } from "@playwright/test";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const EXT_PATH = join(__dirname, "build");
 
 /**
@@ -51,12 +54,28 @@ export default defineConfig({
         },
       },
     },
+    {
+      name: "manual",
+      use: {
+        ...devices["Desktop Chrome"],
+        headless: false,
+        channel: "chrome",
+        // Use your existing Chrome profile with extensions
+        launchOptions: {
+          args: [
+            "--disable-web-security",
+            "--disable-features=VizDisplayCompositor",
+            // Allow Playwright to work with existing browser
+          ],
+        },
+      },
+    },
   ],
 
-  /* Web server for E2E tests */
-  webServer: {
-    command: "npm run serve:test",
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-  },
+  /* Web server for E2E tests - disabled for debug test */
+  // webServer: {
+  //   command: "npm run serve:test",
+  //   port: 5173,
+  //   reuseExistingServer: !process.env.CI,
+  // },
 });

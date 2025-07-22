@@ -1,19 +1,20 @@
 /**
  * Comprehensive Snippet Editor Component
- * Provides full editing support for TierStorageSchema with TinyMCE WYSIWYG integration
+ * Provides full editing support for TierStorageSchema with SimpleEditor integration
  * Supports editing single snippets from multi-snippet JSON stores
  */
 
 import {
-  TinyMCEWrapper,
+  SimpleEditor,
   createSnippetEditor,
-} from "../../editor/tinymce-wrapper.js";
+} from "../../editor/simple-editor.js";
 import type {
   TierStorageSchema,
   EnhancedSnippet,
   PriorityTier,
   VariableDef,
 } from "../../types/snippet-formats.js";
+import type { StoreSnippetInfo } from "./multi-store-editor.js";
 
 export interface ComprehensiveSnippetEditorOptions {
   tierData: TierStorageSchema;
@@ -26,12 +27,17 @@ export interface ComprehensiveSnippetEditorOptions {
   onContentChange?: (content: string) => void;
   autoFocus?: boolean;
   compact?: boolean;
+  // Multi-store support
+  availableStores?: StoreSnippetInfo[];
+  showStoreSelector?: boolean;
+  defaultSelectedStores?: string[]; // Store IDs to select by default
 }
 
 export interface SnippetEditResult {
   success: boolean;
   snippet: EnhancedSnippet;
   updatedTierData: TierStorageSchema;
+  selectedStores?: string[]; // Store IDs selected for saving
   errors?: string[];
   warnings?: string[];
 }
@@ -85,13 +91,14 @@ const ContentConverter = {
  */
 export class ComprehensiveSnippetEditor {
   private container: HTMLElement | null = null;
-  private editor: TinyMCEWrapper | null = null;
+  private editor: SimpleEditor | null = null;
   private currentSnippet: EnhancedSnippet | null = null;
   private originalTierData: TierStorageSchema;
   private options: ComprehensiveSnippetEditorOptions;
   private isInitialized = false;
   private isDirty = false;
   private validationErrors: string[] = [];
+  private selectedStores: Set<string> = new Set(); // Track selected stores
 
   // Form elements cache
   private formElements: {
@@ -114,10 +121,22 @@ export class ComprehensiveSnippetEditor {
       validateDependencies: true,
       autoFocus: false,
       compact: false,
+      showStoreSelector: false,
+      defaultSelectedStores: [],
       ...options,
     };
 
     this.originalTierData = JSON.parse(JSON.stringify(options.tierData));
+
+    // Initialize selected stores
+    if (
+      this.options.defaultSelectedStores &&
+      this.options.defaultSelectedStores.length > 0
+    ) {
+      this.options.defaultSelectedStores.forEach((storeId) =>
+        this.selectedStores.add(storeId),
+      );
+    }
 
     if (options.mode === "edit" && options.snippetId) {
       const snippet = this.findSnippetById(options.snippetId);
@@ -162,12 +181,19 @@ export class ComprehensiveSnippetEditor {
             ${isEdit ? "Edit Snippet" : "Create New Snippet"}
           </h2>
           <div class="editor-tier-info">
+            ${
+              this.options.showStoreSelector &&
+              this.options.availableStores &&
+              this.options.availableStores.length > 0
+                ? this.renderStoreSelector()
+                : `
             <span class="tier-badge tier-${this.originalTierData.tier}">
               ${this.originalTierData.tier.toUpperCase()} Tier
             </span>
             <span class="snippet-count">
               ${this.originalTierData.snippets.length} snippet${this.originalTierData.snippets.length !== 1 ? "s" : ""} in store
-            </span>
+            </span>`
+            }
           </div>
           <div class="editor-actions">
             <button type="button" class="btn btn-secondary" data-action="cancel">
@@ -451,6 +477,19 @@ export class ComprehensiveSnippetEditor {
       });
     });
 
+    // Store selector checkbox handlers
+    if (this.options.showStoreSelector) {
+      this.container.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.type === "checkbox" && target.dataset.storeId) {
+          this.handleStoreSelectionChange(
+            target.dataset.storeId,
+            target.checked,
+          );
+        }
+      });
+    }
+
     // Action button handlers
     this.container.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
@@ -599,6 +638,16 @@ export class ComprehensiveSnippetEditor {
         break;
       case "add-dependency":
         this.addDependency();
+        break;
+      // Store selector actions
+      case "select-all-stores":
+        this.selectAllStores();
+        break;
+      case "select-writable-stores":
+        this.selectWritableStores();
+        break;
+      case "clear-store-selection":
+        this.clearStoreSelection();
         break;
       default:
         console.warn(`Unknown action: ${action}`);
@@ -1039,6 +1088,9 @@ export class ComprehensiveSnippetEditor {
         success: true,
         snippet: this.currentSnippet!,
         updatedTierData,
+        selectedStores: this.options.showStoreSelector
+          ? Array.from(this.selectedStores)
+          : undefined,
         errors: [],
         warnings: validation.warnings,
       };
@@ -1072,9 +1124,23 @@ export class ComprehensiveSnippetEditor {
   private updateSnippetFromForm(): void {
     if (!this.currentSnippet) return;
 
-    this.currentSnippet.trigger = this.getTrigger();
-    this.currentSnippet.content = this.getContent();
-    this.currentSnippet.description = this.getDescription();
+    console.log('🔍 [SNIPPET-DEBUG] Updating snippet from form data...');
+    console.log('🔍 [SNIPPET-DEBUG] Editor exists:', !!this.editor);
+    console.log('🔍 [SNIPPET-DEBUG] Editor is ready:', this.editor?.isReady());
+    
+    const trigger = this.getTrigger();
+    const content = this.getContent();
+    const description = this.getDescription();
+    
+    console.log('🔍 [SNIPPET-DEBUG] Form values extracted:');
+    console.log('  - Trigger:', trigger);
+    console.log('  - Content:', content ? `"${content.substring(0, 100)}..."` : '(empty/undefined)');
+    console.log('  - Content length:', content?.length || 0);
+    console.log('  - Description:', description);
+
+    this.currentSnippet.trigger = trigger;
+    this.currentSnippet.content = content;
+    this.currentSnippet.description = description;
     this.currentSnippet.contentType = this.getContentType() as any;
     this.currentSnippet.scope = this.getScope();
     this.currentSnippet.tags = this.getTags();
@@ -1083,6 +1149,12 @@ export class ComprehensiveSnippetEditor {
     this.currentSnippet.updatedBy =
       this.formElements.updatedByInput?.value || this.currentSnippet.updatedBy;
     this.currentSnippet.updatedAt = new Date().toISOString();
+    
+    console.log('🔍 [SNIPPET-DEBUG] Final snippet data:');
+    console.log('  - ID:', this.currentSnippet.id);
+    console.log('  - Trigger:', this.currentSnippet.trigger);
+    console.log('  - Content:', this.currentSnippet.content ? `"${this.currentSnippet.content.substring(0, 100)}..."` : '(empty/undefined)');
+    console.log('  - Content length:', this.currentSnippet.content?.length || 0);
   }
 
   /**
@@ -1223,7 +1295,15 @@ export class ComprehensiveSnippetEditor {
   }
 
   getContent(): string {
-    return this.editor?.getContent() || "";
+    console.log('🔍 [CONTENT-DEBUG] getContent() called');
+    console.log('🔍 [CONTENT-DEBUG] Editor exists:', !!this.editor);
+    console.log('🔍 [CONTENT-DEBUG] Editor is ready:', this.editor?.isReady());
+    
+    const content = this.editor?.getContent() || "";
+    console.log('🔍 [CONTENT-DEBUG] Editor returned content:', content ? `"${content.substring(0, 100)}..."` : '(empty/undefined)');
+    console.log('🔍 [CONTENT-DEBUG] Content length:', content.length);
+    
+    return content;
   }
 
   setContent(content: string): void {
@@ -1403,8 +1483,154 @@ export class ComprehensiveSnippetEditor {
     return this.currentSnippet;
   }
 
-  getTinyMCEEditor(): TinyMCEWrapper | null {
+  getSimpleEditor(): SimpleEditor | null {
     return this.editor;
+  }
+
+  /**
+   * Render the multi-store selector interface
+   */
+  private renderStoreSelector(): string {
+    if (
+      !this.options.availableStores ||
+      this.options.availableStores.length === 0
+    ) {
+      return `<span class="no-stores">No stores available</span>`;
+    }
+
+    const selectedCount = this.selectedStores.size;
+    const totalCount = this.options.availableStores.length;
+
+    return `
+      <div class="store-selector" style="border: 1px solid #ddd; border-radius: 6px; padding: 16px; background: white; margin: 8px 0;">
+        <div class="store-selector-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: #333;">Select Target Stores</h4>
+          <div class="store-selector-summary" style="font-size: 13px; color: #0066cc; font-weight: 500; background: #f0f8ff; padding: 2px 8px; border-radius: 12px;">
+            ${selectedCount} of ${totalCount} selected
+          </div>
+        </div>
+        <div class="store-checkboxes" style="max-height: 140px; overflow-y: auto; margin-bottom: 12px;">
+          ${this.options.availableStores
+            .map(
+              (store) => `
+            <label class="store-checkbox" data-store-id="${store.storeId}" style="display: block; padding: 8px; cursor: pointer; margin: 2px 0; border-radius: 4px; border: 1px solid #f0f0f0; background: #fafafa;">
+              <input 
+                type="checkbox" 
+                value="${store.storeId}"
+                ${this.selectedStores.has(store.storeId) ? "checked" : ""}
+                data-store-id="${store.storeId}"
+                style="margin-right: 12px; transform: scale(1.2); accent-color: #0066cc;"
+              />
+              <div class="store-info" style="display: inline-block; vertical-align: top;">
+                <div class="store-name" style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 3px;">${store.displayName}</div>
+                <div class="store-details" style="font-size: 12px; color: #666; margin-top: 3px;">
+                  <span class="store-tier" style="text-transform: capitalize; margin-right: 12px; color: #0066cc; font-weight: 500; background: #f0f8ff; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${store.tierName}</span>
+                  <span class="store-count" style="margin-right: 12px; color: #666;">${store.snippetCount} snippets</span>
+                  ${store.isReadOnly ? '<span class="read-only-badge" style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500;">Read-only</span>' : ""}
+                </div>
+              </div>
+            </label>
+          `,
+            )
+            .join("")}
+        </div>
+        <div class="store-selector-actions" style="display: flex; gap: 8px;">
+          <button type="button" class="btn-small btn-secondary" data-action="select-all-stores" style="padding: 6px 12px; font-size: 12px; border: 1px solid #0066cc; background: #f0f8ff; color: #0066cc; border-radius: 4px; cursor: pointer; font-weight: 500;">Select All</button>
+          <button type="button" class="btn-small btn-secondary" data-action="select-writable-stores" style="padding: 6px 12px; font-size: 12px; border: 1px solid #0066cc; background: #f0f8ff; color: #0066cc; border-radius: 4px; cursor: pointer; font-weight: 500;">Writable Only</button>
+          <button type="button" class="btn-small btn-secondary" data-action="clear-store-selection" style="padding: 6px 12px; font-size: 12px; border: 1px solid #999; background: #f8f8f8; color: #666; border-radius: 4px; cursor: pointer; font-weight: 500;">Clear</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Handle individual store selection change
+   */
+  private handleStoreSelectionChange(
+    storeId: string,
+    isSelected: boolean,
+  ): void {
+    if (isSelected) {
+      this.selectedStores.add(storeId);
+    } else {
+      this.selectedStores.delete(storeId);
+    }
+    this.updateStoreSelectorSummary();
+    this.isDirty = true;
+  }
+
+  /**
+   * Select all available stores
+   */
+  private selectAllStores(): void {
+    if (!this.options.availableStores) return;
+
+    this.options.availableStores.forEach((store) => {
+      this.selectedStores.add(store.storeId);
+    });
+    this.updateStoreCheckboxes();
+    this.updateStoreSelectorSummary();
+    this.isDirty = true;
+  }
+
+  /**
+   * Select only writable stores
+   */
+  private selectWritableStores(): void {
+    if (!this.options.availableStores) return;
+
+    this.selectedStores.clear();
+    this.options.availableStores.forEach((store) => {
+      if (!store.isReadOnly) {
+        this.selectedStores.add(store.storeId);
+      }
+    });
+    this.updateStoreCheckboxes();
+    this.updateStoreSelectorSummary();
+    this.isDirty = true;
+  }
+
+  /**
+   * Clear all store selections
+   */
+  private clearStoreSelection(): void {
+    this.selectedStores.clear();
+    this.updateStoreCheckboxes();
+    this.updateStoreSelectorSummary();
+    this.isDirty = true;
+  }
+
+  /**
+   * Update store checkboxes to reflect current selection
+   */
+  private updateStoreCheckboxes(): void {
+    if (!this.container) return;
+
+    const checkboxes = this.container.querySelectorAll(
+      '.store-selector input[type="checkbox"]',
+    ) as NodeListOf<HTMLInputElement>;
+    checkboxes.forEach((checkbox) => {
+      const storeId = checkbox.dataset.storeId;
+      if (storeId) {
+        checkbox.checked = this.selectedStores.has(storeId);
+      }
+    });
+  }
+
+  /**
+   * Update the store selector summary
+   */
+  private updateStoreSelectorSummary(): void {
+    if (!this.container || !this.options.availableStores) return;
+
+    const summaryElement = this.container.querySelector(
+      ".store-selector-summary",
+    );
+    if (summaryElement) {
+      const selectedCount = this.selectedStores.size;
+      const totalCount = this.options.availableStores.length;
+      summaryElement.textContent = `${selectedCount} of ${totalCount} stores selected`;
+    }
   }
 
   /**

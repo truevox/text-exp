@@ -58,7 +58,9 @@ export class IndexedDB {
       console.log(`  📋 Snippet ${index + 1} to save:`, {
         id: snippet.id,
         trigger: snippet.trigger,
-        content: snippet.content?.substring(0, 50) + "...",
+        content: snippet.content,
+        contentType: snippet.content?.constructor?.name,
+        contentLength: snippet.content?.length,
         source: (snippet as any).source,
         hasRequiredFields: !!(snippet.id && snippet.trigger && snippet.content),
       });
@@ -145,7 +147,9 @@ export class IndexedDB {
           console.log(`  📋 Retrieved snippet ${index + 1}:`, {
             id: snippet.id,
             trigger: snippet.trigger,
-            content: snippet.content?.substring(0, 30) + "...",
+            content: snippet.content,
+            contentType: snippet.content?.constructor?.name,
+            contentLength: snippet.content?.length,
             source: (snippet as any).source,
           });
         });

@@ -9,7 +9,18 @@ import {
   SyncMessages,
 } from "../shared/messaging.js";
 import type { TextSnippet, ExtensionSettings } from "../shared/types.js";
+import type {
+  EnhancedSnippet,
+  PriorityTier,
+} from "../types/snippet-formats.js";
 import { UI_CONFIG } from "../shared/constants.js";
+import {
+  ComprehensiveSnippetEditor,
+  type SnippetEditResult,
+} from "../ui/components/comprehensive-snippet-editor.js";
+import type { TierStorageSchema } from "../types/snippet-formats.js";
+import { ExtensionStorage } from "../shared/storage.js";
+import type { StoreSnippetInfo } from "../ui/components/multi-store-editor.js";
 
 /**
  * Main popup application class
@@ -19,6 +30,7 @@ class PopupApp {
   private settings: ExtensionSettings | null = null;
   private currentEditingSnippet: TextSnippet | null = null;
   private searchQuery = "";
+  private snippetEditor: ComprehensiveSnippetEditor | null = null;
 
   // DOM elements
   private elements = {
@@ -44,18 +56,9 @@ class PopupApp {
     modalClose: document.getElementById("modalClose") as HTMLButtonElement,
     modalCancel: document.getElementById("modalCancel") as HTMLButtonElement,
     modalSave: document.getElementById("modalSave") as HTMLButtonElement,
-    snippetForm: document.getElementById("snippetForm") as HTMLFormElement,
-    triggerInput: document.getElementById("triggerInput") as HTMLInputElement,
-    contentTextarea: document.getElementById(
-      "contentTextarea",
-    ) as HTMLTextAreaElement,
-    descriptionInput: document.getElementById(
-      "descriptionInput",
-    ) as HTMLInputElement,
-    tagsInput: document.getElementById("tagsInput") as HTMLInputElement,
-    sharedCheckbox: document.getElementById(
-      "sharedCheckbox",
-    ) as HTMLInputElement,
+    advancedSnippetEditor: document.getElementById(
+      "advancedSnippetEditor",
+    ) as HTMLElement,
   };
 
   constructor() {
@@ -89,7 +92,7 @@ class PopupApp {
 
     // Buttons
     this.elements.addSnippetButton.addEventListener("click", () =>
-      this.showAddSnippetModal(),
+      this.openAddSnippetPage(),
     );
     this.elements.syncButton.addEventListener("click", () =>
       this.syncSnippets(),
@@ -105,8 +108,8 @@ class PopupApp {
     this.elements.modalCancel.addEventListener("click", () =>
       this.hideSnippetModal(),
     );
-    this.elements.snippetForm.addEventListener("submit", (e) =>
-      this.handleFormSubmit(e),
+    this.elements.modalSave.addEventListener("click", () =>
+      this.handleSaveSnippet(),
     );
 
     // Sync status
@@ -328,17 +331,11 @@ class PopupApp {
   /**
    * Edit a snippet
    */
-  private editSnippet(snippet: TextSnippet): void {
+  private async editSnippet(snippet: TextSnippet): Promise<void> {
     this.currentEditingSnippet = snippet;
     this.elements.modalTitle.textContent = "Edit Snippet";
 
-    // Populate form
-    this.elements.triggerInput.value = snippet.trigger;
-    this.elements.contentTextarea.value = snippet.content;
-    this.elements.descriptionInput.value = snippet.description || "";
-    this.elements.tagsInput.value = snippet.tags?.join(", ") || "";
-    this.elements.sharedCheckbox.checked = snippet.isShared || false;
-
+    await this.initializeSnippetEditor(snippet);
     this.showSnippetModal();
   }
 
@@ -362,6 +359,15 @@ class PopupApp {
   }
 
   /**
+   * Open add snippet page in new tab
+   */
+  private openAddSnippetPage(): void {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("add-snippet/add-snippet.html"),
+    });
+  }
+
+  /**
    * Show add snippet modal
    */
   private async showAddSnippetModal(): Promise<void> {
@@ -374,7 +380,8 @@ class PopupApp {
 
     this.currentEditingSnippet = null;
     this.elements.modalTitle.textContent = "Add Snippet";
-    this.elements.snippetForm.reset();
+
+    await this.initializeSnippetEditor();
     this.showSnippetModal();
   }
 
@@ -383,7 +390,7 @@ class PopupApp {
    */
   private showSnippetModal(): void {
     this.elements.snippetModal.classList.remove("hidden");
-    this.elements.triggerInput.focus();
+    // Focus will be handled by the snippet editor
   }
 
   /**
@@ -392,35 +399,186 @@ class PopupApp {
   private hideSnippetModal(): void {
     this.elements.snippetModal.classList.add("hidden");
     this.currentEditingSnippet = null;
+
+    // Clean up snippet editor
+    if (this.snippetEditor) {
+      this.snippetEditor.destroy();
+      this.snippetEditor = null;
+    }
   }
 
   /**
-   * Handle form submission
+   * Get all available stores in StoreSnippetInfo format
    */
-  private async handleFormSubmit(e: Event): Promise<void> {
-    e.preventDefault();
+  private async getAllAvailableStores(): Promise<StoreSnippetInfo[]> {
+    console.log("🗄️ Gathering all available stores...");
+    const stores: StoreSnippetInfo[] = [];
 
-    const snippetData = {
-      trigger: this.elements.triggerInput.value.trim(),
-      content: this.elements.contentTextarea.value.trim(),
-      description: this.elements.descriptionInput.value.trim() || undefined,
-      tags: this.elements.tagsInput.value.trim()
-        ? this.elements.tagsInput.value.split(",").map((tag) => tag.trim())
-        : undefined,
-      isShared: this.elements.sharedCheckbox.checked,
+    try {
+      // Get default appdata store status
+      const defaultStoreResponse = await chrome.runtime.sendMessage({
+        type: "GET_DEFAULT_STORE_STATUS",
+      });
+
+      if (defaultStoreResponse.success) {
+        const defaultStatus = defaultStoreResponse.data;
+
+        // Add default store (always present, even if not initialized)
+        stores.push({
+          storeId: "/drive.appstore",
+          storeName: "/drive.appstore",
+          displayName: "Default Store",
+          tierName: "personal",
+          snippetCount: defaultStatus.snippetCount || 0,
+          isReadOnly: false,
+          isDriveFile: true,
+          lastModified: new Date().toISOString(),
+          snippets: [], // Will be loaded separately when needed
+        });
+      }
+
+      // Get custom stores from settings
+      const settings = await ExtensionStorage.getSettings();
+      const customStores = settings.configuredSources || [];
+
+      // Add custom stores
+      for (const customStore of customStores) {
+        stores.push({
+          storeId: customStore.folderId,
+          storeName: `${customStore.displayName}.json`,
+          displayName: customStore.displayName,
+          tierName: customStore.scope as PriorityTier, // personal, team, org
+          snippetCount: 0, // TODO: Get actual count from store
+          isReadOnly: false, // TODO: Check permissions
+          isDriveFile: customStore.provider === "google-drive",
+          fileId: customStore.folderId,
+          lastModified: new Date().toISOString(), // TODO: Get actual date
+          snippets: [], // Will be loaded separately when needed
+        });
+      }
+
+      console.log(`✅ Found ${stores.length} available stores:`, stores);
+      return stores;
+    } catch (error) {
+      console.error("❌ Failed to get available stores:", error);
+      // Return at least the default store
+      return [
+        {
+          storeId: "/drive.appstore",
+          storeName: "/drive.appstore",
+          displayName: "Default Store",
+          tierName: "personal",
+          snippetCount: 0,
+          isReadOnly: false,
+          isDriveFile: true,
+          lastModified: new Date().toISOString(),
+          snippets: [],
+        },
+      ];
+    }
+  }
+
+  /**
+   * Initialize the comprehensive snippet editor
+   */
+  private async initializeSnippetEditor(snippet?: TextSnippet): Promise<void> {
+    // Clean up existing editor
+    if (this.snippetEditor) {
+      this.snippetEditor.destroy();
+    }
+
+    // Get all available stores for multi-store support
+    const availableStores = await this.getAllAvailableStores();
+
+    // Create default TierStorageSchema for appdata store
+    const defaultTierData: TierStorageSchema = {
+      schema: "priority-tier-v1",
+      tier: "priority-0",
+      snippets: snippet ? [this.convertToEnhancedSnippet(snippet)] : [],
+      metadata: {
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        owner: "user@example.com", // TODO: Get from auth
+        description: "Default appdata store",
+      },
     };
+
+    this.snippetEditor = new ComprehensiveSnippetEditor({
+      tierData: defaultTierData,
+      mode: snippet ? "edit" : "create",
+      snippetId: snippet?.id,
+      enableContentTypeConversion: true,
+      validateDependencies: true,
+      autoFocus: true,
+      compact: true,
+      // Multi-store support
+      availableStores: availableStores,
+      showStoreSelector: true, // Enable the blue field multi-store selector
+      defaultSelectedStores: ["/drive.appstore"], // Default to appdata store only
+      onSave: async (result: SnippetEditResult) => {
+        await this.handleSnippetSave(result);
+      },
+      onError: (error: Error) => {
+        this.showError("Editor error: " + error.message);
+      },
+      onContentChange: (_content: string) => {
+        // Handle content change if needed
+      },
+    });
+
+    await this.snippetEditor.init(this.elements.advancedSnippetEditor);
+  }
+
+  /**
+   * Convert TextSnippet to EnhancedSnippet for comprehensive editor
+   */
+  private convertToEnhancedSnippet(snippet: TextSnippet): EnhancedSnippet {
+    return {
+      id: snippet.id,
+      trigger: snippet.trigger,
+      content: snippet.content,
+      contentType: snippet.contentType || "html",
+      snipDependencies: [],
+      description: snippet.description || "",
+      scope: "priority-0", // Default to priority-0 for appdata store
+      variables:
+        snippet.variables?.map((v) => ({
+          name: v.name,
+          prompt: v.placeholder,
+          defaultValue: v.defaultValue,
+        })) || [],
+      images: [],
+      tags: snippet.tags || [],
+      createdAt: snippet.createdAt.toISOString(),
+      createdBy: "user", // TODO: Get from auth
+      updatedAt: snippet.updatedAt.toISOString(),
+      updatedBy: "user", // TODO: Get from auth
+    };
+  }
+
+  /**
+   * Handle snippet save from comprehensive editor
+   */
+  private async handleSnippetSave(result: SnippetEditResult): Promise<void> {
+    if (!result.success) {
+      this.showError(
+        "Save failed: " + (result.errors?.join(", ") || "Unknown error"),
+      );
+      return;
+    }
 
     try {
       if (this.currentEditingSnippet) {
         // Update existing snippet
         await SnippetMessages.updateSnippet(
           this.currentEditingSnippet.id,
-          snippetData,
+          result.snippet,
         );
         this.showSuccess("Snippet updated successfully");
       } else {
         // Add new snippet
-        await SnippetMessages.addSnippet(snippetData);
+        await SnippetMessages.addSnippet(result.snippet);
         this.showSuccess("Snippet added successfully");
       }
 
@@ -430,6 +588,15 @@ class PopupApp {
     } catch (error) {
       console.error("Failed to save snippet:", error);
       this.showError("Failed to save snippet");
+    }
+  }
+
+  /**
+   * Handle save button click
+   */
+  private async handleSaveSnippet(): Promise<void> {
+    if (this.snippetEditor) {
+      await this.snippetEditor.save();
     }
   }
 
@@ -601,7 +768,17 @@ class PopupApp {
     // Ctrl/Cmd + N - new snippet
     if (e.key === "n" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      this.showAddSnippetModal();
+      this.openAddSnippetPage();
+    }
+
+    // Ctrl/Cmd + S - save snippet (when modal is open)
+    if (
+      e.key === "s" &&
+      (e.ctrlKey || e.metaKey) &&
+      !this.elements.snippetModal.classList.contains("hidden")
+    ) {
+      e.preventDefault();
+      this.handleSaveSnippet();
     }
 
     // Ctrl/Cmd + F - focus search

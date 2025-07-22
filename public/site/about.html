@@ -30,8 +30,7 @@
         --light-blue: #7fd5ff;
         --pale-blue: #c0eaff;
         --background: #f8fcff;
-        --card-bg: rgba(255, 255, 255, 0.6); /* More translucent */
-        --card-border: rgba(255, 255, 255, 0.3);
+        --card-bg: rgba(255, 255, 255, 0.95);
         --text-dark: #1a365d;
         --text-light: #4a5568;
         --accent-coral: #ff6b47;
@@ -107,7 +106,7 @@
         box-shadow:
           0 0 20px rgba(127, 213, 255, 0.4),
           inset 0 0 20px rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px); /* Increased blur */
+        backdrop-filter: blur(5px);
         cursor: pointer;
         transition: transform 0.3s ease;
         pointer-events: auto;
@@ -379,44 +378,34 @@
         overflow: visible;
       }
 
+      header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        animation: drift 20s infinite linear;
+      }
+
+      @keyframes drift {
+        0% {
+          transform: translateX(-60px);
+        }
+        100% {
+          transform: translateX(60px);
+        }
+      }
+
       header h1 {
         font-family: "Fredoka", sans-serif;
-        font-size: clamp(2.5rem, 8vw, 4.5rem);
+        font-size: clamp(2.5rem, 8vw, 4rem);
         font-weight: 700;
         margin: 0;
-        color: transparent;
-        background: linear-gradient(
-          45deg,
-          var(--accent-purple) 20%,
-          var(--primary-blue) 40%,
-          white 50%,
-          var(--primary-blue) 60%,
-          var(--accent-purple) 80%
-        );
-        background-size: 200% auto;
-        background-clip: text;
-        -webkit-background-clip: text;
-        animation:
-          bounce-in 1s ease-out,
-          text-sheen 5s linear infinite;
-        --mouse-x: 50%;
-        --mouse-y: 50%;
-      }
-
-      header h1.kinetic-header {
-        background-image: radial-gradient(
-          circle at var(--mouse-x) var(--mouse-y),
-          white 0%,
-          var(--light-blue) 50%,
-          var(--primary-blue) 90%,
-          var(--accent-purple) 100%
-        );
-      }
-
-      @keyframes text-sheen {
-        to {
-          background-position: 200% center;
-        }
+        color: white;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        animation: bounce-in 1s ease-out;
       }
 
       header p {
@@ -466,6 +455,7 @@
       .hero-section {
         text-align: center;
         padding: 4rem 0;
+        animation: fade-in-up 1s ease-out 0.6s both;
         position: relative;
       }
 
@@ -616,47 +606,65 @@
 
       .feature-card {
         background: var(--card-bg);
-        backdrop-filter: blur(20px); /* Enhanced glassmorphism */
+        backdrop-filter: blur(15px);
         border-radius: 24px;
         padding: 3rem 2.5rem;
         box-shadow:
-          0 10px 30px rgba(0, 0, 0, 0.08),
+          0 10px 30px rgba(0, 0, 0, 0.1),
           0 0 0 1px rgba(255, 255, 255, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.3);
         text-align: center;
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border: 1px solid var(--card-border);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         position: relative;
         overflow: hidden;
-        opacity: 0; /* For staggered animation */
-        transform: translateY(40px); /* For staggered animation */
       }
 
-      /* Holographic sheen effect */
       .feature-card::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        bottom: 0;
-        background-image: radial-gradient(
-          circle at var(--mouse-x) var(--mouse-y),
-          rgba(255, 255, 255, 0.2) 0%,
-          rgba(255, 255, 255, 0) 20%
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-blue),
+          var(--light-blue),
+          var(--accent-purple)
         );
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+      }
+
+      .feature-card::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.05) 0%,
+          transparent 70%
+        );
+        transform: scale(0);
+        transition: transform 0.4s ease;
       }
 
       .feature-card:hover::before {
-        opacity: 1;
+        transform: scaleX(1);
+      }
+
+      .feature-card:hover::after {
+        transform: scale(1);
       }
 
       .feature-card:hover {
-        transform: translateY(-15px) scale(1.03);
+        transform: translateY(-15px) scale(1.02);
         box-shadow:
-          0 25px 50px rgba(0, 135, 210, 0.2),
+          0 25px 50px rgba(0, 135, 210, 0.3),
           0 0 0 2px rgba(255, 255, 255, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.4);
       }
@@ -671,6 +679,34 @@
 
       .feature-card:hover .feature-icon {
         transform: scale(1.1) rotate(5deg);
+      }
+
+      .feature-card:nth-child(1) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 0s;
+      }
+      .feature-card:nth-child(2) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 0.5s;
+      }
+      .feature-card:nth-child(3) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+      .feature-card:nth-child(4) .feature-icon {
+        animation: icon-glow 3s ease-in-out infinite;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes icon-glow {
+        0%,
+        100% {
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+        50% {
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))
+            drop-shadow(0 0 20px var(--glow-blue));
+        }
       }
 
       .feature-card h3 {
@@ -705,7 +741,7 @@
         backdrop-filter: blur(10px);
         border-radius: 24px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--card-border);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
       }
 
@@ -753,10 +789,32 @@
         overflow: hidden;
       }
 
+      .term-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-blue),
+          var(--accent-coral),
+          var(--accent-yellow),
+          var(--accent-green)
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
       .term-item:hover {
-        transform: translateY(-5px) scale(1.02);
+        transform: translateY(-4px);
         box-shadow: 0 12px 24px rgba(0, 135, 210, 0.15);
         border-color: var(--primary-blue);
+      }
+
+      .term-item:hover::before {
+        opacity: 1;
       }
 
       .term-item h3 {
@@ -785,6 +843,21 @@
         margin-bottom: 0.25rem;
       }
 
+      @media (max-width: 768px) {
+        .terms-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .term-item {
+          padding: 1.25rem;
+        }
+
+        .term-item h3 {
+          font-size: 1rem;
+        }
+      }
+
       .cta-section {
         text-align: center;
         padding: 4rem 0;
@@ -809,13 +882,29 @@
         overflow: hidden;
       }
 
-      .cta:hover {
-        transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 15px 40px rgba(0, 135, 210, 0.6);
+      .cta::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
       }
 
-      .cta:active {
-        transform: translateY(-2px) scale(1.02);
+      .cta:hover::before {
+        left: 100%;
+      }
+
+      .cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0, 135, 210, 0.6);
       }
 
       footer {
@@ -844,6 +933,7 @@
       .animate-on-scroll {
         opacity: 0;
         transform: translateY(30px);
+        transition: all 0.8s ease;
       }
 
       .animate-on-scroll.animated {
@@ -851,93 +941,82 @@
         transform: translateY(0);
       }
 
-      /* Storytelling Section */
-      .story-container {
-        min-height: 300vh; /* Provides scroll space */
-        position: relative;
-      }
-      .story-sticky-parent {
-        height: 100vh;
-        position: sticky;
-        top: 0;
-        overflow: hidden;
-      }
-      .story-sticky-child {
-        position: relative;
-        height: 100%;
-        width: 100%;
-      }
-      #story-canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1;
-      }
-      .story-content {
-        position: relative;
-        z-index: 2;
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 0 1rem;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        flex-direction: column;
-        color: var(--text-dark);
-      }
-      .story-chapter {
-        position: absolute;
-        width: 100%;
-        max-width: 600px;
-        opacity: 0;
-        transition: opacity 0.5s ease-in-out;
-      }
-      .story-chapter.active {
-        opacity: 1;
-      }
-
-      /* Live Demo Editor */
-      .live-demo-container {
-        margin-top: 2rem;
-        border-radius: 12px;
-        padding: 1rem;
-        background: #f0f4f8;
-        border: 1px solid #e0e8f0;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
-      .live-demo-editor {
-        min-height: 100px;
-        width: 100%;
-        padding: 1rem;
-        border-radius: 8px;
-        background: white;
-        color: var(--text-dark);
-        font-family: "Inter", sans-serif;
-        font-size: 1.1rem;
-        line-height: 1.6;
-        outline: none;
-        border: 1px solid #d1dce5;
-        transition:
-          border-color 0.3s,
-          box-shadow 0.3s;
-      }
-      .live-demo-editor:focus {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 3px rgba(0, 135, 210, 0.2);
-      }
-      .live-demo-editor .expanded-snippet {
-        color: var(--primary-blue);
-        background: var(--pale-blue);
-        padding: 0.1rem 0.3rem;
-        border-radius: 4px;
-        font-weight: 500;
-      }
-
       @media (max-width: 768px) {
+        header {
+          padding: 3rem 1rem 2rem 1rem;
+        }
+
+        header h1 {
+          font-size: 2.5rem;
+        }
+
+        .hero-section {
+          padding: 2rem 0;
+        }
+
+        .hero-img {
+          width: 180px;
+          height: 180px;
+        }
+
+        .hero-img img {
+          width: 130px;
+          height: 130px;
+        }
+
+        .logo-glow {
+          width: 220px;
+          height: 220px;
+        }
+
         .features {
           grid-template-columns: 1fr;
+          padding: 2rem 1rem;
+          gap: 1.5rem;
+        }
+
+        .feature-card {
+          padding: 2rem 1.5rem;
+        }
+
+        .story {
+          margin: 2rem 1rem;
+          padding: 2rem 1.5rem;
+          font-size: 1.1rem;
+        }
+
+        .story h2 {
+          font-size: 1.8rem;
+        }
+
+        .cta {
+          padding: 1.2rem 2rem;
+          font-size: 1.1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero-img {
+          width: 150px;
+          height: 150px;
+        }
+
+        .hero-img img {
+          width: 110px;
+          height: 110px;
+        }
+
+        .logo-glow {
+          width: 180px;
+          height: 180px;
+        }
+
+        .feature-card {
+          padding: 1.5rem 1rem;
+        }
+
+        .feature-icon {
+          font-size: 3rem;
         }
       }
 
@@ -1029,753 +1108,6 @@
       .demo-close:hover {
         color: white;
       }
-    </style>
-  </head>
-  <body>
-    <!-- Floating bubbles background -->
-    <div class="bubbles">
-      <div
-        class="bubble"
-        data-trigger="/gb"
-        data-expansion="Goodbye! Have a great day!"
-      >
-        <span class="bubble-text">/gb</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger=";brb"
-        data-expansion="Be right back—just a sec!"
-      >
-        <span class="bubble-text">;brb</span>
-      </div>
-      <div class="bubble" data-trigger="ty" data-expansion="Thank you!">
-        <span class="bubble-text">ty</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger="gg!"
-        data-expansion="Good game! Well played!"
-      >
-        <span class="bubble-text">gg!</span>
-      </div>
-      <div class="bubble" data-trigger="/shrug" data-expansion="¯\_(ツ)_/¯">
-        <span class="bubble-text">/shrug</span>
-      </div>
-      <div class="bubble" data-trigger=":smile:" data-expansion="😊">
-        <span class="bubble-text">:smile:</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger="/sig"
-        data-expansion="— Marvin C. Bentley II"
-      >
-        <span class="bubble-text">/sig</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger=";addr"
-        data-expansion="907 Newfane Rd, Wardsboro VT 05355"
-      >
-        <span class="bubble-text">;addr</span>
-      </div>
-      <div class="bubble" data-trigger=";phone" data-expansion="(802) 555‑0123">
-        <span class="bubble-text">;phone</span>
-      </div>
-      <div class="bubble" data-trigger=";gm" data-expansion="Good morning! ☀️">
-        <span class="bubble-text">;gm</span>
-      </div>
-      <div class="bubble" data-trigger=";gn" data-expansion="Good night! 🌙">
-        <span class="bubble-text">;gn</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger=";tyvm"
-        data-expansion="Thank you very much!"
-      >
-        <span class="bubble-text">;tyvm</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger=";np"
-        data-expansion="No problem at all!"
-      >
-        <span class="bubble-text">;np</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger="/help"
-        data-expansion="How can I help you today?"
-      >
-        <span class="bubble-text">/help</span>
-      </div>
-      <div class="bubble" data-trigger=";woot" data-expansion="🎉 Woo‑hoo!">
-        <span class="bubble-text">;woot</span>
-      </div>
-      <div
-        class="bubble"
-        data-trigger=";asap"
-        data-expansion="As soon as possible, please."
-      >
-        <span class="bubble-text">;asap</span>
-      </div>
-      <div class="bubble" data-trigger=";cheers" data-expansion="Cheers! 🥂">
-        <span class="bubble-text">;cheers</span>
-      </div>
-      <div class="bubble" data-trigger="/yeet" data-expansion="✨YEET!✨">
-        <span class="bubble-text">/yeet</span>
-      </div>
-    </div>
-
-    <!-- Demo Display -->
-    <div class="demo-display" id="demoDisplay">
-      <button class="demo-close" onclick="closeDemoDisplay()">&times;</button>
-      <div class="demo-text" id="demoText"></div>
-    </div>
-
-    <!-- Scroll progress indicator -->
-    <div class="scroll-indicator" id="scrollIndicator"></div>
-
-    <header>
-      <h1>PuffPuffPaste</h1>
-      <p>Blow up your words, expand your productivity! 💨</p>
-    </header>
-
-    <div class="container">
-      <section class="hero-section">
-        <div class="logo-container">
-          <div class="logo-glow"></div>
-          <div class="hero-img">
-            <img
-              src="images/icon-128.png"
-              alt="PuffPuff the pufferfish mascot. Click to pop all bubbles for this session."
-              title="PuffPuff the pufferfish mascot. Click to pop all bubbles for this session."
-            />
-          </div>
-        </div>
-        <h2
-          style="
-            font-family: &quot;Fredoka&quot;, sans-serif;
-            font-size: 2.5rem;
-            margin: 0 0 1rem 0;
-            color: var(--text-dark);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          "
-        >
-          Meet PuffPuff! 🌊
-        </h2>
-        <p
-          style="
-            font-size: 1.4rem;
-            color: var(--text-light);
-            max-width: 700px;
-            margin: 0 auto;
-            line-height: 1.6;
-            font-weight: 500;
-          "
-        >
-          Your new productivity companion who transforms tiny shortcuts into
-          full text expansions with the magic of a friendly pufferfish.
-        </p>
-      </section>
-
-      <section class="features animate-on-scroll">
-        <div class="feature-card">
-          <span class="feature-icon">✨</span>
-          <h3>Dynamic & Rich Content</h3>
-          <p>
-            Go beyond plain text. Create snippets with rich formatting,
-            <strong>HTML, and even images</strong>. Use dynamic variables like
-            <code>{date}</code> or prompt for input like <code>{name}</code> to
-            create powerful, interactive templates.
-          </p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">🧠</span>
-          <h3>Intelligent Workflow</h3>
-          <p>
-            Works everywhere you do. If a trigger is ambiguous (e.g.,
-            <code>;s</code> is a snippet, but also starts <code>;sig</code>), a
-            simple UI appears <strong>only after you finish typing</strong>,
-            letting you cycle through options with Tab. No interruptions.
-          </p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">📚</span>
-          <h3>Versatile, Layered Snippets</h3>
-          <p>
-            Start with a private, top-priority snippet library. Then, layer on
-            shared snippet collections for your
-            <strong
-              >family's recipes, a study group's notes, or a project's
-              templates</strong
-            >. Your personal snippets always take precedence.
-          </p>
-        </div>
-        <div class="feature-card">
-          <span class="feature-icon">🔒</span>
-          <h3>Privacy First & Secure</h3>
-          <p>
-            Your data is yours. All expansions happen locally in your browser.
-            Cloud sync is optional, secure, and always under your control. We
-            never see or store your snippets.
-          </p>
-        </div>
-      </section>
-
-      <section id="story-container" class="story-container">
-        <div class="story-sticky-parent">
-          <div class="story-sticky-child">
-            <div id="story-canvas"></div>
-            <div class="story-content">
-              <div class="story-chapter" id="chapter-1">
-                <h2>The Tale of PuffPuff</h2>
-                <p>
-                  Once upon a tidepool, PuffPuff was just a small, shy
-                  pufferfish living among coral keyboards and kelp cables.
-                </p>
-              </div>
-              <div class="story-chapter" id="chapter-2">
-                <p>
-                  One day, while floating through a sea of sticky notes and lost
-                  passwords, PuffPuff noticed how much time the other ocean
-                  creatures were wasting typing the same things over and over.
-                </p>
-              </div>
-              <div class="story-chapter" id="chapter-3">
-                <p>
-                  So PuffPuff came up with a clever trick: he'd take a short
-                  code—just a puff of text—and blow it up into something big and
-                  useful!
-                </p>
-              </div>
-              <div class="story-chapter" id="chapter-4">
-                <p>
-                  Now, every time you expand a snippet, you're getting a little
-                  help from the puffiest productivity pal on the planet. Ready
-                  to join the underwater productivity revolution? 🌊
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="story animate-on-scroll">
-        <h2>Try It Live!</h2>
-        <p>
-          No need to install anything just yet. See the magic for yourself right
-          here. Type a trigger like <code>;gm</code> or <code>;sig</code> in the
-          box below and watch it expand.
-        </p>
-        <div id="live-demo-container" class="live-demo-container">
-          <div
-            id="live-demo-editor"
-            contenteditable="true"
-            class="live-demo-editor"
-          ></div>
-        </div>
-      </section>
-
-      <section class="story animate-on-scroll">
-        <h2>License and Usage</h2>
-        <p>
-          PuffPuffPaste is built on a foundation of trust and good faith. Our
-          licensing model reflects this.
-        </p>
-        <div class="terms-grid">
-          <div class="term-item">
-            <h3>Personal Use</h3>
-            <p>
-              If you abide by the Good-Neighbor Covenant (see below), you are
-              granted a <strong>free, perpetual license</strong> for personal,
-              non-commercial use. Enjoy it, share it with friends, and make your
-              digital life a little easier.
-            </p>
-          </div>
-          <div class="term-item">
-            <h3>Commercial Use</h3>
-            <p>
-              Use by any business, organization, or for any commercial purpose
-              requires a commercial license. This allows us to keep supporting
-              and developing the software. All commercial use is still subject
-              to the Good-Neighbor Covenant.
-            </p>
-            <p>
-              For licensing inquiries, please email us at: <br />
-              <a href="mailto:puffpuffpaste@googlegroups.com"
-                ><strong>puffpuffpaste@googlegroups.com</strong></a
-              >
-            </p>
-            <p
-              style="
-                font-size: 0.9em;
-                margin-top: 1rem;
-                color: var(--text-light);
-              "
-            >
-              Example pricing: $5/user/year for a team of 10, or $3/user/year
-              for 1,000+ users.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="story animate-on-scroll">
-        <h2>The Good‑Neighbor Covenant 🚀</h2>
-        <p style="text-align: center; font-style: italic; margin-bottom: 2rem">
-          By downloading, installing, or using PuffPuffPaste (the "Software"),
-          you affirm, warrant, and certify that you enthusiastically agree to
-          every clause below. This is the ethical foundation for all use.
-          Violation or repudiation of any clause instantly terminates your
-          license and obliges you to uninstall the Software.
-        </p>
-
-        <div class="terms-grid">
-          <div class="term-item">
-            <h3>🏰✂️ No Kings Clause</h3>
-            <p>
-              You reject authoritarianism, hereditary rule, and any
-              concentration of unchecked power.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>⚖️ Equal‑Before‑the‑Law Clause</h3>
-            <p>
-              No person, corporation, or office‑holder is above the law; justice
-              applies the same to all wallets and name‑plates.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🛡️ Protect‑the‑Vulnerable Clause</h3>
-            <p>
-              You will never use the Software to exploit or harm children,
-              marginalized communities, or anyone with less institutional power.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🗳️ Democracy‑or‑Bust Clause</h3>
-            <p>
-              You affirm that free, fair elections and peaceful transfers of
-              power are non‑negotiable cornerstones of legitimate government.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🌍 Reality‑Matters Clause</h3>
-            <p>
-              Facts are a thing. You will not wield the Software to spread
-              disinformation, medical falsehoods, or anti‑democratic conspiracy
-              sludge.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🔬 Science‑Is‑Real Clause</h3>
-            <p>
-              You accept the scientific method as the best tool we've got for
-              figuring out how the universe works; vaccines save lives; climate
-              change is real; gravity still pulls down.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🧑‍🤝‍🧑 Every‑Human‑Heartbeat Clause</h3>
-            <p>
-              All humans — regardless of chromosomes, hormone levels, pronouns,
-              pigmentation, or plus‑one at prom — possess equal dignity, rights,
-              and humanity.
-            </p>
-            <p style="font-style: italic; font-size: 0.9em; margin-top: 0.5rem">
-              (If you'd deny a neighbor a civil liberty they already have, you
-              may not use this Software.)
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🚫🍌 Banana‑Republic Firewall</h3>
-            <p>Use of the Software is automatically forbidden to anyone who:</p>
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem">
-              <li>Advocates political violence;</li>
-              <li>Denies verified election results without evidence;</li>
-              <li>
-                Seeks to dismantle civil liberties or democratic institutions.
-              </li>
-            </ul>
-          </div>
-
-          <div class="term-item">
-            <h3>📝 TL;DR</h3>
-            <p>
-              <strong>TL;DR:</strong> As long as you agree to be and remain a
-              decent and reasonable person, you may use this software.
-            </p>
-          </div>
-
-          <div class="term-item">
-            <h3>🏞️ Good‑Faith Compliance</h3>
-            <p>
-              If you later discover you can't live up to these promises, you
-              must delete the Software and, ideally, take a long walk to think
-              about your life choices.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="story animate-on-scroll">
-        <h2>Privacy Policy</h2>
-        <p>
-          PuffPuffPaste does not collect or store any of your personal
-          information, period. All data used by the extension remains on your
-          device or, if you choose to enable it, in your own cloud storage
-          account (e.g., Google Drive). It is never shared with the developer or
-          any third parties.
-        </p>
-      </section>
-
-      <section class="cta-section animate-on-scroll">
-        <a
-          class="cta"
-          href="https://github.com/truevox/text-exp"
-          target="_blank"
-          >🚀 Add to Chrome — It's Free!</a
-        >
-        <p style="margin-top: 1rem; color: var(--text-light)">
-          Join other users saving hours every day
-        </p>
-      </section>
-    </div>
-
-    <footer>
-      <p>&copy; 2025 PuffPuffPaste. Built with love and bubbles. 🫧</p>
-      <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 0.5rem">
-        Made by developers, for developers (and everyone who types too much)
-      </p>
-    </footer>
-
-    <script>
-      // --- Bubble Spawning & Toggle Logic ---
-      document.addEventListener("DOMContentLoaded", () => {
-        const bubblesContainer = document.querySelector(".bubbles");
-        const heroImg = document.querySelector(".hero-img");
-
-        function initializeBubbles() {
-          if (!bubblesContainer) return;
-
-          bubblesContainer.style.display = ""; // Make sure it's visible
-
-          const bubbles = document.querySelectorAll(".bubble");
-          bubbles.forEach((bubble) => {
-            bubble.classList.remove("popping");
-
-            let randomLeft;
-            if (Math.random() > 0.5) {
-              randomLeft = Math.random() * 25;
-            } else {
-              randomLeft = 75 + Math.random() * 25;
-            }
-            bubble.style.left = `${randomLeft}%`;
-          });
-        }
-
-        function disableBubbles() {
-          if (!bubblesContainer) return;
-
-          sessionStorage.setItem("bubblesDisabled", "true");
-          const activeBubbles = document.querySelectorAll(".bubble");
-          activeBubbles.forEach((bubble) => {
-            bubble.classList.add("popping");
-          });
-
-          setTimeout(() => {
-            bubblesContainer.style.display = "none";
-          }, 1000);
-        }
-
-        function enableBubbles() {
-          sessionStorage.removeItem("bubblesDisabled");
-          initializeBubbles();
-        }
-
-        // Initial check on page load
-        if (sessionStorage.getItem("bubblesDisabled")) {
-          if (bubblesContainer) bubblesContainer.style.display = "none";
-        } else {
-          initializeBubbles();
-        }
-
-        // Add click listener to the hero image to toggle bubbles
-        heroImg.addEventListener("click", () => {
-          if (sessionStorage.getItem("bubblesDisabled")) {
-            enableBubbles();
-          } else {
-            disableBubbles();
-          }
-        });
-      });
-
-      // --- Kinetic Header & Holographic Card Logic ---
-      const kineticHeader = document.querySelector(".kinetic-header");
-      if (kineticHeader) {
-        document.body.addEventListener("mousemove", (e) => {
-          const { clientX, clientY } = e;
-          const { offsetWidth, offsetHeight } = document.body;
-          const x = (clientX / offsetWidth) * 100;
-          const y = (clientY / offsetHeight) * 100;
-          kineticHeader.style.setProperty("--mouse-x", `${x}%`);
-          kineticHeader.style.setProperty("--mouse-y", `${y}%`);
-        });
-      }
-
-      const cards = document.querySelectorAll(".feature-card");
-      cards.forEach((card) => {
-        card.addEventListener("mousemove", (e) => {
-          const rect = card.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          card.style.setProperty("--mouse-x", `${x}px`);
-          card.style.setProperty("--mouse-y", `${y}px`);
-        });
-      });
-
-      // --- Staggered Animation on Scroll ---
-      const observerOptions = {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
-      };
-
-      const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach((entry, index) => {
-          if (entry.isIntersecting) {
-            // Apply staggered delay
-            const delay = index * 100; // 100ms delay between each card
-            entry.target.style.transition = `all 0.6s ${delay}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
-            entry.target.classList.add("animated");
-            observer.unobserve(entry.target); // Stop observing after animation
-          }
-        });
-      }, observerOptions);
-
-      document.querySelectorAll(".feature-card, .story").forEach((el) => {
-        observer.observe(el);
-      });
-
-      // Scroll progress indicator
-      window.addEventListener("scroll", () => {
-        const scrolled =
-          (window.scrollY /
-            (document.documentElement.scrollHeight - window.innerHeight)) *
-          100;
-        document.getElementById("scrollIndicator").style.width = scrolled + "%";
-      });
-
-      // --- Scroll-driven Storytelling with Three.js ---
-      const storyContainer = document.getElementById("story-container");
-      if (storyContainer) {
-        let scene, camera, renderer, puffPuff;
-
-        function initStoryCanvas() {
-          const canvasContainer = document.getElementById("story-canvas");
-          scene = new THREE.Scene();
-          camera = new THREE.PerspectiveCamera(
-            75,
-            canvasContainer.offsetWidth / canvasContainer.offsetHeight,
-            0.1,
-            1000,
-          );
-          renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-          renderer.setSize(
-            canvasContainer.offsetWidth,
-            canvasContainer.offsetHeight,
-          );
-          canvasContainer.appendChild(renderer.domElement);
-
-          // Simple Pufferfish model
-          const geometry = new THREE.SphereGeometry(1, 32, 32);
-          const material = new THREE.MeshStandardMaterial({
-            color: 0xffd93d,
-            roughness: 0.5,
-            metalness: 0.1,
-          });
-          puffPuff = new THREE.Mesh(geometry, material);
-          scene.add(puffPuff);
-
-          const light = new THREE.DirectionalLight(0xffffff, 1);
-          light.position.set(5, 5, 5);
-          scene.add(light);
-
-          const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-          scene.add(ambientLight);
-
-          camera.position.z = 5;
-
-          animate();
-        }
-
-        function animate() {
-          requestAnimationFrame(animate);
-          puffPuff.rotation.y += 0.005;
-          renderer.render(scene, camera);
-        }
-
-        function handleScroll() {
-          const scrollY = window.scrollY;
-          const containerTop = storyContainer.offsetTop;
-          const containerHeight = storyContainer.offsetHeight;
-          const scrollPercent =
-            (scrollY - containerTop) / (containerHeight - window.innerHeight);
-
-          if (scrollPercent >= 0 && scrollPercent <= 1) {
-            // Animate puffPuff based on scroll
-            puffPuff.position.y = -scrollPercent * 5;
-            puffPuff.scale.set(
-              1 + scrollPercent,
-              1 + scrollPercent,
-              1 + scrollPercent,
-            );
-
-            // Chapter visibility
-            const chapters = document.querySelectorAll(".story-chapter");
-            const chapterCount = chapters.length;
-            const chapterIndex = Math.min(
-              chapterCount - 1,
-              Math.floor(scrollPercent * chapterCount),
-            );
-
-            chapters.forEach((chapter, index) => {
-              if (index === chapterIndex) {
-                chapter.classList.add("active");
-              } else {
-                chapter.classList.remove("active");
-              }
-            });
-          }
-        }
-
-        // Lazy load Three.js and initialize
-        const threeScript = document.createElement("script");
-        threeScript.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-        threeScript.onload = () => {
-          initStoryCanvas();
-          window.addEventListener("scroll", handleScroll);
-        };
-        document.body.appendChild(threeScript);
-      }
-
-      // --- Live Snippet Demo ---
-      const liveDemoEditor = document.getElementById("live-demo-editor");
-      if (liveDemoEditor) {
-        const snippets = {
-          ";gm": "Good morning! ☀️",
-          ";sig": "— Marvin C. Bentley II",
-          ty: "Thank you!",
-          "/shrug": "¯\_(ツ)_/¯",
-        };
-        liveDemoEditor.addEventListener("input", (e) => {
-          const text = liveDemoEditor.innerText;
-          for (const trigger in snippets) {
-            if (text.endsWith(trigger)) {
-              const expansion = snippets[trigger];
-              // Replace the trigger with the expansion
-              document.execCommand("delete", false, trigger.length);
-              document.execCommand(
-                "insertHTML",
-                false,
-                `<span class="expanded-snippet">${expansion}</span>&nbsp;`,
-              );
-
-              // Move cursor to the end
-              const selection = window.getSelection();
-              const range = document.createRange();
-              selection.removeAllRanges();
-              range.selectNodeContents(liveDemoEditor);
-              range.collapse(false);
-              selection.addRange(range);
-              liveDemoEditor.focus();
-              break; // Exit after first match
-            }
-          }
-        });
-      }
-
-      // Bubble click functionality
-      let isAnimating = false;
-      const demoDisplay = document.getElementById("demoDisplay");
-      const demoText = document.getElementById("demoText");
-
-      document.querySelectorAll(".bubble").forEach((bubble) => {
-        bubble.addEventListener("click", handleBubbleClick);
-      });
-
-      async function handleBubbleClick(event) {
-        if (isAnimating) return;
-
-        const bubble = event.currentTarget;
-        const trigger = bubble.dataset.trigger;
-        const expansion = bubble.dataset.expansion;
-
-        if (!trigger || !expansion) return;
-
-        isAnimating = true;
-        demoDisplay.classList.add("active");
-        bubble.classList.add("popping");
-        demoText.textContent = "";
-        demoText.classList.remove("typing");
-
-        await typeText(trigger, "trigger-display");
-        await delay(500);
-
-        demoText.textContent = "";
-        await typeText(expansion, "expansion-display");
-
-        setTimeout(() => {
-          bubble.classList.remove("popping");
-          isAnimating = false;
-        }, 1000);
-      }
-
-      async function typeText(text, className) {
-        demoText.className = `demo-text typing ${className}`;
-        return new Promise((resolve) => {
-          let index = 0;
-          const typeChar = () => {
-            if (index < text.length) {
-              demoText.textContent += text[index];
-              index++;
-              setTimeout(typeChar, 50 + Math.random() * 50);
-            } else {
-              demoText.classList.remove("typing");
-              resolve();
-            }
-          };
-          typeChar();
-        });
-      }
-
-      function delay(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
-
-      function closeDemoDisplay() {
-        demoDisplay.classList.remove("active");
-        demoText.textContent = "";
-        demoText.classList.remove("typing");
-        isAnimating = false;
-      }
-
-      demoDisplay.addEventListener("click", (e) => {
-        if (e.target === demoDisplay) closeDemoDisplay();
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && demoDisplay.classList.contains("active")) {
-          closeDemoDisplay();
-        }
-      });
     </script>
   </body>
 </html>

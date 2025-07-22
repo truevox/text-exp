@@ -109,11 +109,23 @@ export interface TierSaveOptions {
  * Tier configuration mapping
  */
 export const TIER_CONFIGS: Record<PriorityTier, TierConfig> = {
+  "priority-0": {
+    fileName: "priority-0-snippets.json",
+    displayName: "Priority #0 Store",
+    priority: 5,
+    defaultEnabled: true,
+  },
   personal: {
     fileName: "personal.json",
     displayName: "Personal Snippets",
-    priority: 1,
+    priority: 4,
     defaultEnabled: true,
+  },
+  department: {
+    fileName: "department.json",
+    displayName: "Department Snippets",
+    priority: 3,
+    defaultEnabled: false,
   },
   team: {
     fileName: "team.json",
@@ -124,7 +136,7 @@ export const TIER_CONFIGS: Record<PriorityTier, TierConfig> = {
   org: {
     fileName: "org.json",
     displayName: "Organization Snippets",
-    priority: 3,
+    priority: 1,
     defaultEnabled: false,
   },
 };

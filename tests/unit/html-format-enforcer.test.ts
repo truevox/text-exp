@@ -115,7 +115,7 @@ describe("HTMLFormatEnforcer", () => {
 
     it("should detect plaintext content", () => {
       const format = enforcer.detectContentFormat(mockTextSnippets[1]);
-      expect(format).toBe("text");
+      expect(format).toBe("plaintext");
     });
 
     it("should detect markdown content", () => {
@@ -332,7 +332,7 @@ describe("HTMLFormatEnforcer", () => {
         { preserveOriginalFormat: true },
       );
 
-      expect(updatedSnippet.tags).toContain("original-format:text");
+      expect(updatedSnippet.tags).toContain("original-format:plaintext");
     });
 
     it("should not modify already HTML snippets", () => {

@@ -51,7 +51,13 @@ describe("Enhanced PriorityTierManager - Phase 2", () => {
       await manager.initialize();
 
       const stats = await manager.getTierStats();
-      expect(Object.keys(stats)).toEqual(["personal", "team", "org"]);
+      expect(Object.keys(stats)).toEqual([
+        "priority-0",
+        "personal",
+        "department",
+        "team",
+        "org",
+      ]);
       expect(stats.personal.snippetsCount).toBe(0);
       expect(stats.team.snippetsCount).toBe(0);
       expect(stats.org.snippetsCount).toBe(0);
@@ -69,13 +75,21 @@ describe("Enhanced PriorityTierManager - Phase 2", () => {
       await manager.initialize();
 
       const stats = await manager.getTierStats();
-      expect(Object.keys(stats)).toEqual(["personal", "team", "org"]);
+      expect(Object.keys(stats)).toEqual([
+        "priority-0",
+        "personal",
+        "department",
+        "team",
+        "org",
+      ]);
     });
 
     test("should validate tier configuration constants", () => {
-      expect(TIER_CONFIGS.personal.priority).toBe(1);
+      expect(TIER_CONFIGS["priority-0"].priority).toBe(5);
+      expect(TIER_CONFIGS.personal.priority).toBe(4);
+      expect(TIER_CONFIGS.department.priority).toBe(3);
       expect(TIER_CONFIGS.team.priority).toBe(2);
-      expect(TIER_CONFIGS.org.priority).toBe(3);
+      expect(TIER_CONFIGS.org.priority).toBe(1);
 
       expect(TIER_CONFIGS.personal.fileName).toBe("personal.json");
       expect(TIER_CONFIGS.team.fileName).toBe("team.json");

@@ -122,7 +122,7 @@ describe("Appdata Store Discovery", () => {
     it("should return store with correct tier information", async () => {
       const mockPriorityStore: TierStorageSchema = {
         schema: "priority-tier-v1",
-        tier: "personal",
+        tier: "priority-0",
         snippets: [
           {
             id: "priority-snippet-1",
