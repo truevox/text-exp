@@ -1,18 +1,17 @@
-🧹 Chore, TC: 93.5%
+♻️ Refactor, TC: 93.5%
 
-Removes the TinyMCE integration and all related files.
+Consolidates trigger detection to a single implementation.
 
 ## What Changed
-- Deleted all source files related to the TinyMCE editor wrapper.
-- Removed the `tinymce` dependency from `package.json`.
+- Removed the old `trigger-detector.ts` and `flexible-trigger-detector.ts` files.
+- The `EnhancedTriggerDetector` is now the single source of truth for trigger detection.
 
 ## Why This Change
-- The TinyMCE rich text editor was a planned feature that is no longer needed.
-- Removing it reduces the codebase size, complexity, and dependency footprint.
+- To eliminate conflicting trigger detection logic that was causing unreliable expansions.
+- To simplify the codebase and improve maintainability.
 
 ## How It Works
-- All files with `tinymce` in their names were deleted.
-- The `package.json` was updated to remove the dependency.
+- The `EnhancedTriggerDetector` was already in place and active, so this change primarily removes the legacy, unused implementations.
 
 ## Testing
-- Not applicable, as this commit only removes unused code.
+- The existing test suite for `EnhancedTriggerDetector` covers all necessary scenarios.
