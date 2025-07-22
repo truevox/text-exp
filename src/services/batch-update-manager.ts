@@ -378,7 +378,7 @@ export class BatchUpdateManager {
             `🔄 Overwriting existing snippet in ${store.storeFileName}`,
           );
           break;
-        case "merge":
+        case "merge": {
           console.log(
             `🔀 Merging with existing snippet in ${store.storeFileName}`,
           );
@@ -393,6 +393,7 @@ export class BatchUpdateManager {
           // Convert back to TextSnippet for operation
           operation.snippet = this.convertToTextSnippet(mergedEnhanced);
           break;
+        }
       }
       result.previousVersion = existingSnippet;
     }

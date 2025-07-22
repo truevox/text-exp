@@ -25,7 +25,7 @@ export interface TextSnippet {
   // Usage tracking fields
   usageCount?: number; // Number of times this snippet has been used
   lastUsed?: Date; // When this snippet was last used
-  priority?: number; // Priority level from folder hierarchy (1 = highest)
+  priority?: number; // Priority level from folder hierarchy (0 = highest)
   sourceFolder?: string; // ID of the folder this snippet came from
   fileHash?: string; // Hash prefix to prevent name collisions
   storeFileName?: string; // Which JSON store file this snippet belongs to
@@ -240,7 +240,9 @@ export interface ExtensionSettings {
 export type MessageType =
   | "GET_SNIPPETS"
   | "ADD_SNIPPET"
+  | "ADD_SNIPPET_MULTI_STORE"
   | "UPDATE_SNIPPET"
+  | "UPDATE_SNIPPET_MULTI_STORE"
   | "DELETE_SNIPPET"
   | "SYNC_SNIPPETS"
   | "GET_SETTINGS"

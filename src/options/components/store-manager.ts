@@ -144,7 +144,7 @@ export class StoreManagerComponent {
   }
 
   /**
-   * Load custom stores from extension settings
+   * Load custom stores from extension settings with saved priority order
    */
   async loadCustomStores(): Promise<void> {
     try {
@@ -153,8 +153,15 @@ export class StoreManagerComponent {
       const settings = await ExtensionStorage.getSettings();
       this.customStores = settings.configuredSources || [];
 
+      // Sort stores by their saved priority order (if available)
+      this.customStores.sort((a, b) => {
+        const priorityA = (a as any).priority || 999;
+        const priorityB = (b as any).priority || 999;
+        return priorityA - priorityB;
+      });
+
       console.log(
-        `✅ Loaded ${this.customStores.length} custom stores:`,
+        `✅ Loaded ${this.customStores.length} custom stores in priority order:`,
         this.customStores,
       );
 
@@ -278,12 +285,12 @@ export class StoreManagerComponent {
     }
 
     storesHtml += `
-      <div class="store-item default-store" data-store-id="default" data-priority="1">
+      <div class="store-item default-store" data-store-id="default" data-priority="0">
         <div class="store-drag-handle">⋮⋮</div>
         <div class="store-info">
           <div class="store-name">Default Store</div>
           <div class="store-details">
-            <span class="store-type">Personal (AppData)</span>
+            <span class="store-type">Default Store (AppData)</span>
             <span class="store-count">${snippetCountText}</span>
           </div>
         </div>
@@ -298,13 +305,9 @@ export class StoreManagerComponent {
     // Add custom stores to the list
     this.customStores.forEach((store, index) => {
       const priority = this.defaultStoreStatus?.initialized
-        ? index + 2
-        : index + 1; // Default store takes priority 1
-      const scopeDisplayNames = {
-        personal: "Personal",
-        team: "Team",
-        org: "Organization",
-      };
+        ? index + 1 // Default store takes priority 0, custom stores get 1, 2, 3...
+        : index; // If no default store, custom stores start from 0
+      // No more scope-based display names - using simple store names
 
       const validationStatus =
         this.storeValidationStatus.get(store.folderId) || "warning";
@@ -320,7 +323,7 @@ export class StoreManagerComponent {
           <div class="store-info">
             <div class="store-name">${store.displayName}</div>
             <div class="store-details">
-              <span class="store-type">${scopeDisplayNames[store.scope]} (${store.provider === "google-drive" ? "Google Drive" : store.provider})</span>
+              <span class="store-type">Custom Store (${store.provider === "google-drive" ? "Google Drive" : store.provider})</span>
               <span class="store-count">Loading...</span>
             </div>
           </div>
@@ -513,6 +516,7 @@ export class StoreManagerComponent {
 
   /**
    * Update priority values for all stores after reordering
+   * Uses 0-based indexing: 0 = highest priority, 1, 2, 3... = lower priority
    */
   private updateStorePriorities(): void {
     const activeStoresList = document.getElementById("activeStoresList");
@@ -521,18 +525,72 @@ export class StoreManagerComponent {
     const storeItems = activeStoresList.querySelectorAll(".store-item");
     storeItems.forEach((item, index) => {
       const element = item as HTMLElement;
-      element.dataset.priority = (index + 1).toString();
+      element.dataset.priority = index.toString(); // 0-based: 0 = highest priority
     });
   }
 
   /**
-   * Save the current store order to settings
+   * Save the current store order to settings using numeric priorities
    */
   private async saveStoreOrder(): Promise<void> {
     try {
-      // TODO: Implement saving store order to settings
-      // This will be needed when we have multiple custom stores
-      console.log("🔄 Store order saved (placeholder implementation)");
+      console.log("🔄 Saving store order with numeric priorities...");
+
+      const activeStoresList = document.getElementById("activeStoresList");
+      if (!activeStoresList) return;
+
+      // Build ordered list of stores with their numeric priorities
+      const storeOrder: Array<{
+        storeId: string;
+        priority: number;
+        isDefault: boolean;
+      }> = [];
+
+      const storeItems = activeStoresList.querySelectorAll(".store-item");
+      storeItems.forEach((item, index) => {
+        const element = item as HTMLElement;
+        const storeId = element.dataset.storeId;
+        const priority = index; // 0-based priority (0 = highest, FILO ordering)
+        const isDefault = element.classList.contains("default-store");
+
+        if (storeId) {
+          storeOrder.push({
+            storeId,
+            priority,
+            isDefault,
+          });
+        }
+      });
+
+      // Save to extension settings
+      const settings = await ExtensionStorage.getSettings();
+
+      // Update the configured sources with their new priorities
+      if (settings.configuredSources) {
+        settings.configuredSources.forEach((source) => {
+          const orderItem = storeOrder.find(
+            (item) => item.storeId === source.folderId && !item.isDefault,
+          );
+          if (orderItem) {
+            // Store the priority in the source configuration
+            (source as any).priority = orderItem.priority;
+          }
+        });
+
+        // Sort configured sources by their new priority
+        settings.configuredSources.sort((a, b) => {
+          const priorityA = (a as any).priority || 999;
+          const priorityB = (b as any).priority || 999;
+          return priorityA - priorityB;
+        });
+      }
+
+      // Save the store order as a separate setting for reference
+      (settings as any).storeOrder = storeOrder;
+
+      await ExtensionStorage.setSettings(settings);
+
+      console.log("✅ Store order saved successfully:", storeOrder);
     } catch (error) {
       console.error("❌ Failed to save store order:", error);
       throw error;
@@ -567,31 +625,25 @@ export class StoreManagerComponent {
   }
 
   /**
-   * Show dialog for adding custom stores
+   * Show dialog for adding custom stores (simplified - no scopes)
    */
-  public showAddCustomStoreDialog(scope: "personal" | "team" | "org"): void {
-    const scopeDisplayNames = {
-      personal: "Personal",
-      team: "Team",
-      org: "Organization",
-    };
-
+  public showAddCustomStoreDialog(): void {
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Add ${scopeDisplayNames[scope]} Store</h2>
+          <h2>Add New Store</h2>
           <button class="modal-close" id="closeAddStoreModal">&times;</button>
         </div>
         <div class="modal-body">
-          <p>Choose how to set up your ${scopeDisplayNames[scope].toLowerCase()} snippet store:</p>
+          <p>Choose how to set up your new snippet store:</p>
           
           <div class="store-option-cards">
             <div class="store-option-card" id="createNewStore">
               <div class="option-icon">📝</div>
               <h3>Create New Store</h3>
-              <p>Create a new JSON file for storing ${scopeDisplayNames[scope].toLowerCase()} snippets</p>
+              <p>Create a new JSON file for storing snippets</p>
               <ul>
                 <li>✅ Privacy-focused (OAuth compliant)</li>
                 <li>✅ Ready to use immediately</li>
@@ -643,101 +695,84 @@ export class StoreManagerComponent {
 
     createBtn?.addEventListener("click", () => {
       closeModal();
-      this.createNewCustomStore(scope);
+      this.createNewCustomStore();
     });
 
     selectBtn?.addEventListener("click", () => {
       closeModal();
-      this.selectExistingCustomStore(scope);
+      this.selectExistingCustomStore();
     });
   }
 
   /**
-   * Create a new custom store file
+   * Create a new custom store file (simplified - no scopes)
    */
-  private async createNewCustomStore(
-    scope: "personal" | "team" | "org",
-  ): Promise<void> {
+  private async createNewCustomStore(): Promise<void> {
     try {
       // Show name input dialog
       const storeName = prompt(
-        `Enter a name for your ${scope} store:`,
-        `My ${scope.charAt(0).toUpperCase() + scope.slice(1)} Snippets`,
+        "Enter a name for your new store:",
+        "My Snippets",
       );
 
       if (!storeName) {
         return; // User cancelled
       }
 
-      this.showStatus(`Creating ${scope} store: ${storeName}...`, "info");
+      this.showStatus(`Creating store: ${storeName}...`, "info");
 
       // Create store via service worker
       const response = await chrome.runtime.sendMessage({
-        type: "CREATE_CUSTOM_STORE",
-        scope: scope,
+        type: "CREATE_SIMPLE_STORE",
         storeName: storeName,
-        description: `${scope.charAt(0).toUpperCase() + scope.slice(1)} snippet store created by user`,
+        description: "Snippet store created by user",
       });
 
       if (response.success) {
-        this.showStatus(
-          `Successfully created ${scope} store: ${storeName}`,
-          "success",
-        );
+        this.showStatus(`Successfully created store: ${storeName}`, "success");
         console.log("✅ Custom store created:", response.data);
 
         // Refresh the store manager UI to show the new store
         await this.refreshStoreStatus();
       } else {
         console.error("❌ Failed to create custom store:", response.error);
-        this.showStatus(
-          `Failed to create ${scope} store: ${response.error}`,
-          "error",
-        );
+        this.showStatus(`Failed to create store: ${response.error}`, "error");
       }
     } catch (error) {
-      console.error(`❌ Error creating ${scope} store:`, error);
-      this.showStatus(`Error creating ${scope} store`, "error");
+      console.error("❌ Error creating store:", error);
+      this.showStatus("Error creating store", "error");
     }
   }
 
   /**
-   * Select an existing custom store file
+   * Select an existing custom store file (simplified - no scopes)
    */
-  private async selectExistingCustomStore(
-    scope: "personal" | "team" | "org",
-  ): Promise<void> {
+  private async selectExistingCustomStore(): Promise<void> {
     try {
-      this.showStatus(`Opening file selector for ${scope} store...`, "info");
+      this.showStatus("Opening file selector...", "info");
 
       // Show file selection modal
-      this.showFileSelectionModal(scope);
+      this.showFileSelectionModal();
     } catch (error) {
-      console.error(`❌ Error selecting ${scope} store:`, error);
-      this.showStatus(`Error selecting ${scope} store`, "error");
+      console.error("❌ Error selecting store:", error);
+      this.showStatus("Error selecting store", "error");
     }
   }
 
   /**
-   * Show file selection modal with multiple options
+   * Show file selection modal with multiple options (simplified - no scopes)
    */
-  private showFileSelectionModal(scope: "personal" | "team" | "org"): void {
-    const scopeDisplayNames = {
-      personal: "Personal",
-      team: "Team",
-      org: "Organization",
-    };
-
+  private showFileSelectionModal(): void {
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Select ${scopeDisplayNames[scope]} Store File</h2>
+          <h2>Select Store File</h2>
           <button class="modal-close" id="closeFileSelectionModal">&times;</button>
         </div>
         <div class="modal-body">
-          <p>Choose how to select your existing ${scopeDisplayNames[scope].toLowerCase()} snippet store:</p>
+          <p>Choose how to select your existing snippet store:</p>
           
           <div class="file-selection-options">
             <div class="selection-option">
@@ -794,7 +829,7 @@ export class StoreManagerComponent {
       }
 
       closeModal();
-      await this.processShareLink(shareLink, scope);
+      await this.processShareLink(shareLink);
     });
 
     // Auto-focus the input
@@ -802,12 +837,9 @@ export class StoreManagerComponent {
   }
 
   /**
-   * Process a Google Drive share link
+   * Process a Google Drive share link (simplified - no scopes)
    */
-  private async processShareLink(
-    shareLink: string,
-    scope: "personal" | "team" | "org",
-  ): Promise<void> {
+  private async processShareLink(shareLink: string): Promise<void> {
     try {
       this.showStatus("Processing Google Drive share link...", "info");
 
@@ -846,7 +878,7 @@ export class StoreManagerComponent {
 
       // Configure the store
       const displayName = prompt(
-        `Enter a name for this ${scope} store:`,
+        "Enter a name for this store:",
         fileInfo.fileName.replace(".json", ""),
       );
 
@@ -855,17 +887,13 @@ export class StoreManagerComponent {
       }
 
       const configResponse = await chrome.runtime.sendMessage({
-        type: "SELECT_EXISTING_STORE",
+        type: "SELECT_EXISTING_SIMPLE_STORE",
         fileId: fileInfo.fileId,
-        scope: scope,
         displayName: displayName,
       });
 
       if (configResponse.success) {
-        this.showStatus(
-          `Successfully added ${scope} store: ${displayName}`,
-          "success",
-        );
+        this.showStatus(`Successfully added store: ${displayName}`, "success");
         console.log("✅ Store configured:", configResponse.data);
 
         // Refresh the store manager UI
@@ -922,7 +950,7 @@ export class StoreManagerComponent {
         (store) => store.folderId !== storeId,
       );
 
-      await ExtensionStorage.saveSettings(settings);
+      await ExtensionStorage.setSettings(settings);
 
       // Update local state
       this.customStores = this.customStores.filter(

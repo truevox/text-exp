@@ -683,9 +683,9 @@ export class MultiFileSelector {
 
     // Check for invalid priorities
     selectedStores.forEach((store) => {
-      if (store.priority < 1 || store.priority > 1000) {
+      if (store.priority < 0 || store.priority > 1000) {
         errors.push(
-          `Priority for ${store.displayName} must be between 1 and 1000`,
+          `Priority for ${store.displayName} must be between 0 and 1000 (0 = highest)`,
         );
       }
     });

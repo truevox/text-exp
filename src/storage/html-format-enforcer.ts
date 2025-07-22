@@ -120,8 +120,8 @@ export class HTMLFormatEnforcer {
     if (currentFormat === "html") {
       let convertedContent = content;
       let conversionMethod = "no-conversion";
-      let warnings: string[] = [];
-      let errors: string[] = [];
+      const warnings: string[] = [];
+      const errors: string[] = [];
 
       // Sanitize if requested
       if (sanitizeHtml) {
@@ -160,8 +160,8 @@ export class HTMLFormatEnforcer {
 
     let convertedContent: string;
     let conversionMethod: string;
-    let warnings: string[] = [];
-    let errors: string[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
 
     try {
       // Use custom converter if provided

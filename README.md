@@ -33,17 +33,24 @@ It enables:
 - **Serverless Operation:** The entire sync process runs **entirely inside the browser**—no server, no proxy, no middleman.
 - **Maintainability & Testability:** The clean separation of concerns makes the codebase easy to maintain and test.
 
-### Supported Folder Scopes ("Org Mode")
+### Store Priority System (FILO - First In, Last Out)
 
-The extension supports a three-tier sync model, allowing snippets to be sourced from multiple folders simultaneously. This is internally referred to as **"Org Mode."**
+The extension supports multiple snippet stores with a simple priority-based conflict resolution system. When the same trigger exists in multiple stores, the highest priority store wins.
 
-| Scope        | Description                                                 | Ownership/Control |
-| :----------- | :---------------------------------------------------------- | :---------------- |
-| `personal`   | A folder selected by the user from their own cloud account. | User-chosen       |
-| `department` | A shared folder assigned by a group or team admin.          | Admin-chosen      |
-| `org`        | An organization-wide folder containing global snippets.     | Globally managed  |
+**Priority System**:
 
-Each scope corresponds to a separate cloud folder. The extension syncs them independently and merges the snippets into a single, unified set in-memory.
+- **Default Store**: Located at `/drive.appdata` - Always priority 0 (highest priority)
+- **Additional Stores**: User-added stores get descending priority (1, 2, 3...)
+- **FILO Ordering**: First store added = highest priority, most recent = lowest priority
+- **Drag-and-Drop**: All store priorities are adjustable via the options screen
+- **Deletion**: All stores except the default `/drive.appdata` store can be deleted
+
+**Priority Only Affects**: Snippet selection when the recently typed text:
+
+1. Completes one or more triggers, AND
+2. Could be the first part of completing other triggers
+
+In this scenario, the hovering snippet picker shows snippets ordered by store priority. Priority does nothing else - it's solely for disambiguation in the picker interface.
 
 ### The `CloudAdapter` Interface
 

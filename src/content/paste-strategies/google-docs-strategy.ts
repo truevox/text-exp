@@ -14,7 +14,7 @@ import type { TargetSurface } from "../target-detector.js";
 
 export class GoogleDocsPasteStrategy extends BasePasteStrategy {
   readonly name = "google-docs-paste";
-  readonly priority = 96; // Higher than Gmail, lower than TinyMCE
+  readonly priority = 96; // Higher than Gmail
   readonly supportedTargets = ["google-docs-editor"];
 
   /**

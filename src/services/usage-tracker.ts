@@ -36,11 +36,11 @@ export class UsageTracker {
   }
 
   /**
-   * Sort snippets by priority (1 = highest) then by usage count (descending)
+   * Sort snippets by priority (0 = highest) then by usage count (descending)
    */
   sortByPriorityAndUsage(snippets: TextSnippet[]): TextSnippet[] {
     return [...snippets].sort((a, b) => {
-      // First sort by priority (1 = highest priority, so ascending order)
+      // First sort by priority (0 = highest priority, so ascending order)
       const priorityA = a.priority || 999; // Default to low priority if not set
       const priorityB = b.priority || 999;
 

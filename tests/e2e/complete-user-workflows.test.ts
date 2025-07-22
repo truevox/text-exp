@@ -4,7 +4,7 @@
  */
 
 import { SyncManager } from "../../src/background/sync-manager";
-import { FlexibleTriggerDetector } from "../../src/content/flexible-trigger-detector";
+import { EnhancedTriggerDetector } from "../../src/content/enhanced-trigger-detector";
 import { TextReplacer } from "../../src/content/text-replacer";
 import { ImageProcessor } from "../../src/background/image-processor";
 import { ExtensionStorage } from "../../src/shared/storage";
@@ -134,7 +134,7 @@ describe("Complete User Workflows E2E", () => {
       expect(ExtensionStorage.setSnippets).toHaveBeenCalledWith([firstSnippet]);
 
       // Step 3: User tests text expansion
-      const triggerDetector = new FlexibleTriggerDetector([firstSnippet]);
+      const triggerDetector = new EnhancedTriggerDetector([firstSnippet]);
       const textReplacer = new TextReplacer(mockImageProcessor);
 
       // Simulate typing "hello" + Tab
@@ -265,7 +265,7 @@ describe("Complete User Workflows E2E", () => {
     });
 
     it("should handle typical workday text expansion scenarios", async () => {
-      const triggerDetector = new FlexibleTriggerDetector(userSnippets);
+      const triggerDetector = new EnhancedTriggerDetector(userSnippets);
       const textReplacer = new TextReplacer(mockImageProcessor);
 
       // Scenario 1: Email composition
@@ -375,7 +375,7 @@ describe("Complete User Workflows E2E", () => {
     });
 
     it("should handle edge cases during daily usage", async () => {
-      const triggerDetector = new FlexibleTriggerDetector(userSnippets);
+      const triggerDetector = new EnhancedTriggerDetector(userSnippets);
 
       // Test partial trigger matching
       const partialInput = "em"; // Partial match for 'email'
@@ -480,7 +480,7 @@ describe("Complete User Workflows E2E", () => {
         snippets: allSnippets,
       });
 
-      const triggerDetector = new FlexibleTriggerDetector(allSnippets);
+      const triggerDetector = new EnhancedTriggerDetector(allSnippets);
 
       // Test team snippet usage
       const supportResponse = triggerDetector.processInput("support ");
@@ -526,7 +526,7 @@ describe("Complete User Workflows E2E", () => {
       ];
 
       // Test access based on user's scope permissions
-      const triggerDetector = new FlexibleTriggerDetector(scopedSnippets);
+      const triggerDetector = new EnhancedTriggerDetector(scopedSnippets);
 
       // All scopes should be accessible in this test scenario
       const personalResult = triggerDetector.processInput("personal ");
@@ -687,7 +687,7 @@ describe("Complete User Workflows E2E", () => {
 
       const start = Date.now();
 
-      const triggerDetector = new FlexibleTriggerDetector(largeSnippetLibrary);
+      const triggerDetector = new EnhancedTriggerDetector(largeSnippetLibrary);
 
       // Test trigger detection performance
       const detection = triggerDetector.processInput("trigger500 ");
@@ -725,7 +725,7 @@ describe("Complete User Workflows E2E", () => {
         },
       ];
 
-      const triggerDetector = new FlexibleTriggerDetector(snippets);
+      const triggerDetector = new EnhancedTriggerDetector(snippets);
 
       // Simulate rapid typing and expansion
       const mockField = {
@@ -844,7 +844,7 @@ describe("Complete User Workflows E2E", () => {
         },
       ];
 
-      const triggerDetector = new FlexibleTriggerDetector(snippets);
+      const triggerDetector = new EnhancedTriggerDetector(snippets);
 
       // Mock accessibility-enabled input field
       const accessibleField = {
@@ -895,7 +895,7 @@ describe("Complete User Workflows E2E", () => {
       const mockNotification = jest.fn();
       global.Notification = mockNotification as any;
 
-      const triggerDetector = new FlexibleTriggerDetector(snippets);
+      const triggerDetector = new EnhancedTriggerDetector(snippets);
 
       // Test successful expansion
       const detection = triggerDetector.processInput("test ");

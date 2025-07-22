@@ -95,7 +95,7 @@ describe("PlaintextPasteStrategy", () => {
 
     // Mock unsupported target
     mockUnsupportedTarget = {
-      type: "tinymce-editor",
+      type: "rich-text-editor",
       element: {} as any,
       context: mockInputTarget.context,
       capabilities: {

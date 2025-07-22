@@ -126,7 +126,7 @@ export async function createSnippet(
   const triggerSelectors = [
     '#advancedSnippetEditor input[name="trigger"]',
     '#advancedSnippetEditor input[placeholder*="trigger"]',
-    '#advancedSnippetEditor .trigger-input input',
+    "#advancedSnippetEditor .trigger-input input",
     '#advancedSnippetEditor input[type="text"]:first-of-type',
   ];
 
@@ -144,22 +144,19 @@ export async function createSnippet(
     await triggerInput.fill(snippet.trigger);
   } else {
     // Fallback: use JavaScript to set values
-    await popupPage.evaluate(
-      (trigger) => {
-        const inputs = document.querySelectorAll(
-          "#advancedSnippetEditor input[type='text']",
-        );
-        if (inputs[0]) (inputs[0] as HTMLInputElement).value = trigger;
-      },
-      snippet.trigger,
-    );
+    await popupPage.evaluate((trigger) => {
+      const inputs = document.querySelectorAll(
+        "#advancedSnippetEditor input[type='text']",
+      );
+      if (inputs[0]) (inputs[0] as HTMLInputElement).value = trigger;
+    }, snippet.trigger);
   }
 
   // Try multiple selectors for content
   const contentSelectors = [
     '#advancedSnippetEditor textarea[name="content"]',
     '#advancedSnippetEditor textarea[placeholder*="content"]',
-    '#advancedSnippetEditor .content-input textarea',
+    "#advancedSnippetEditor .content-input textarea",
     "#advancedSnippetEditor textarea",
   ];
 
@@ -177,15 +174,12 @@ export async function createSnippet(
     await contentInput.fill(snippet.content);
   } else {
     // Fallback: use JavaScript to set content
-    await popupPage.evaluate(
-      (content) => {
-        const textareas = document.querySelectorAll(
-          "#advancedSnippetEditor textarea",
-        );
-        if (textareas[0]) (textareas[0] as HTMLTextAreaElement).value = content;
-      },
-      snippet.content,
-    );
+    await popupPage.evaluate((content) => {
+      const textareas = document.querySelectorAll(
+        "#advancedSnippetEditor textarea",
+      );
+      if (textareas[0]) (textareas[0] as HTMLTextAreaElement).value = content;
+    }, snippet.content);
   }
 
   // Set description if provided
@@ -193,7 +187,7 @@ export async function createSnippet(
     const descriptionSelectors = [
       '#advancedSnippetEditor input[name="description"]',
       '#advancedSnippetEditor input[placeholder*="description"]',
-      '#advancedSnippetEditor .description-input input',
+      "#advancedSnippetEditor .description-input input",
     ];
 
     let descriptionInput;
@@ -226,21 +220,21 @@ export async function createSnippet(
 export async function createTestPage(context: BrowserContext): Promise<Page> {
   const testPage = await context.newPage();
   await testPage.goto(
-    'data:text/html,<html><head><title>PuffPuffPaste Test Page</title></head><body>' +
-      '<h1>PuffPuffPaste Testing Page</h1>' +
+    "data:text/html,<html><head><title>PuffPuffPaste Test Page</title></head><body>" +
+      "<h1>PuffPuffPaste Testing Page</h1>" +
       '<div style="margin: 20px 0;">' +
       '<label for="test-input">Regular Input:</label><br>' +
       '<input type="text" id="test-input" style="width:100%;height:40px;font-size:16px;padding:5px;" placeholder="Type here to test expansion...">' +
-      '</div>' +
+      "</div>" +
       '<div style="margin: 20px 0;">' +
       '<label for="test-textarea">Textarea:</label><br>' +
       '<textarea id="test-textarea" style="width:100%;height:100px;font-size:16px;padding:5px;" placeholder="Test area for expansion..."></textarea>' +
-      '</div>' +
+      "</div>" +
       '<div style="margin: 20px 0;">' +
       '<label for="test-contenteditable">ContentEditable Div:</label><br>' +
       '<div id="test-contenteditable" contenteditable="true" style="width:100%;height:100px;border:1px solid #ccc;font-size:16px;padding:5px;" placeholder="ContentEditable area...">Click here to test</div>' +
-      '</div>' +
-      '</body></html>',
+      "</div>" +
+      "</body></html>",
   );
   return testPage;
 }
@@ -278,14 +272,17 @@ export async function testSnippetExpansion(
 /**
  * Gets content from different types of elements
  */
-async function getElementContent(page: Page, selector: string): Promise<string> {
+async function getElementContent(
+  page: Page,
+  selector: string,
+): Promise<string> {
   const element = page.locator(selector);
   const tagName = await element.evaluate((el) => el.tagName.toLowerCase());
 
   if (tagName === "input" || tagName === "textarea") {
     return await element.inputValue();
   } else {
-    return await element.textContent() || "";
+    return (await element.textContent()) || "";
   }
 }
 
@@ -297,7 +294,7 @@ export async function navigateToSite(
   url: string,
 ): Promise<Page> {
   const page = await context.newPage();
-  
+
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     // Wait for page to be interactive
@@ -318,9 +315,9 @@ export async function findMainTextInput(page: Page): Promise<string> {
     'textarea:not([style*="display: none"]):not([style*="visibility: hidden"])',
     'input[type="text"]:not([style*="display: none"]):not([style*="visibility: hidden"])',
     '[contenteditable="true"]:not([style*="display: none"]):not([style*="visibility: hidden"])',
-    '.ace_editor .ace_text-input', // ACE Editor
-    '.CodeMirror textarea', // CodeMirror
-    '#editor', // Generic editor
+    ".ace_editor .ace_text-input", // ACE Editor
+    ".CodeMirror textarea", // CodeMirror
+    "#editor", // Generic editor
     '[role="textbox"]',
   ];
 
@@ -328,7 +325,7 @@ export async function findMainTextInput(page: Page): Promise<string> {
     try {
       const elements = page.locator(selector);
       const count = await elements.count();
-      
+
       for (let i = 0; i < count; i++) {
         const element = elements.nth(i);
         if (await element.isVisible()) {
@@ -367,10 +364,13 @@ export async function waitForExtensionReady(
 ): Promise<void> {
   // Check if extension is responding
   const popupPage = await openPopup(extensionContext);
-  
+
   // Wait for popup to show ready state (no loading indicators)
-  await popupPage.waitForSelector("#loadingState", { state: "hidden", timeout: 10000 });
-  
+  await popupPage.waitForSelector("#loadingState", {
+    state: "hidden",
+    timeout: 10000,
+  });
+
   await popupPage.close();
 }
 
@@ -380,5 +380,7 @@ export async function waitForExtensionReady(
 export async function cleanupExtensionContext(
   extensionContext: ExtensionContext,
 ): Promise<void> {
-  await extensionContext.context.close();
+  if (extensionContext && extensionContext.context) {
+    await extensionContext.context.close();
+  }
 }

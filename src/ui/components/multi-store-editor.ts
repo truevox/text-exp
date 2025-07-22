@@ -5,9 +5,11 @@
  */
 
 import type {
-  PriorityTier,
+  SnippetScope,
+  SnippetPriority,
   EnhancedSnippet,
-  TierStorageSchema,
+  NumericPriorityStorageSchema,
+  TierStorageSchema, // Legacy support
 } from "../../types/snippet-formats.js";
 import type { TextSnippet } from "../../shared/types.js";
 import {
@@ -20,7 +22,8 @@ export interface StoreSnippetInfo {
   storeId: string;
   storeName: string;
   displayName: string;
-  tierName: PriorityTier;
+  scope: SnippetScope; // Simplified scope instead of tier names
+  priority: SnippetPriority; // Numeric priority (0 = highest, FILO ordering)
   snippetCount: number;
   isReadOnly: boolean;
   isDriveFile: boolean;

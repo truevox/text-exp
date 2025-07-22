@@ -200,6 +200,24 @@ export class SnippetMessages {
   }
 
   /**
+   * Add a new snippet to multiple stores
+   */
+  static async addSnippetToStores(
+    snippet:
+      | Omit<TextSnippet, "id" | "createdAt" | "updatedAt">
+      | Omit<EnhancedSnippet, "id" | "createdAt" | "updatedAt">,
+    storeIds: string[],
+  ): Promise<{
+    success: boolean;
+    results: Array<{ storeId: string; success: boolean; error?: string }>;
+  }> {
+    return MessageSender.sendToBackground("ADD_SNIPPET_MULTI_STORE", {
+      snippet,
+      storeIds,
+    });
+  }
+
+  /**
    * Update an existing snippet (supports both TextSnippet and EnhancedSnippet)
    */
   static async updateSnippet(
@@ -207,6 +225,24 @@ export class SnippetMessages {
     updates: Partial<TextSnippet> | Partial<EnhancedSnippet>,
   ): Promise<void> {
     return MessageSender.sendToBackground("UPDATE_SNIPPET", { id, updates });
+  }
+
+  /**
+   * Update an existing snippet in multiple stores
+   */
+  static async updateSnippetInStores(
+    id: string,
+    updates: Partial<TextSnippet> | Partial<EnhancedSnippet>,
+    storeIds: string[],
+  ): Promise<{
+    success: boolean;
+    results: Array<{ storeId: string; success: boolean; error?: string }>;
+  }> {
+    return MessageSender.sendToBackground("UPDATE_SNIPPET_MULTI_STORE", {
+      id,
+      updates,
+      storeIds,
+    });
   }
 
   /**

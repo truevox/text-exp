@@ -7,10 +7,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Simple Cross-Site Extension Tests", () => {
-  
   test("Basic functionality test", async ({ page }) => {
     console.log("🚀 Starting basic functionality test...");
-    
+
     // Create a simple test page with multiple input types
     const testPage = `
       <!DOCTYPE html>
@@ -130,34 +129,34 @@ test.describe("Simple Cross-Site Extension Tests", () => {
       </body>
       </html>
     `;
-    
+
     // Navigate to the test page
     await page.goto(`data:text/html,${encodeURIComponent(testPage)}`);
-    
+
     console.log("📄 Test page loaded");
-    
+
     // Wait a moment for any extension initialization
     await page.waitForTimeout(2000);
-    
+
     // Test each input type
     const inputs = [
       { selector: "#test-input", name: "Text Input" },
       { selector: "#test-textarea", name: "Textarea" },
       { selector: "#test-contenteditable", name: "ContentEditable" },
     ];
-    
+
     console.log("🧪 Starting automated tests...");
-    
+
     for (const input of inputs) {
       console.log(`\n📝 Testing: ${input.name}`);
-      
+
       try {
         const element = page.locator(input.selector);
-        
+
         // Focus the element
         await element.click();
         await page.waitForTimeout(500);
-        
+
         // Clear any existing content
         if (input.selector === "#test-contenteditable") {
           // For contenteditable, select all and delete
@@ -167,17 +166,17 @@ test.describe("Simple Cross-Site Extension Tests", () => {
           // For input/textarea, clear the value
           await element.clear();
         }
-        
+
         await page.waitForTimeout(200);
-        
+
         // Type the trigger slowly
         await element.type("hello", { delay: 150 });
-        
+
         console.log(`⌨️ Typed "hello" in ${input.name}`);
-        
+
         // Wait for potential expansion
         await page.waitForTimeout(2000);
-        
+
         // Get the current value
         let value;
         if (input.selector === "#test-contenteditable") {
@@ -185,79 +184,92 @@ test.describe("Simple Cross-Site Extension Tests", () => {
         } else {
           value = await element.inputValue();
         }
-        
+
         console.log(`📊 Result: "${value}"`);
-        
+
         if (value && value.includes("Hello, World!")) {
           console.log(`✅ ${input.name}: PASS - Expansion worked!`);
         } else if (value === "hello") {
-          console.log(`❌ ${input.name}: FAIL - No expansion (extension may not be loaded)`);
+          console.log(
+            `❌ ${input.name}: FAIL - No expansion (extension may not be loaded)`,
+          );
         } else {
           console.log(`❓ ${input.name}: UNCLEAR - Unexpected result`);
         }
-        
       } catch (error) {
         console.error(`❌ Error testing ${input.name}:`, error);
       }
-      
+
       // Small delay between tests
       await page.waitForTimeout(1000);
     }
-    
+
     // Take a final screenshot
-    await page.screenshot({ 
+    await page.screenshot({
       path: "test-results/simple-cross-site-test-final.png",
-      fullPage: true 
+      fullPage: true,
     });
-    
+
     console.log("\n📊 Test completed!");
-    console.log("📸 Screenshot saved to test-results/simple-cross-site-test-final.png");
+    console.log(
+      "📸 Screenshot saved to test-results/simple-cross-site-test-final.png",
+    );
     console.log("\n💡 If tests failed:");
-    console.log("   1. Make sure the PuffPuffPaste extension is installed and enabled");
-    console.log("   2. Create a snippet with trigger 'hello' and content 'Hello, World!'");
+    console.log(
+      "   1. Make sure the PuffPuffPaste extension is installed and enabled",
+    );
+    console.log(
+      "   2. Create a snippet with trigger 'hello' and content 'Hello, World!'",
+    );
     console.log("   3. Enable the extension on all sites");
-    
+
     // Keep the browser open for manual verification
-    console.log("\n⏸️ Keeping browser open for 30 seconds for manual verification...");
+    console.log(
+      "\n⏸️ Keeping browser open for 30 seconds for manual verification...",
+    );
     await page.waitForTimeout(30000);
   });
-  
+
   test("Real site test", async ({ page }) => {
     console.log("🌐 Testing on a real website...");
-    
+
     try {
       // Test on text.new - a simple text editor
       await page.goto("https://text.new/");
       console.log("📄 Navigated to text.new");
-      
+
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(3000);
-      
+
       // Try to find the main text area
-      const textArea = page.locator("textarea, [contenteditable='true']").first();
-      
-      if (await textArea.count() > 0) {
+      const textArea = page
+        .locator("textarea, [contenteditable='true']")
+        .first();
+
+      if ((await textArea.count()) > 0) {
         console.log("🎯 Found text input area");
-        
+
         await textArea.click();
         await page.waitForTimeout(500);
-        
+
         // Clear any existing content
         await page.keyboard.press("Control+a");
         await page.keyboard.press("Delete");
         await page.waitForTimeout(200);
-        
+
         // Type the trigger
         await textArea.type("hello", { delay: 150 });
         console.log("⌨️ Typed 'hello'");
-        
+
         // Wait for expansion
         await page.waitForTimeout(2500);
-        
+
         // Get the content
-        const content = await textArea.inputValue().catch(() => textArea.textContent());
+        const content = await textArea
+          .inputValue()
+          .catch(() => textArea.textContent());
         console.log(`📊 Result: "${content}"`);
-        
+
         if (content && content.includes("Hello, World!")) {
           console.log("✅ SUCCESS: Expansion worked on real website!");
         } else if (content === "hello") {
@@ -265,27 +277,24 @@ test.describe("Simple Cross-Site Extension Tests", () => {
         } else {
           console.log(`❓ UNCLEAR: Unexpected content "${content}"`);
         }
-        
+
         // Screenshot the result
-        await page.screenshot({ 
+        await page.screenshot({
           path: "test-results/real-site-test-text-new.png",
-          fullPage: true 
+          fullPage: true,
         });
-        
       } else {
         console.log("❌ Could not find text input area on text.new");
       }
-      
     } catch (error) {
       console.error("❌ Error testing real site:", error);
-      
-      await page.screenshot({ 
+
+      await page.screenshot({
         path: "test-results/real-site-test-error.png",
-        fullPage: true 
+        fullPage: true,
       });
     }
-    
+
     console.log("🌐 Real site test completed");
   });
-  
 });

@@ -3,7 +3,6 @@
  * Uses fuzzing to test robustness against unexpected inputs
  */
 
-import { TriggerDetector } from "../../src/content/trigger-detector";
 import { EnhancedTriggerDetector } from "../../src/content/enhanced-trigger-detector";
 import type { TextSnippet } from "../../src/shared/types";
 
@@ -60,7 +59,7 @@ describe("Trigger Detection Fuzzing", () => {
   describe("Basic Trigger Detection Fuzzing", () => {
     it("should never crash with random inputs (fuzz test)", () => {
       const snippets = generateRandomSnippets(50);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       // Run 500 iterations with random inputs
       for (let i = 0; i < 500; i++) {
@@ -84,7 +83,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle extreme edge cases (fuzz test)", () => {
       const snippets = generateRandomSnippets(10);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       const edgeCases = [
         "", // Empty string
@@ -144,7 +143,7 @@ describe("Trigger Detection Fuzzing", () => {
         },
       ];
 
-      const detector = new TriggerDetector(unicodeSnippets);
+      const detector = new EnhancedTriggerDetector(unicodeSnippets);
 
       // Test with random Unicode strings
       for (let i = 0; i < 100; i++) {
@@ -164,7 +163,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle invalid cursor positions gracefully (fuzz test)", () => {
       const snippets = generateRandomSnippets(20);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       for (let i = 0; i < 100; i++) {
         const text = generateRandomString(Math.floor(Math.random() * 100) + 1);
@@ -249,7 +248,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle rapid successive calls without memory leaks (fuzz test)", () => {
       const snippets = generateRandomSnippets(100);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       // Simulate rapid text changes (like fast typing)
       for (let i = 0; i < 1000; i++) {
@@ -272,7 +271,7 @@ describe("Trigger Detection Fuzzing", () => {
 
       testSizes.forEach((size) => {
         const snippets = generateRandomSnippets(size);
-        const detector = new TriggerDetector(snippets);
+        const detector = new EnhancedTriggerDetector(snippets);
 
         const iterations = Math.max(10, 1000 / size); // More iterations for smaller sets
         const times: number[] = [];
@@ -318,7 +317,7 @@ describe("Trigger Detection Fuzzing", () => {
         })),
       ];
 
-      const detector = new TriggerDetector(pathologicalSnippets);
+      const detector = new EnhancedTriggerDetector(pathologicalSnippets);
 
       // Test with strings that could trigger worst-case performance
       const pathologicalInputs = [
@@ -347,7 +346,7 @@ describe("Trigger Detection Fuzzing", () => {
   describe("Boundary Condition Fuzzing", () => {
     it("should handle text at exact buffer boundaries (fuzz test)", () => {
       const snippets = generateRandomSnippets(20);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       // Test various text lengths around common buffer sizes
       const bufferSizes = [64, 128, 256, 512, 1024, 2048, 4096];
@@ -405,7 +404,7 @@ describe("Trigger Detection Fuzzing", () => {
         },
       ];
 
-      const detector = new TriggerDetector(mixedSnippets);
+      const detector = new EnhancedTriggerDetector(mixedSnippets);
 
       // Generate mixed content that includes various special characters
       for (let i = 0; i < 100; i++) {
@@ -435,7 +434,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle concurrent access safely (fuzz test)", () => {
       const snippets = generateRandomSnippets(50);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       // Simulate concurrent access from multiple contexts
       const promises = Array.from({ length: 20 }, () => {
@@ -476,7 +475,7 @@ describe("Trigger Detection Fuzzing", () => {
 
       sizes.forEach((size) => {
         const snippets = generateRandomSnippets(size);
-        const detector = new TriggerDetector(snippets);
+        const detector = new EnhancedTriggerDetector(snippets);
 
         // Perform many operations
         for (let i = 0; i < 100; i++) {
@@ -493,7 +492,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle resource exhaustion gracefully (fuzz test)", () => {
       const snippets = generateRandomSnippets(10);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       // Test with extremely long strings that could exhaust memory
       const veryLongStrings = [
@@ -552,7 +551,7 @@ describe("Trigger Detection Fuzzing", () => {
         }),
       );
 
-      const detector = new TriggerDetector(maliciousSnippets);
+      const detector = new EnhancedTriggerDetector(maliciousSnippets);
 
       // Test that detection works normally without executing malicious code
       maliciousSnippets.forEach((snippet) => {
@@ -580,7 +579,7 @@ describe("Trigger Detection Fuzzing", () => {
         }),
       );
 
-      const maliciousTriggerDetector = new TriggerDetector(
+      const maliciousTriggerDetector = new EnhancedTriggerDetector(
         maliciousTriggerSnippets,
       );
 
@@ -596,7 +595,7 @@ describe("Trigger Detection Fuzzing", () => {
 
     it("should handle injection attempts in text input (fuzz test)", () => {
       const snippets = generateRandomSnippets(10);
-      const detector = new TriggerDetector(snippets);
+      const detector = new EnhancedTriggerDetector(snippets);
 
       const injectionAttempts = [
         "'; DROP TABLE snippets; --",

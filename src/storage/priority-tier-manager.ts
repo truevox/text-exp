@@ -1,14 +1,16 @@
 /**
- * Priority Tier Manager for PuffPuffPaste
- * Manages tier-based snippet storage (personal.json, team.json, org.json)
- * Enhanced for Phase 2: Storage System Core with comprehensive tier management
+ * Numeric Priority Manager for PuffPuffPaste
+ * Manages numeric priority-based snippet storage with FILO ordering
+ * Enhanced for numeric priority system: simpler scopes, better ordering
  */
 
 import type {
-  PriorityTier,
-  PriorityTierStore,
+  SnippetScope,
+  SnippetStore,
   EnhancedSnippet,
-  TierStorageSchema,
+  NumericPriorityStorageSchema,
+  TierStorageSchema, // Legacy support
+  PriorityTier,
 } from "../types/snippet-formats.js";
 
 import { JsonSerializer } from "./json-serializer.js";
@@ -17,20 +19,56 @@ import type { JsonSerializationOptions } from "./json-serializer.js";
 import type { MergeOptions } from "./merge-helper.js";
 
 /**
- * Configuration for priority tier files
+ * Configuration for snippet scope stores
  */
-export interface TierConfig {
+export interface ScopeConfig {
   fileName: string;
   displayName: string;
-  priority: number; // 1 = highest priority
   defaultEnabled: boolean;
+  description: string;
 }
 
 /**
- * Enhanced tier configuration for Phase 2
+ * Legacy tier configurations for backward compatibility
  */
-export interface TierManagementConfig {
-  /** Base path for tier files */
+export const TIER_CONFIGS: Record<PriorityTier, ScopeConfig> = {
+  "priority-0": {
+    fileName: "priority-0.json",
+    displayName: "Priority 0",
+    defaultEnabled: true,
+    description: "Highest priority snippets",
+  },
+  personal: {
+    fileName: "personal.json",
+    displayName: "Personal",
+    defaultEnabled: true,
+    description: "Personal snippets",
+  },
+  team: {
+    fileName: "team.json",
+    displayName: "Team",
+    defaultEnabled: false,
+    description: "Team snippets",
+  },
+  org: {
+    fileName: "org.json",
+    displayName: "Organization",
+    defaultEnabled: false,
+    description: "Organization snippets",
+  },
+  department: {
+    fileName: "department.json",
+    displayName: "Department",
+    defaultEnabled: false,
+    description: "Department snippets",
+  },
+};
+
+/**
+ * Enhanced snippet priority management configuration
+ */
+export interface PriorityManagementConfig {
+  /** Base path for snippet store files */
   basePath: string;
 
   /** Whether to enable automatic backups */
@@ -50,14 +88,17 @@ export interface TierManagementConfig {
 
   /** Merge options for conflicts */
   mergeOptions: MergeOptions;
+
+  /** Initial priority for new snippets (FILO - newest gets 0) */
+  initialPriority: number;
 }
 
 /**
- * Result of tier operations with enhanced metadata
+ * Result of priority store operations with enhanced metadata
  */
-export interface TierOperationResult {
+export interface PriorityOperationResult {
   success: boolean;
-  tier: PriorityTier;
+  scope: SnippetScope;
   snippetsCount: number;
   error?: string;
   warnings?: string[];
@@ -68,13 +109,14 @@ export interface TierOperationResult {
     fileSize?: number;
     backupCreated?: boolean;
     fromCache?: boolean;
+    priorityRange?: { min: number; max: number };
   };
 }
 
 /**
- * Tier load options
+ * Store load options
  */
-export interface TierLoadOptions {
+export interface StoreLoadOptions {
   /** Whether to validate schema */
   validateSchema?: boolean;
 
@@ -85,13 +127,16 @@ export interface TierLoadOptions {
   createBackup?: boolean;
 
   /** Custom validation function */
-  customValidation?: (tier: TierStorageSchema) => boolean;
+  customValidation?: (store: NumericPriorityStorageSchema) => boolean;
+
+  /** Whether to migrate legacy tier format */
+  migrateLegacyFormat?: boolean;
 }
 
 /**
- * Tier save options
+ * Store save options
  */
-export interface TierSaveOptions {
+export interface StoreSaveOptions {
   /** Whether to create backup before save */
   createBackup?: boolean;
 
@@ -103,58 +148,50 @@ export interface TierSaveOptions {
 
   /** Custom serialization options */
   serializationOptions?: Partial<JsonSerializationOptions>;
+
+  /** Whether to reorder snippets by priority */
+  reorderByPriority?: boolean;
 }
 
 /**
- * Tier configuration mapping
+ * Scope configuration mapping (simplified from tier system)
  */
-export const TIER_CONFIGS: Record<PriorityTier, TierConfig> = {
-  "priority-0": {
-    fileName: "priority-0-snippets.json",
-    displayName: "Priority #0 Store",
-    priority: 5,
-    defaultEnabled: true,
-  },
+export const SCOPE_CONFIGS: Record<SnippetScope, ScopeConfig> = {
   personal: {
     fileName: "personal.json",
     displayName: "Personal Snippets",
-    priority: 4,
     defaultEnabled: true,
-  },
-  department: {
-    fileName: "department.json",
-    displayName: "Department Snippets",
-    priority: 3,
-    defaultEnabled: false,
+    description: "Your private snippet collection",
   },
   team: {
     fileName: "team.json",
     displayName: "Team Snippets",
-    priority: 2,
     defaultEnabled: false,
+    description: "Shared snippets for your team",
   },
   org: {
     fileName: "org.json",
     displayName: "Organization Snippets",
-    priority: 1,
     defaultEnabled: false,
+    description: "Company-wide snippet collection",
   },
 };
 
 /**
- * Default tier management configuration
+ * Default priority management configuration
  */
-export const DEFAULT_TIER_MANAGEMENT_CONFIG: TierManagementConfig = {
+export const DEFAULT_PRIORITY_MANAGEMENT_CONFIG: PriorityManagementConfig = {
   basePath: "./snippet-stores",
   enableBackups: true,
   maxBackups: 5,
   enableCaching: true,
   cacheTtl: 300000, // 5 minutes
+  initialPriority: 0, // FILO - newest snippets get priority 0
   serializationOptions: {
     pretty: true,
     preserveOrder: true,
     atomicWrite: true,
-    backup: false, // Handled separately by tier manager
+    backup: false, // Handled separately by priority manager
   },
   mergeOptions: {
     strategy: "newest-wins",
@@ -165,83 +202,90 @@ export const DEFAULT_TIER_MANAGEMENT_CONFIG: TierManagementConfig = {
 };
 
 /**
- * Enhanced Priority Tier Manager for Phase 2
- * Manages tier-based snippet storage with JSON serialization and merge capabilities
+ * Enhanced Numeric Priority Manager
+ * Manages numeric priority-based snippet storage with JSON serialization and merge capabilities
+ * Uses FILO ordering: newest snippets get priority 0, older snippets get higher numbers
  */
-export class PriorityTierManager {
-  private tierStores: Map<PriorityTier, PriorityTierStore> = new Map();
+export class NumericPriorityManager {
+  private scopeStores: Map<SnippetScope, SnippetStore> = new Map();
   private initialized: boolean = false;
   private jsonSerializer: JsonSerializer;
   private mergeHelper: MergeHelper;
-  private config: TierManagementConfig;
-  private tierCache: Map<
-    PriorityTier,
-    { data: TierStorageSchema; timestamp: number }
+  private config: PriorityManagementConfig;
+  private storeCache: Map<
+    SnippetScope,
+    { data: NumericPriorityStorageSchema; timestamp: number }
   >;
+  private nextPriorityMap: Map<SnippetScope, number> = new Map();
 
-  constructor(config: Partial<TierManagementConfig> = {}) {
-    this.config = { ...DEFAULT_TIER_MANAGEMENT_CONFIG, ...config };
+  constructor(config: Partial<PriorityManagementConfig> = {}) {
+    this.config = { ...DEFAULT_PRIORITY_MANAGEMENT_CONFIG, ...config };
     this.jsonSerializer = new JsonSerializer();
     this.mergeHelper = new MergeHelper();
-    this.tierCache = new Map();
+    this.storeCache = new Map();
   }
 
   /**
-   * Initialize the tier manager with available tier files
+   * Initialize the priority manager with available scope stores
    */
   async initialize(): Promise<void> {
-    console.log("🏗️ Initializing PriorityTierManager...");
+    console.log("🏗️ Initializing NumericPriorityManager...");
 
     // Clear existing stores
-    this.tierStores.clear();
+    this.scopeStores.clear();
+    this.nextPriorityMap.clear();
 
-    // Initialize each tier
-    for (const tier of Object.keys(TIER_CONFIGS) as PriorityTier[]) {
+    // Initialize each scope
+    for (const scope of Object.keys(SCOPE_CONFIGS) as SnippetScope[]) {
       try {
-        const store = await this.createEmptyTierStore(tier);
-        this.tierStores.set(tier, store);
+        const store = await this.createEmptySnippetStore(scope);
+        this.scopeStores.set(scope, store);
+        this.nextPriorityMap.set(scope, this.config.initialPriority);
         console.log(
-          `✅ Initialized tier: ${tier} (${TIER_CONFIGS[tier].fileName})`,
+          `✅ Initialized scope: ${scope} (${SCOPE_CONFIGS[scope].fileName})`,
         );
       } catch (error) {
-        console.error(`❌ Failed to initialize tier ${tier}:`, error);
-        throw new Error(`Failed to initialize tier ${tier}: ${error}`);
+        console.error(`❌ Failed to initialize scope ${scope}:`, error);
+        throw new Error(`Failed to initialize scope ${scope}: ${error}`);
       }
     }
 
     this.initialized = true;
-    console.log("🎉 PriorityTierManager initialized successfully");
+    console.log("🎉 NumericPriorityManager initialized successfully");
   }
 
   /**
-   * Enhanced tier loading with JSON serialization and caching
+   * Enhanced store loading with JSON serialization and caching
    */
-  async loadTier(
-    tier: PriorityTier,
-    options: TierLoadOptions = {},
-  ): Promise<TierOperationResult> {
+  async loadStore(
+    scope: SnippetScope,
+    options: StoreLoadOptions = {},
+  ): Promise<PriorityOperationResult> {
     const startTime = Date.now();
 
     try {
       // Check cache first if enabled
       if (this.config.enableCaching && options.useCache !== false) {
-        const cached = this.getCachedTier(tier);
+        const cached = this.getCachedStore(scope);
         if (cached) {
+          // Update next priority from cached data
+          this.updateNextPriorityFromData(scope, cached);
           return {
             success: true,
-            tier,
+            scope,
             snippetsCount: cached.snippets.length,
             metadata: {
               operation: "load",
               duration: Date.now() - startTime,
               fromCache: true,
+              priorityRange: this.getPriorityRange(cached.snippets),
             },
           };
         }
       }
 
       // Load from storage
-      const tierData = await this.loadTierFromStorage(tier);
+      const storeData = await this.loadStoreFromStorage(scope);
 
       if (!tierData) {
         // Create empty tier if doesn't exist
@@ -573,23 +617,25 @@ export class PriorityTierManager {
   }
 
   /**
-   * Create an empty tier store
+   * Create an empty snippet store
    */
-  private async createEmptyTierStore(
-    tier: PriorityTier,
-  ): Promise<PriorityTierStore> {
-    const config = TIER_CONFIGS[tier];
+  private async createEmptySnippetStore(
+    scope: SnippetScope,
+  ): Promise<SnippetStore> {
+    const config = SCOPE_CONFIGS[scope];
     const now = new Date().toISOString();
 
     return {
-      tierName: tier,
+      storeName: `${scope}-store`,
       fileName: config.fileName,
+      scope: scope,
       snippets: [],
       lastModified: now,
       version: "1.0.0",
       metadata: {
         totalSnippets: 0,
-        averagePriority: config.priority,
+        highestPriority: this.config.initialPriority,
+        lowestPriority: this.config.initialPriority,
         owner: "user",
         permissions: ["read", "write"],
       },
@@ -597,17 +643,18 @@ export class PriorityTierManager {
   }
 
   /**
-   * Get all snippets from a specific tier
+   * Get all snippets from a specific scope store
    */
-  async getTierSnippets(tier: PriorityTier): Promise<EnhancedSnippet[]> {
+  async getStoreSnippets(scope: SnippetScope): Promise<EnhancedSnippet[]> {
     this.ensureInitialized();
 
-    const store = this.tierStores.get(tier);
+    const store = this.scopeStores.get(scope);
     if (!store) {
-      throw new Error(`Tier ${tier} not found`);
+      throw new Error(`Scope store ${scope} not found`);
     }
 
-    return [...store.snippets]; // Return copy to prevent mutation
+    // Return snippets sorted by priority (0 = highest priority)
+    return [...store.snippets].sort((a, b) => a.priority - b.priority);
   }
 
   /**
@@ -803,20 +850,21 @@ export class PriorityTierManager {
   }
 
   /**
-   * Get all snippets across all tiers, ordered by priority
+   * Get all snippets across all scope stores, ordered by numeric priority
    */
   async getAllSnippetsOrderedByPriority(): Promise<EnhancedSnippet[]> {
     this.ensureInitialized();
 
     const allSnippets: EnhancedSnippet[] = [];
 
-    // Collect snippets from all tiers in priority order
-    for (const tier of ["personal", "team", "org"] as PriorityTier[]) {
-      const tierSnippets = await this.getTierSnippets(tier);
-      allSnippets.push(...tierSnippets);
+    // Collect snippets from all scopes
+    for (const scope of ["personal", "team", "org"] as SnippetScope[]) {
+      const storeSnippets = await this.getStoreSnippets(scope);
+      allSnippets.push(...storeSnippets);
     }
 
-    return allSnippets;
+    // Sort by numeric priority (0 = highest priority)
+    return allSnippets.sort((a, b) => a.priority - b.priority);
   }
 
   /**
@@ -919,13 +967,61 @@ export class PriorityTierManager {
   }
 
   // ========================================================================
-  // ENHANCED HELPER METHODS FOR PHASE 2
+  // NUMERIC PRIORITY HELPER METHODS
   // ========================================================================
 
   /**
-   * Get cached tier data if valid
+   * Get next priority number for a scope (FILO - newest gets lowest number)
    */
-  private getCachedTier(tier: PriorityTier): TierStorageSchema | null {
+  private getNextPriority(scope: SnippetScope): number {
+    return this.nextPriorityMap.get(scope) ?? this.config.initialPriority;
+  }
+
+  /**
+   * Update next priority number for a scope
+   */
+  private updateNextPriority(scope: SnippetScope, priority: number): void {
+    this.nextPriorityMap.set(scope, priority);
+  }
+
+  /**
+   * Calculate priority range from snippet array
+   */
+  private getPriorityRange(snippets: EnhancedSnippet[]): {
+    min: number;
+    max: number;
+  } {
+    if (snippets.length === 0) {
+      return {
+        min: this.config.initialPriority,
+        max: this.config.initialPriority,
+      };
+    }
+    const priorities = snippets.map((s) => s.priority);
+    return {
+      min: Math.min(...priorities),
+      max: Math.max(...priorities),
+    };
+  }
+
+  /**
+   * Update next priority from loaded data
+   */
+  private updateNextPriorityFromData(
+    scope: SnippetScope,
+    data: NumericPriorityStorageSchema,
+  ): void {
+    const nextPriority =
+      data.metadata.nextPriority ?? this.config.initialPriority;
+    this.updateNextPriority(scope, nextPriority);
+  }
+
+  /**
+   * Get cached store data if valid
+   */
+  private getCachedStore(
+    scope: SnippetScope,
+  ): NumericPriorityStorageSchema | null {
     if (!this.config.enableCaching) return null;
 
     const cached = this.tierCache.get(tier);
@@ -1052,3 +1148,18 @@ export class PriorityTierManager {
     );
   }
 }
+
+// MIGRATION: Import from new simplified store manager
+export {
+  SimpleStoreManager as PriorityTierManager,
+  SimpleStoreManager as NumericPriorityManager,
+  SimpleStoreManager,
+} from "./simple-store-manager.js";
+
+// Legacy exports for gradual migration
+export type {
+  SimpleStore as SnippetStore,
+  SimpleStoreManagerConfig as PriorityManagementConfig,
+  StoreOperationResult as PriorityOperationResult,
+  StoreOperationResult as TierOperationResult,
+} from "./simple-store-manager.js";

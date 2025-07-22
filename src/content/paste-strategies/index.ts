@@ -16,7 +16,6 @@ export type {
 export { PlaintextPasteStrategy } from "./plaintext-strategy.js";
 export { GmailPasteStrategy } from "./gmail-strategy.js";
 export { GoogleDocsPasteStrategy } from "./google-docs-strategy.js";
-export { TinyMCEPasteStrategy } from "./tinymce-strategy.js";
 export { FallbackPasteStrategy } from "./fallback-strategy.js";
 
 // Paste manager

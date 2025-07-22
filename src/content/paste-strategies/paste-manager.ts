@@ -12,7 +12,6 @@ import {
 import { PlaintextPasteStrategy } from "./plaintext-strategy.js";
 import { GmailPasteStrategy } from "./gmail-strategy.js";
 import { GoogleDocsPasteStrategy } from "./google-docs-strategy.js";
-import { TinyMCEPasteStrategy } from "./tinymce-strategy.js";
 import { FallbackPasteStrategy } from "./fallback-strategy.js";
 import type { TargetSurface } from "../target-detector.js";
 
@@ -69,7 +68,6 @@ export class PasteManager {
     this.strategies = [
       new GmailPasteStrategy(),
       new GoogleDocsPasteStrategy(),
-      new TinyMCEPasteStrategy(),
       new PlaintextPasteStrategy(),
       new FallbackPasteStrategy(),
     ];

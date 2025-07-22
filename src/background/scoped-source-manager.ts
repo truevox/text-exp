@@ -190,6 +190,52 @@ export class ScopedSourceManager {
   }
 
   /**
+   * Update existing snippet in specific scope
+   */
+  async updateSnippetInScope(
+    snippetId: string,
+    updates: Partial<TextSnippet>,
+    scope: SnippetScope,
+  ): Promise<void> {
+    const scopeSources = this.getScopedSourcesByScope(scope);
+
+    if (scopeSources.length === 0) {
+      throw new Error(`No ${scope} sources configured`);
+    }
+
+    // Update in the first source of the specified scope
+    const source = scopeSources[0];
+    const adapter = await this.getAdapterForSource(source);
+
+    const existingSnippets = await adapter.downloadSnippets(
+      source.folderId || "",
+    );
+
+    // Find and update the snippet
+    const snippetIndex = existingSnippets.findIndex((s) => s.id === snippetId);
+    if (snippetIndex === -1) {
+      throw new Error(
+        `Snippet with id ${snippetId} not found in ${scope} scope`,
+      );
+    }
+
+    // Apply updates with proper timestamp
+    const updatedSnippet = {
+      ...existingSnippets[snippetIndex],
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    const updatedSnippets = [...existingSnippets];
+    updatedSnippets[snippetIndex] = updatedSnippet;
+
+    await adapter.uploadSnippets(updatedSnippets);
+
+    // Trigger a full sync to update merged snippets
+    await this.syncAllSources();
+  }
+
+  /**
    * Get sync status for all sources
    */
   async getSyncStatus(): Promise<

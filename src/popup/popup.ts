@@ -11,7 +11,8 @@ import {
 import type { TextSnippet, ExtensionSettings } from "../shared/types.js";
 import type {
   EnhancedSnippet,
-  PriorityTier,
+  SnippetScope,
+  SnippetPriority,
 } from "../types/snippet-formats.js";
 import { UI_CONFIG } from "../shared/constants.js";
 import {
@@ -428,7 +429,8 @@ class PopupApp {
           storeId: "/drive.appstore",
           storeName: "/drive.appstore",
           displayName: "Default Store",
-          tierName: "personal",
+          scope: "personal", // Default store is always personal scope
+          priority: 0, // Default store gets highest priority (0)
           snippetCount: defaultStatus.snippetCount || 0,
           isReadOnly: false,
           isDriveFile: true,
@@ -441,13 +443,17 @@ class PopupApp {
       const settings = await ExtensionStorage.getSettings();
       const customStores = settings.configuredSources || [];
 
-      // Add custom stores
-      for (const customStore of customStores) {
+      // Add custom stores (sorted by priority from loadCustomStores)
+      for (let index = 0; index < customStores.length; index++) {
+        const customStore = customStores[index];
+        const storePriority = (customStore as any).priority || index + 2; // Start from 2 (after default)
+
         stores.push({
           storeId: customStore.folderId,
           storeName: `${customStore.displayName}.json`,
           displayName: customStore.displayName,
-          tierName: customStore.scope as PriorityTier, // personal, team, org
+          scope: customStore.scope, // personal, team, org (now SnippetScope)
+          priority: storePriority, // Numeric priority from drag-and-drop order
           snippetCount: 0, // TODO: Get actual count from store
           isReadOnly: false, // TODO: Check permissions
           isDriveFile: customStore.provider === "google-drive",
@@ -467,7 +473,8 @@ class PopupApp {
           storeId: "/drive.appstore",
           storeName: "/drive.appstore",
           displayName: "Default Store",
-          tierName: "personal",
+          scope: "personal",
+          priority: 0, // Default store gets highest priority
           snippetCount: 0,
           isReadOnly: false,
           isDriveFile: true,
@@ -569,17 +576,69 @@ class PopupApp {
     }
 
     try {
+      // DEBUG: Log the selected stores for troubleshooting
+      console.log("🔍 [MULTI-STORE-DEBUG] Save result:", {
+        hasSelectedStores:
+          result.selectedStores && result.selectedStores.length > 0,
+        selectedStores: result.selectedStores,
+        selectedStoresCount: result.selectedStores?.length || 0,
+        snippet: {
+          trigger: result.snippet.trigger,
+          content: result.snippet.content?.substring(0, 50) + "...",
+        },
+      });
+
+      const hasSelectedStores =
+        result.selectedStores && result.selectedStores.length > 0;
+
       if (this.currentEditingSnippet) {
         // Update existing snippet
-        await SnippetMessages.updateSnippet(
-          this.currentEditingSnippet.id,
-          result.snippet,
-        );
-        this.showSuccess("Snippet updated successfully");
+        if (hasSelectedStores) {
+          const updateResult = await SnippetMessages.updateSnippetInStores(
+            this.currentEditingSnippet.id,
+            result.snippet,
+            result.selectedStores!,
+          );
+
+          if (updateResult.success) {
+            this.showSuccess("Snippet updated successfully in selected stores");
+          } else {
+            const failedStores = updateResult.results
+              .filter((r) => !r.success)
+              .map((r) => r.storeId)
+              .join(", ");
+            this.showError(`Update failed in some stores: ${failedStores}`);
+          }
+        } else {
+          // Fallback to single store update
+          await SnippetMessages.updateSnippet(
+            this.currentEditingSnippet.id,
+            result.snippet,
+          );
+          this.showSuccess("Snippet updated successfully");
+        }
       } else {
         // Add new snippet
-        await SnippetMessages.addSnippet(result.snippet);
-        this.showSuccess("Snippet added successfully");
+        if (hasSelectedStores) {
+          const addResult = await SnippetMessages.addSnippetToStores(
+            result.snippet,
+            result.selectedStores!,
+          );
+
+          if (addResult.success) {
+            this.showSuccess("Snippet created successfully in selected stores");
+          } else {
+            const failedStores = addResult.results
+              .filter((r) => !r.success)
+              .map((r) => r.storeId)
+              .join(", ");
+            this.showError(`Creation failed in some stores: ${failedStores}`);
+          }
+        } else {
+          // Fallback to single store creation (default appdata store)
+          await SnippetMessages.addSnippet(result.snippet);
+          this.showSuccess("Snippet added successfully");
+        }
       }
 
       this.hideSnippetModal();

@@ -1,31 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add New Snippet - PuffPuffPaste</title>
-  <link rel="stylesheet" href="add-snippet.css">
-</head>
-<body>
-  <div class="container">
-    <header class="page-header">
-      <h1>Add New Snippet</h1>
-      <p class="page-subtitle">Create a new text expansion snippet</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add New Snippet - PuffPuffPaste</title>
+    <link rel="stylesheet" href="add-snippet.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="page-header">
+        <h1>Add New Snippet</h1>
+        <p class="page-subtitle">Create a new text expansion snippet</p>
+      </header>
 
-    <main class="main-content">
-      <!-- The comprehensive snippet editor will be rendered here -->
-      <div id="snippet-editor-container">
-        <div class="loading">Initializing editor...</div>
-      </div>
+      <main class="main-content">
+        <!-- The comprehensive snippet editor will be rendered here -->
+        <div id="snippet-editor-container">
+          <div class="loading">Initializing editor...</div>
+        </div>
 
-      <div class="action-buttons">
-        <button type="button" id="cancel-button" class="btn btn-secondary">Cancel</button>
-        <button type="button" id="save-button" class="btn btn-primary">Create Snippet</button>
-      </div>
-    </main>
-  </div>
+        <div class="action-buttons">
+          <button type="button" id="cancel-button" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="button" id="save-button" class="btn btn-primary">
+            Create Snippet
+          </button>
+        </div>
+      </main>
+    </div>
 
-  <script type="module" src="add-snippet.js"></script>
-</body>
+    <script type="module" src="add-snippet.js"></script>
+  </body>
 </html>

@@ -170,6 +170,7 @@ export class LegacyMigrator {
         description:
           legacy.description || `Migrated snippet: ${legacy.trigger}`,
         scope: "personal", // Will be assigned properly later
+        priority: 0, // Default priority for migrated snippets
         variables,
         images: [], // Extract from content if needed
         tags: legacy.tags || [],

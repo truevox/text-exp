@@ -202,11 +202,15 @@ export class SyncManager {
     try {
       const indexedDB = await ExtensionStorage.getIndexedDB();
       const snippets = await indexedDB.getSnippets();
-      
+
       // Check for "undefined" content corruption
-      const corruptedSnippets = snippets.filter(s => s.content === "undefined");
+      const corruptedSnippets = snippets.filter(
+        (s: any) => s.content === "undefined",
+      );
       if (corruptedSnippets.length > 0) {
-        console.warn(`🚨 Found ${corruptedSnippets.length} corrupted snippets with "undefined" content`);
+        console.warn(
+          `🚨 Found ${corruptedSnippets.length} corrupted snippets with "undefined" content`,
+        );
         console.log("🧹 Clearing IndexedDB to force re-sync with clean data");
         await indexedDB.clearSnippets();
       }
@@ -220,7 +224,7 @@ export class SyncManager {
    */
   async syncNow(): Promise<void> {
     console.log("🔄 [SYNC-MANAGER] syncNow() called");
-    
+
     // Check for data corruption first
     await this.checkDataIntegrity();
 

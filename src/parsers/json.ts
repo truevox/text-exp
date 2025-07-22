@@ -71,6 +71,7 @@ export class JSONParser implements FormatParser {
       contentType: this.normalizeContentType(item.meta.contentType),
       description: item.meta.description || "",
       scope: this.normalizeScope(item.meta.scope),
+      priority: typeof item.meta.priority === "number" ? item.meta.priority : 0, // Default to highest priority
       variables: this.normalizeVariables(item.meta.variables),
       images: Array.isArray(item.meta.images) ? item.meta.images : [],
       tags: Array.isArray(item.meta.tags) ? item.meta.tags : [],
@@ -127,6 +128,7 @@ export class JSONParser implements FormatParser {
       contentType: "plaintext",
       description: `Legacy snippet: ${legacy.trigger}`,
       scope: this.normalizeScope(legacy.scope as any),
+      priority: 0, // Default priority for legacy snippets
       variables: [],
       images: [],
       tags: [],
@@ -166,6 +168,7 @@ export class JSONParser implements FormatParser {
       contentType: this.normalizeContentType(flat.contentType),
       description: flat.description || `Flat snippet: ${flat.trigger}`,
       scope: this.normalizeScope(flat.scope),
+      priority: typeof flat.priority === "number" ? flat.priority : 0, // Default priority for flat snippets
       variables: this.normalizeVariables(flat.variables),
       images: [],
       tags: Array.isArray(flat.tags) ? flat.tags : [],

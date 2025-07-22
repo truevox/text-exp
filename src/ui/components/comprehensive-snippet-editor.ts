@@ -4,10 +4,7 @@
  * Supports editing single snippets from multi-snippet JSON stores
  */
 
-import {
-  SimpleEditor,
-  createSnippetEditor,
-} from "../../editor/simple-editor.js";
+import { SimpleEditor } from "../../editor/simple-editor.js";
 import type {
   TierStorageSchema,
   EnhancedSnippet,
@@ -159,7 +156,7 @@ export class ComprehensiveSnippetEditor {
 
     this.container = container;
     this.createEditorInterface();
-    await this.initializeTinyMCE();
+    await this.initializeSimpleEditor();
     this.setupEventHandlers();
     this.loadSnippetData();
     this.isInitialized = true;
@@ -253,7 +250,7 @@ export class ComprehensiveSnippetEditor {
             
             <div class="form-group editor-group required">
               <label for="snippet-content">Snippet Content</label>
-              <div id="tinymce-container" class="editor-container"></div>
+              <textarea id="snippet-content-editor" class="editor-textarea" rows="8" placeholder="Enter your snippet content here..."></textarea>
               <div class="editor-toolbar">
                 <button type="button" class="btn btn-sm" data-action="insert-variable">
                   Insert Variable
@@ -412,9 +409,9 @@ export class ComprehensiveSnippetEditor {
       tagsInput: this.container.querySelector(
         "#snippet-tags",
       ) as HTMLInputElement,
-      editorContainer: this.container.querySelector(
-        "#tinymce-container",
-      ) as HTMLElement,
+      contentEditor: this.container.querySelector(
+        "#snippet-content-editor",
+      ) as HTMLTextAreaElement,
       variablesContainer: this.container.querySelector(
         "#variables-container",
       ) as HTMLElement,
@@ -434,32 +431,47 @@ export class ComprehensiveSnippetEditor {
   }
 
   /**
-   * Initialize TinyMCE editor
+   * Initialize simple textarea editor
    */
-  private async initializeTinyMCE(): Promise<void> {
-    if (!this.formElements.editorContainer || !this.currentSnippet) return;
+  private async initializeSimpleEditor(): Promise<void> {
+    if (!this.formElements.contentEditor || !this.currentSnippet) return;
 
     const initialContent = this.currentSnippet.content || "";
 
-    this.editor = createSnippetEditor(this.formElements.editorContainer, {
-      config: {
-        height: this.options.compact ? 200 : 300,
-      },
-      events: {
-        onContentChange: (content) => {
-          this.handleContentChange(content);
-        },
-        onFocus: () => {
-          this.formElements.editorContainer?.classList.add("focused");
-        },
-        onBlur: () => {
-          this.formElements.editorContainer?.classList.remove("focused");
-        },
-      },
-      autoFocus: this.options.autoFocus,
+    // Set initial content
+    this.formElements.contentEditor.value = initialContent;
+
+    // Setup event listeners for the textarea
+    this.formElements.contentEditor.addEventListener("input", (e) => {
+      const target = e.target as HTMLTextAreaElement;
+      this.handleContentChange(target.value);
     });
 
-    await this.editor.init(this.formElements.editorContainer, initialContent);
+    this.formElements.contentEditor.addEventListener("focus", () => {
+      this.formElements.contentEditor?.classList.add("focused");
+    });
+
+    this.formElements.contentEditor.addEventListener("blur", () => {
+      this.formElements.contentEditor?.classList.remove("focused");
+    });
+
+    if (this.options.autoFocus) {
+      this.formElements.contentEditor.focus();
+    }
+
+    // Create a simple editor object for compatibility
+    this.editor = {
+      isReady: () => true,
+      getContent: () => this.formElements.contentEditor?.value || "",
+      setContent: (content: string) => {
+        if (this.formElements.contentEditor) {
+          this.formElements.contentEditor.value = content;
+        }
+      },
+      destroy: async () => {
+        // Simple cleanup if needed
+      },
+    };
   }
 
   /**
@@ -1084,13 +1096,23 @@ export class ComprehensiveSnippetEditor {
       // Create updated tier data
       const updatedTierData = this.createUpdatedTierData();
 
+      const selectedStoresArray = this.options.showStoreSelector
+        ? Array.from(this.selectedStores)
+        : undefined;
+
+      // DEBUG: Log selected stores at save time
+      console.log("🔍 [EDITOR-DEBUG] Creating save result:", {
+        showStoreSelector: this.options.showStoreSelector,
+        selectedStoresSet: this.selectedStores,
+        selectedStoresArray: selectedStoresArray,
+        selectedStoresCount: selectedStoresArray?.length || 0,
+      });
+
       const result: SnippetEditResult = {
         success: true,
         snippet: this.currentSnippet!,
         updatedTierData,
-        selectedStores: this.options.showStoreSelector
-          ? Array.from(this.selectedStores)
-          : undefined,
+        selectedStores: selectedStoresArray,
         errors: [],
         warnings: validation.warnings,
       };
@@ -1124,19 +1146,22 @@ export class ComprehensiveSnippetEditor {
   private updateSnippetFromForm(): void {
     if (!this.currentSnippet) return;
 
-    console.log('🔍 [SNIPPET-DEBUG] Updating snippet from form data...');
-    console.log('🔍 [SNIPPET-DEBUG] Editor exists:', !!this.editor);
-    console.log('🔍 [SNIPPET-DEBUG] Editor is ready:', this.editor?.isReady());
-    
+    console.log("🔍 [SNIPPET-DEBUG] Updating snippet from form data...");
+    console.log("🔍 [SNIPPET-DEBUG] Editor exists:", !!this.editor);
+    console.log("🔍 [SNIPPET-DEBUG] Editor is ready:", this.editor?.isReady());
+
     const trigger = this.getTrigger();
     const content = this.getContent();
     const description = this.getDescription();
-    
-    console.log('🔍 [SNIPPET-DEBUG] Form values extracted:');
-    console.log('  - Trigger:', trigger);
-    console.log('  - Content:', content ? `"${content.substring(0, 100)}..."` : '(empty/undefined)');
-    console.log('  - Content length:', content?.length || 0);
-    console.log('  - Description:', description);
+
+    console.log("🔍 [SNIPPET-DEBUG] Form values extracted:");
+    console.log("  - Trigger:", trigger);
+    console.log(
+      "  - Content:",
+      content ? `"${content.substring(0, 100)}..."` : "(empty/undefined)",
+    );
+    console.log("  - Content length:", content?.length || 0);
+    console.log("  - Description:", description);
 
     this.currentSnippet.trigger = trigger;
     this.currentSnippet.content = content;
@@ -1149,12 +1174,20 @@ export class ComprehensiveSnippetEditor {
     this.currentSnippet.updatedBy =
       this.formElements.updatedByInput?.value || this.currentSnippet.updatedBy;
     this.currentSnippet.updatedAt = new Date().toISOString();
-    
-    console.log('🔍 [SNIPPET-DEBUG] Final snippet data:');
-    console.log('  - ID:', this.currentSnippet.id);
-    console.log('  - Trigger:', this.currentSnippet.trigger);
-    console.log('  - Content:', this.currentSnippet.content ? `"${this.currentSnippet.content.substring(0, 100)}..."` : '(empty/undefined)');
-    console.log('  - Content length:', this.currentSnippet.content?.length || 0);
+
+    console.log("🔍 [SNIPPET-DEBUG] Final snippet data:");
+    console.log("  - ID:", this.currentSnippet.id);
+    console.log("  - Trigger:", this.currentSnippet.trigger);
+    console.log(
+      "  - Content:",
+      this.currentSnippet.content
+        ? `"${this.currentSnippet.content.substring(0, 100)}..."`
+        : "(empty/undefined)",
+    );
+    console.log(
+      "  - Content length:",
+      this.currentSnippet.content?.length || 0,
+    );
   }
 
   /**
@@ -1295,14 +1328,17 @@ export class ComprehensiveSnippetEditor {
   }
 
   getContent(): string {
-    console.log('🔍 [CONTENT-DEBUG] getContent() called');
-    console.log('🔍 [CONTENT-DEBUG] Editor exists:', !!this.editor);
-    console.log('🔍 [CONTENT-DEBUG] Editor is ready:', this.editor?.isReady());
-    
+    console.log("🔍 [CONTENT-DEBUG] getContent() called");
+    console.log("🔍 [CONTENT-DEBUG] Editor exists:", !!this.editor);
+    console.log("🔍 [CONTENT-DEBUG] Editor is ready:", this.editor?.isReady());
+
     const content = this.editor?.getContent() || "";
-    console.log('🔍 [CONTENT-DEBUG] Editor returned content:', content ? `"${content.substring(0, 100)}..."` : '(empty/undefined)');
-    console.log('🔍 [CONTENT-DEBUG] Content length:', content.length);
-    
+    console.log(
+      "🔍 [CONTENT-DEBUG] Editor returned content:",
+      content ? `"${content.substring(0, 100)}..."` : "(empty/undefined)",
+    );
+    console.log("🔍 [CONTENT-DEBUG] Content length:", content.length);
+
     return content;
   }
 
@@ -1550,11 +1586,23 @@ export class ComprehensiveSnippetEditor {
     storeId: string,
     isSelected: boolean,
   ): void {
+    console.log("🔍 [STORE-DEBUG] Updating store selection:", {
+      storeId,
+      isSelected,
+      currentSelectedStores: Array.from(this.selectedStores),
+    });
+
     if (isSelected) {
       this.selectedStores.add(storeId);
     } else {
       this.selectedStores.delete(storeId);
     }
+
+    console.log(
+      "🔍 [STORE-DEBUG] Updated selected stores:",
+      Array.from(this.selectedStores),
+    );
+
     this.updateStoreSelectorSummary();
     this.isDirty = true;
   }

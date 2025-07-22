@@ -1,6 +1,6 @@
 // Debug test to understand FlexibleTriggerDetector behavior
 
-import { FlexibleTriggerDetector } from "../src/content/flexible-trigger-detector";
+import { EnhancedTriggerDetector } from "../src/content/enhanced-trigger-detector";
 import { TextReplacer } from "../src/content/text-replacer";
 import { ImageProcessor } from "../src/background/image-processor";
 
@@ -18,7 +18,7 @@ describe("Debug FlexibleTriggerDetector", () => {
       "Creating FlexibleTriggerDetector with userSnippets:",
       userSnippets,
     );
-    const detector = new FlexibleTriggerDetector(userSnippets);
+    const detector = new EnhancedTriggerDetector(userSnippets);
 
     console.log('\nTesting processInput("email "):');
     const emailDetection = detector.processInput("email ");

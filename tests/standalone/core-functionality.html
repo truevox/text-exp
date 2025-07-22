@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PuffPuffPaste - Standalone Core Functionality Testing</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #4285f4 0%, #667eea 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 300;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        padding: 30px;
+      }
+
+      .section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        border: 1px solid #e9ecef;
+      }
+
+      .section h2 {
+        color: #343a40;
+        margin-bottom: 20px;
+        font-size: 1.4em;
+        font-weight: 500;
+        border-bottom: 2px solid #4285f4;
+        padding-bottom: 8px;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+      }
+
+      .input-group input,
+      .input-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.2s ease;
+      }
+
+      .input-group input:focus,
+      .input-group textarea:focus {
+        outline: none;
+        border-color: #4285f4;
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+      }
+
+      #testInput {
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        font-size: 16px;
+      }
+
+      .result-box {
+        background: #ffffff;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 15px;
+        min-height: 100px;
+      }
+
+      .result-success {
+        border-color: #28a745;
+        background: #f8fff9;
+      }
+
+      .result-partial {
+        border-color: #ffc107;
+        background: #fffdf0;
+      }
+
+      .result-error {
+        border-color: #dc3545;
+        background: #fff5f5;
+      }
+
+      .snippet-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 15px;
+      }
+
+      .snippet-item {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: transform 0.2s ease;
+      }
+
+      .snippet-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .snippet-trigger {
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        background: #007bff;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .snippet-content {
+        margin-top: 8px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .stat-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        text-align: center;
+        border: 1px solid #e9ecef;
+      }
+
+      .stat-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #4285f4;
+      }
+
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 5px;
+      }
+
+      .debug-log {
+        background: #1a1a1a;
+        color: #00ff00;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        font-size: 12px;
+        padding: 15px;
+        border-radius: 6px;
+        height: 200px;
+        overflow-y: auto;
+        margin-top: 20px;
+      }
+
+      .state-indicator {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .state-idle {
+        background: #e9ecef;
+        color: #666;
+      }
+      .state-typing {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .state-complete {
+        background: #d4edda;
+        color: #155724;
+      }
+      .state-ambiguous {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .state-no_match {
+        background: #f1f3f4;
+        color: #5f6368;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+          gap: 20px;
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🚀 PuffPuffPaste Core Testing</h1>
+        <p>
+          Standalone testing environment for trigger detection and text
+          expansion
+        </p>
+      </div>
+
+      <div class="main-content">
+        <div class="section">
+          <h2>🎯 Trigger Detection Testing</h2>
+
+          <div class="input-group">
+            <label for="testInput">Type here to test trigger detection:</label>
+            <input
+              type="text"
+              id="testInput"
+              placeholder="Try typing: ;hello or ;gb or ;eata"
+            />
+          </div>
+
+          <div class="result-box" id="detectionResult">
+            <em>Type in the input above to see trigger detection results...</em>
+          </div>
+
+          <div class="input-group">
+            <label for="customTrigger">Add Custom Trigger:</label>
+            <input type="text" id="customTrigger" placeholder=";example" />
+          </div>
+
+          <div class="input-group">
+            <label for="customContent">Custom Content:</label>
+            <textarea
+              id="customContent"
+              rows="3"
+              placeholder="Content to expand when trigger is typed"
+            ></textarea>
+          </div>
+
+          <button
+            onclick="addCustomSnippet()"
+            style="
+              background: #4285f4;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 500;
+            "
+          >
+            Add Snippet
+          </button>
+        </div>
+
+        <div class="section">
+          <h2>📚 Available Snippets</h2>
+
+          <div class="snippet-list" id="snippetList">
+            <!-- Snippets will be populated by JavaScript -->
+          </div>
+
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-value" id="snippetCount">0</div>
+              <div class="stat-label">Snippets</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="maxLength">0</div>
+              <div class="stat-label">Max Length</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="trieDepth">0</div>
+              <div class="stat-label">Trie Depth</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="totalNodes">0</div>
+              <div class="stat-label">Trie Nodes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 30px">
+        <div class="section">
+          <h2>🔍 Debug Console</h2>
+          <div class="debug-log" id="debugLog">
+            <div>
+              🚀 PuffPuffPaste Standalone Testing Environment Initialized
+            </div>
+            <div>📝 Ready to test trigger detection and text expansion...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ========================================================================
+      // EXTRACTED CORE FUNCTIONALITY FROM PUFFPUFFPASTE
+      // ========================================================================
+
+      // Core interfaces and types
+      const TriggerState = {
+        IDLE: "idle",
+        TYPING: "typing",
+        COMPLETE: "complete",
+        AMBIGUOUS: "ambiguous",
+        NO_MATCH: "no_match",
+      };
+
+      // Enhanced Trigger Detection System (Extracted from enhanced-trigger-detector.ts)
+      class EnhancedTriggerDetector {
+        constructor(snippets, prefix = ";") {
+          this.prefix = prefix;
+          this.snippets = [...snippets];
+          this.root = this.createNode();
+
+          // Pre-compute valid trigger characters for faster validation
+          this.validTriggerChars = new Set();
+          this.maxTriggerLength = 0;
+
+          for (const snippet of snippets) {
+            for (const char of snippet.trigger) {
+              this.validTriggerChars.add(char);
+            }
+            this.maxTriggerLength = Math.max(
+              this.maxTriggerLength,
+              snippet.trigger.length,
+            );
+          }
+
+          this.delimiters = new Set([
+            " ",
+            "\t",
+            "\n",
+            "\r",
+            ".",
+            ",",
+            "!",
+            "?",
+            ";",
+            ":",
+            "(",
+            ")",
+            "[",
+            "]",
+          ]);
+
+          this.triggerStartsMap = new Map();
+          this.reuseableMatch = {
+            isMatch: false,
+            state: TriggerState.IDLE,
+          };
+
+          this.buildOptimizedTrie();
+        }
+
+        createNode() {
+          return {
+            children: new Map(),
+            isEnd: false,
+            completionCount: 0,
+            hasChildren: false,
+          };
+        }
+
+        buildOptimizedTrie() {
+          this.root = this.createNode();
+
+          for (const snippet of this.snippets) {
+            this.insertIntoTrie(snippet);
+          }
+
+          this.computeTrieMetadata(this.root);
+        }
+
+        insertIntoTrie(snippet) {
+          let node = this.root;
+          const trigger = snippet.trigger;
+
+          for (const char of trigger) {
+            if (!node.children.has(char)) {
+              node.children.set(char, this.createNode());
+            }
+            node = node.children.get(char);
+          }
+
+          node.isEnd = true;
+          node.content = snippet.content;
+          node.trigger = trigger;
+        }
+
+        computeTrieMetadata(node) {
+          let totalCompletions = node.isEnd ? 1 : 0;
+          node.hasChildren = node.children.size > 0;
+
+          for (const childNode of node.children.values()) {
+            totalCompletions += this.computeTrieMetadata(childNode);
+          }
+
+          node.completionCount = totalCompletions;
+          return totalCompletions;
+        }
+
+        processInput(input, cursorPosition) {
+          if (!input) {
+            return this.createMatch(false, TriggerState.IDLE);
+          }
+
+          const textUpToCursor =
+            cursorPosition !== undefined
+              ? input.substring(0, cursorPosition)
+              : input;
+
+          const result = this.processInputOptimized(textUpToCursor);
+
+          // Log results for debugging
+          if (result.isMatch) {
+            this.debugLog(
+              `🎯 Match found for input "${textUpToCursor}": "${result.trigger}"`,
+            );
+          } else if (result.potentialTrigger) {
+            this.debugLog(
+              `🤔 Potential trigger detected: "${result.potentialTrigger}" (state: ${result.state})`,
+            );
+          }
+
+          return result;
+        }
+
+        processInputOptimized(input) {
+          const searchStart =
+            input.length > 100
+              ? Math.max(
+                  0,
+                  input.length - Math.max(this.maxTriggerLength * 2, 600),
+                )
+              : 0;
+
+          const prefixIndex = input.lastIndexOf(this.prefix);
+          if (prefixIndex !== -1) {
+            const triggerStart = this.findOptimizedTriggerStart(
+              input,
+              searchStart,
+            );
+            if (triggerStart !== -1) {
+              const prefixedResult = this.matchFromPosition(
+                input,
+                triggerStart,
+              );
+              if (
+                prefixedResult.isMatch ||
+                prefixedResult.state !== TriggerState.IDLE
+              ) {
+                return prefixedResult;
+              }
+            }
+          }
+
+          const lastPrefixPos = input.lastIndexOf(this.prefix);
+          const shouldCheckNonPrefixed =
+            lastPrefixPos === -1 ||
+            lastPrefixPos < input.length - this.maxTriggerLength;
+
+          if (shouldCheckNonPrefixed) {
+            const nonPrefixedResult = this.findNonPrefixedTrigger(
+              input,
+              searchStart,
+            );
+            if (
+              nonPrefixedResult.isMatch ||
+              nonPrefixedResult.state !== TriggerState.IDLE
+            ) {
+              return nonPrefixedResult;
+            }
+          }
+
+          return this.createMatch(false, TriggerState.IDLE);
+        }
+
+        findOptimizedTriggerStart(input, searchStart) {
+          for (let i = input.length - 1; i >= searchStart; i--) {
+            if (input[i] === this.prefix) {
+              if (i === 0 || this.delimiters.has(input[i - 1])) {
+                return i;
+              }
+            }
+          }
+          return -1;
+        }
+
+        matchFromPosition(input, triggerStart) {
+          let triggerEnd = triggerStart + 1;
+          let hasDelimiter = false;
+
+          while (
+            triggerEnd < input.length &&
+            triggerEnd - triggerStart <= this.maxTriggerLength
+          ) {
+            const char = input[triggerEnd];
+
+            if (this.delimiters.has(char)) {
+              const potentialTrigger = input.slice(
+                triggerStart,
+                triggerEnd + 1,
+              );
+              const hasMatchingTrigger = this.snippets.some(
+                (snippet) =>
+                  snippet.trigger.startsWith(potentialTrigger) ||
+                  snippet.trigger === potentialTrigger,
+              );
+
+              if (!hasMatchingTrigger) {
+                hasDelimiter = true;
+                break;
+              }
+            }
+
+            triggerEnd++;
+          }
+
+          const triggerText = input.slice(triggerStart, triggerEnd);
+          if (triggerText.length <= 1) {
+            return this.createMatch(false, TriggerState.IDLE);
+          }
+
+          return this.performOptimizedMatching(
+            triggerText,
+            triggerStart,
+            hasDelimiter,
+          );
+        }
+
+        performOptimizedMatching(triggerText, startPos, hasDelimiter) {
+          let node = this.root;
+
+          for (let i = 0; i < triggerText.length; i++) {
+            const char = triggerText[i];
+            const childNode = node.children.get(char);
+
+            if (!childNode) {
+              if (i > 1 || (i === 1 && triggerText.length > 2)) {
+                return this.createMatch(false, TriggerState.NO_MATCH);
+              }
+              return this.createMatch(false, TriggerState.IDLE);
+            }
+
+            node = childNode;
+          }
+
+          if (hasDelimiter && node.isEnd) {
+            return this.createMatch(true, TriggerState.COMPLETE, {
+              trigger: node.trigger,
+              content: node.content,
+              matchEnd: startPos + node.trigger.length,
+            });
+          }
+
+          if (node.isEnd) {
+            if (node.hasChildren && !hasDelimiter) {
+              const completions = this.getCompletionsFast(node);
+              return this.createMatch(false, TriggerState.AMBIGUOUS, {
+                potentialTrigger: triggerText,
+                possibleCompletions: completions,
+              });
+            } else {
+              return this.createMatch(true, TriggerState.COMPLETE, {
+                trigger: node.trigger,
+                content: node.content,
+                matchEnd: startPos + node.trigger.length,
+              });
+            }
+          }
+
+          return this.createMatch(false, TriggerState.TYPING, {
+            potentialTrigger: triggerText,
+          });
+        }
+
+        findNonPrefixedTrigger(input, searchStart) {
+          for (let end = input.length; end > searchStart; end--) {
+            for (
+              let start = Math.max(searchStart, end - this.maxTriggerLength);
+              start < end;
+              start++
+            ) {
+              const beforeChar = start > 0 ? input[start - 1] : null;
+              const afterChar = end < input.length ? input[end] : null;
+
+              if (
+                beforeChar !== null &&
+                !this.delimiters.has(beforeChar) &&
+                /[a-zA-Z0-9_]/.test(beforeChar)
+              ) {
+                continue;
+              }
+
+              const potentialTrigger = input.slice(start, end);
+
+              const exactMatch = this.snippets.find(
+                (snippet) =>
+                  !snippet.trigger.startsWith(this.prefix) &&
+                  snippet.trigger === potentialTrigger,
+              );
+
+              const partialMatch = this.snippets.find(
+                (snippet) =>
+                  !snippet.trigger.startsWith(this.prefix) &&
+                  snippet.trigger.startsWith(potentialTrigger) &&
+                  snippet.trigger !== potentialTrigger,
+              );
+
+              if (!exactMatch && !partialMatch) {
+                continue;
+              }
+
+              if (exactMatch && afterChar !== null) {
+                if (
+                  potentialTrigger.endsWith("!") ||
+                  potentialTrigger.endsWith("?") ||
+                  potentialTrigger.endsWith(":") ||
+                  potentialTrigger.endsWith(".")
+                ) {
+                  if (
+                    afterChar ===
+                    potentialTrigger.charAt(potentialTrigger.length - 1)
+                  ) {
+                    continue;
+                  }
+                  if (
+                    !/[\s\t\n\r]/.test(afterChar) &&
+                    !this.delimiters.has(afterChar)
+                  ) {
+                    continue;
+                  }
+                } else {
+                  if (/[a-zA-Z0-9_]/.test(afterChar)) {
+                    continue;
+                  }
+                }
+              }
+
+              const isAtEnd = end === input.length;
+              const matchResult = this.matchNonPrefixedTrigger(
+                potentialTrigger,
+                start,
+                isAtEnd,
+              );
+              if (
+                matchResult.isMatch ||
+                matchResult.state !== TriggerState.IDLE
+              ) {
+                return matchResult;
+              }
+            }
+          }
+
+          return this.createMatch(false, TriggerState.IDLE);
+        }
+
+        matchNonPrefixedTrigger(wordText, startPos, isAtEnd) {
+          for (const snippet of this.snippets) {
+            if (
+              !snippet.trigger.startsWith(this.prefix) &&
+              snippet.trigger === wordText
+            ) {
+              return this.createMatch(true, TriggerState.COMPLETE, {
+                trigger: snippet.trigger,
+                content: snippet.content,
+                matchEnd: startPos + snippet.trigger.length,
+              });
+            }
+          }
+
+          if (isAtEnd) {
+            for (const snippet of this.snippets) {
+              if (
+                !snippet.trigger.startsWith(this.prefix) &&
+                snippet.trigger.startsWith(wordText)
+              ) {
+                return this.createMatch(false, TriggerState.TYPING, {
+                  potentialTrigger: wordText,
+                });
+              }
+            }
+          }
+
+          return this.createMatch(false, TriggerState.IDLE);
+        }
+
+        getCompletionsFast(node) {
+          const completions = [];
+          if (node.completionCount > 0) {
+            this.collectCompletions(node, completions);
+          }
+          return completions;
+        }
+
+        collectCompletions(node, completions) {
+          if (node.isEnd && node.trigger) {
+            completions.push(node.trigger);
+          }
+
+          for (const childNode of node.children.values()) {
+            this.collectCompletions(childNode, completions);
+          }
+        }
+
+        createMatch(isMatch, state, extra = {}) {
+          this.reuseableMatch.isMatch = isMatch;
+          this.reuseableMatch.state = state;
+          this.reuseableMatch.trigger = extra.trigger;
+          this.reuseableMatch.content = extra.content;
+          this.reuseableMatch.matchEnd = extra.matchEnd;
+          this.reuseableMatch.potentialTrigger = extra.potentialTrigger;
+          this.reuseableMatch.possibleCompletions = extra.possibleCompletions;
+
+          return { ...this.reuseableMatch };
+        }
+
+        getPerformanceStats() {
+          return {
+            snippetCount: this.snippets.length,
+            maxTriggerLength: this.maxTriggerLength,
+            trieDepth: this.calculateTrieDepth(),
+            totalNodes: this.calculateNodeCount(),
+          };
+        }
+
+        calculateTrieDepth() {
+          const calculateDepth = (node, currentDepth = 0) => {
+            let maxDepth = currentDepth;
+            for (const child of node.children.values()) {
+              maxDepth = Math.max(
+                maxDepth,
+                calculateDepth(child, currentDepth + 1),
+              );
+            }
+            return maxDepth;
+          };
+
+          return calculateDepth(this.root);
+        }
+
+        calculateNodeCount() {
+          const countNodes = (node) => {
+            let count = 1;
+            for (const child of node.children.values()) {
+              count += countNodes(child);
+            }
+            return count;
+          };
+
+          return countNodes(this.root);
+        }
+
+        updateSnippets(newSnippets) {
+          this.snippets = [...newSnippets];
+
+          this.validTriggerChars.clear();
+          this.maxTriggerLength = 0;
+
+          for (const snippet of newSnippets) {
+            for (const char of snippet.trigger) {
+              this.validTriggerChars.add(char);
+            }
+            this.maxTriggerLength = Math.max(
+              this.maxTriggerLength,
+              snippet.trigger.length,
+            );
+          }
+
+          this.buildOptimizedTrie();
+        }
+
+        debugLog(message) {
+          const debugDiv = document.getElementById("debugLog");
+          if (debugDiv) {
+            const logEntry = document.createElement("div");
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugDiv.appendChild(logEntry);
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+          }
+        }
+      }
+
+      // ========================================================================
+      // STANDALONE TESTING APPLICATION
+      // ========================================================================
+
+      // Sample test data
+      const DEFAULT_SNIPPETS = [
+        { trigger: ";hello", content: "Hello there! How are you doing today?" },
+        { trigger: ";gb", content: "Goodbye! Have a great day!" },
+        { trigger: ";eata", content: "🍕 Let's grab something to eat!" },
+        {
+          trigger: ";sig",
+          content:
+            "Best regards,\nYour Name\nemail@example.com\n+1 (555) 123-4567",
+        },
+        {
+          trigger: ";addr",
+          content: "123 Main Street\nAnytown, State 12345\nUnited States",
+        },
+        {
+          trigger: ";meeting",
+          content:
+            "Thanks for the meeting request. I'm available:\n\n• Monday 2-4 PM\n• Tuesday 9-11 AM\n• Wednesday 1-3 PM\n\nLet me know what works best!",
+        },
+        {
+          trigger: ";thanks",
+          content: "Thank you so much for your help with this!",
+        },
+        {
+          trigger: ";pony",
+          content: "🦄 Magic ponies are the best kind of ponies! ✨",
+        },
+        { trigger: "gg!", content: "Great game! Well played everyone! 🎮" },
+        { trigger: "lol", content: "😂 That's hilarious!" },
+      ];
+
+      let triggerDetector;
+      let currentSnippets = [...DEFAULT_SNIPPETS];
+
+      // Initialize the standalone testing environment
+      function initializeStandalone() {
+        triggerDetector = new EnhancedTriggerDetector(currentSnippets, ";");
+
+        // Setup event listeners
+        const testInput = document.getElementById("testInput");
+        testInput.addEventListener("input", handleInputChange);
+        testInput.addEventListener("keydown", handleKeyDown);
+
+        // Populate snippet list and stats
+        updateSnippetDisplay();
+        updateStats();
+
+        debugLog("🚀 Enhanced Trigger Detector initialized");
+        debugLog(`📊 Loaded ${currentSnippets.length} test snippets`);
+      }
+
+      function handleInputChange(event) {
+        const input = event.target.value;
+        const result = triggerDetector.processInput(input);
+        updateDetectionResult(result, input);
+      }
+
+      function handleKeyDown(event) {
+        // Handle Tab key for expansion simulation
+        if (event.key === "Tab" && event.target.value.trim()) {
+          event.preventDefault();
+          const result = triggerDetector.processInput(event.target.value);
+
+          if (result.isMatch && result.state === TriggerState.COMPLETE) {
+            // Simulate expansion
+            const expandedText = result.content;
+            event.target.value = expandedText;
+            debugLog(
+              `✨ Expanded "${result.trigger}" to: "${expandedText.substring(0, 50)}..."`,
+            );
+            updateDetectionResult(result, expandedText);
+          }
+        }
+      }
+
+      function updateDetectionResult(result, input) {
+        const resultDiv = document.getElementById("detectionResult");
+
+        let html = "";
+        let className = "";
+
+        if (result.isMatch && result.state === TriggerState.COMPLETE) {
+          className = "result-success";
+          html = `
+                    <div><strong>✅ Complete Match!</strong></div>
+                    <div>Trigger: <code>${result.trigger}</code></div>
+                    <div>State: <span class="state-indicator state-${result.state}">${result.state}</span></div>
+                    <div style="margin-top: 10px;"><strong>Content Preview:</strong></div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 5px; font-family: monospace; white-space: pre-wrap;">${result.content}</div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;"><em>Press Tab to expand</em></div>
+                `;
+        } else if (result.potentialTrigger) {
+          className = "result-partial";
+          html = `
+                    <div><strong>🤔 Potential Match</strong></div>
+                    <div>Partial: <code>${result.potentialTrigger}</code></div>
+                    <div>State: <span class="state-indicator state-${result.state}">${result.state}</span></div>
+                `;
+
+          if (
+            result.possibleCompletions &&
+            result.possibleCompletions.length > 0
+          ) {
+            html += `
+                        <div style="margin-top: 10px;"><strong>Possible completions:</strong></div>
+                        <div style="margin-top: 5px;">
+                            ${result.possibleCompletions.map((comp) => `<span class="snippet-trigger" style="margin-right: 5px;">${comp}</span>`).join("")}
+                        </div>
+                    `;
+          }
+        } else {
+          className = "result-error";
+          html = `
+                    <div><strong>⭕ No Match</strong></div>
+                    <div>Input: <code>${input || "(empty)"}</code></div>
+                    <div>State: <span class="state-indicator state-${result.state}">${result.state}</span></div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;"><em>Try typing a trigger like ;hello or ;gb</em></div>
+                `;
+        }
+
+        resultDiv.innerHTML = html;
+        resultDiv.className = `result-box ${className}`;
+      }
+
+      function updateSnippetDisplay() {
+        const listDiv = document.getElementById("snippetList");
+
+        listDiv.innerHTML = currentSnippets
+          .map(
+            (snippet) => `
+                <div class="snippet-item">
+                    <div>
+                        <span class="snippet-trigger">${snippet.trigger}</span>
+                    </div>
+                    <div class="snippet-content">${snippet.content.length > 80 ? snippet.content.substring(0, 80) + "..." : snippet.content}</div>
+                </div>
+            `,
+          )
+          .join("");
+      }
+
+      function updateStats() {
+        const stats = triggerDetector.getPerformanceStats();
+
+        document.getElementById("snippetCount").textContent =
+          stats.snippetCount;
+        document.getElementById("maxLength").textContent =
+          stats.maxTriggerLength;
+        document.getElementById("trieDepth").textContent = stats.trieDepth;
+        document.getElementById("totalNodes").textContent = stats.totalNodes;
+      }
+
+      function addCustomSnippet() {
+        const triggerInput = document.getElementById("customTrigger");
+        const contentInput = document.getElementById("customContent");
+
+        const trigger = triggerInput.value.trim();
+        const content = contentInput.value.trim();
+
+        if (!trigger || !content) {
+          alert("Please enter both trigger and content");
+          return;
+        }
+
+        // Check for duplicates
+        const existing = currentSnippets.find((s) => s.trigger === trigger);
+        if (existing) {
+          if (confirm(`Trigger "${trigger}" already exists. Replace it?`)) {
+            currentSnippets = currentSnippets.filter(
+              (s) => s.trigger !== trigger,
+            );
+          } else {
+            return;
+          }
+        }
+
+        // Add new snippet
+        currentSnippets.push({ trigger, content });
+
+        // Update detector and displays
+        triggerDetector.updateSnippets(currentSnippets);
+        updateSnippetDisplay();
+        updateStats();
+
+        // Clear inputs
+        triggerInput.value = "";
+        contentInput.value = "";
+
+        debugLog(
+          `➕ Added new snippet: "${trigger}" → "${content.substring(0, 30)}..."`,
+        );
+      }
+
+      function debugLog(message) {
+        const debugDiv = document.getElementById("debugLog");
+        const logEntry = document.createElement("div");
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        debugDiv.appendChild(logEntry);
+        debugDiv.scrollTop = debugDiv.scrollHeight;
+      }
+
+      // Initialize when page loads
+      window.addEventListener("DOMContentLoaded", initializeStandalone);
+
+      // Expose for testing
+      window.PuffPuffPasteStandalone = {
+        triggerDetector: () => triggerDetector,
+        currentSnippets: () => currentSnippets,
+        TriggerState,
+        EnhancedTriggerDetector,
+        addCustomSnippet,
+        debugLog,
+      };
+    </script>
+  </body>
+</html>

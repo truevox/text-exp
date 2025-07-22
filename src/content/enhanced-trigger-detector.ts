@@ -1,12 +1,13 @@
 /**
- * Enhanced Trigger Detection System with Performance Optimizations
+ * Enhanced Trigger Detection System with Ultra Performance Optimizations
  *
  * Key optimizations:
- * 1. Fail-fast character checking with pre-computed sets
+ * 1. Static character set validation with O(1) lookup
  * 2. Optimized trie traversal with early termination
  * 3. Efficient prefix scanning with memoization hints
  * 4. Reduced memory allocations in hot paths
  * 5. Better cache locality in data structures
+ * 6. Constraint-based delimiter detection (space/tab/newline = auto-reset)
  */
 
 export interface Snippet {
@@ -32,6 +33,11 @@ export interface TriggerMatch {
   possibleCompletions?: string[];
 }
 
+export interface TriggerDetectorOptions {
+  maxTriggerLength?: number; // Default 20, configurable for performance
+  caseSensitive?: boolean; // Default true
+}
+
 interface EnhancedTrieNode {
   children: Map<string, EnhancedTrieNode>;
   isEnd: boolean;
@@ -47,25 +53,102 @@ export class EnhancedTriggerDetector {
   private root: EnhancedTrieNode;
   private prefix: string;
   private snippets: Snippet[];
+  private options: Required<TriggerDetectorOptions>;
 
-  // Pre-computed sets for faster character classification
-  private readonly delimiters = new Set([
-    " ",
-    "\t",
-    "\n",
-    "\r",
-    ".",
+  // Static character validation for ultra-fast O(1) lookup
+  // Trigger chars: A-Za-z0-9,./;'[]`~!@#$%^&*()_+-=
+  private static readonly TRIGGER_CHAR_SET = new Set([
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "q",
+    "r",
+    "s",
+    "t",
+    "u",
+    "v",
+    "w",
+    "x",
+    "y",
+    "z",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
     ",",
-    "!",
-    "?",
+    ".",
+    "/",
     ";",
-    ":",
-    "(",
-    ")",
+    "'",
     "[",
     "]",
+    "\\",
+    "`",
+    "~",
+    "!",
+    "@",
+    "#",
+    "$",
+    "%",
+    "^",
+    "&",
+    "*",
+    "(",
+    ")",
+    "_",
+    "+",
+    "-",
+    "=",
   ]);
-  private readonly validTriggerChars: Set<string>;
+
+  // Simplified delimiter detection: anything not in trigger set is a delimiter
+  // Primary delimiters that trigger immediate evaluation: space, tab, newline
+  private static readonly PRIMARY_DELIMITERS = new Set([" ", "\t", "\n", "\r"]);
 
   // Performance optimizations
   private maxTriggerLength = 0;
@@ -77,24 +160,89 @@ export class EnhancedTriggerDetector {
     state: TriggerState.IDLE,
   };
 
-  constructor(snippets: Snippet[], prefix: string = ";") {
+  constructor(
+    snippets: Snippet[],
+    prefix: string = ";",
+    options: TriggerDetectorOptions = {},
+  ) {
     this.prefix = prefix;
     this.snippets = [...snippets];
     this.root = this.createNode();
 
-    // Pre-compute valid trigger characters for faster validation
-    this.validTriggerChars = new Set();
+    // Set default options
+    this.options = {
+      maxTriggerLength: options.maxTriggerLength ?? 20,
+      caseSensitive: options.caseSensitive ?? true,
+    };
+
+    // Compute max trigger length (constrained by options)
     for (const snippet of snippets) {
-      for (const char of snippet.trigger) {
-        this.validTriggerChars.add(char);
-      }
       this.maxTriggerLength = Math.max(
         this.maxTriggerLength,
-        snippet.trigger.length,
+        Math.min(snippet.trigger.length, this.options.maxTriggerLength),
       );
     }
 
     this.buildOptimizedTrie();
+  }
+
+  // Ultra-fast static character validation
+  private static isValidTriggerChar(char: string): boolean {
+    return EnhancedTriggerDetector.TRIGGER_CHAR_SET.has(char);
+  }
+
+  // Fast delimiter detection using constraint knowledge
+  private static isPrimaryDelimiter(char: string): boolean {
+    return EnhancedTriggerDetector.PRIMARY_DELIMITERS.has(char);
+  }
+
+  // Any character not in trigger set is a delimiter
+  private static isDelimiter(char: string): boolean {
+    return !EnhancedTriggerDetector.TRIGGER_CHAR_SET.has(char);
+  }
+
+  // Case-sensitive/insensitive character normalization
+  private normalizeChar(char: string): string {
+    return this.options.caseSensitive ? char : char.toLowerCase();
+  }
+
+  // Case-sensitive/insensitive string normalization
+  private normalizeString(str: string): string {
+    return this.options.caseSensitive ? str : str.toLowerCase();
+  }
+
+  // Configuration methods
+  getOptions(): Required<TriggerDetectorOptions> {
+    return { ...this.options };
+  }
+
+  getMaxTriggerLength(): number {
+    return this.options.maxTriggerLength;
+  }
+
+  updateOptions(newOptions: Partial<TriggerDetectorOptions>): void {
+    const optionsChanged =
+      (newOptions.caseSensitive !== undefined &&
+        newOptions.caseSensitive !== this.options.caseSensitive) ||
+      (newOptions.maxTriggerLength !== undefined &&
+        newOptions.maxTriggerLength !== this.options.maxTriggerLength);
+
+    this.options = {
+      ...this.options,
+      ...newOptions,
+    };
+
+    // Rebuild trie if case sensitivity changed
+    if (optionsChanged) {
+      this.maxTriggerLength = 0;
+      for (const snippet of this.snippets) {
+        this.maxTriggerLength = Math.max(
+          this.maxTriggerLength,
+          Math.min(snippet.trigger.length, this.options.maxTriggerLength),
+        );
+      }
+      this.buildOptimizedTrie();
+    }
   }
 
   private createNode(): EnhancedTrieNode {
@@ -119,13 +267,14 @@ export class EnhancedTriggerDetector {
 
   private insertIntoTrie(snippet: Snippet): void {
     let node = this.root;
-    const trigger = snippet.trigger;
+    const trigger = this.normalizeString(snippet.trigger);
 
     for (const char of trigger) {
-      if (!node.children.has(char)) {
-        node.children.set(char, this.createNode());
+      const normalizedChar = this.normalizeChar(char);
+      if (!node.children.has(normalizedChar)) {
+        node.children.set(normalizedChar, this.createNode());
       }
-      node = node.children.get(char)!;
+      node = node.children.get(normalizedChar)!;
     }
 
     node.isEnd = true;
@@ -223,7 +372,7 @@ export class EnhancedTriggerDetector {
     for (let i = input.length - 1; i >= searchStart; i--) {
       if (input[i] === this.prefix) {
         // Validate prefix context (must be at start or after delimiter)
-        if (i === 0 || this.delimiters.has(input[i - 1])) {
+        if (i === 0 || EnhancedTriggerDetector.isDelimiter(input[i - 1])) {
           return i;
         }
       }
@@ -245,15 +394,19 @@ export class EnhancedTriggerDetector {
 
       // Check if this character could be part of a trigger
       // Only stop if it's a delimiter AND it's not part of any valid trigger pattern
-      if (this.delimiters.has(char)) {
+      if (EnhancedTriggerDetector.isDelimiter(char)) {
         const potentialTrigger = input.slice(triggerStart, triggerEnd + 1);
 
-        // Check if any snippet has this potential trigger as a prefix
-        const hasMatchingTrigger = this.snippets.some(
-          (snippet) =>
-            snippet.trigger.startsWith(potentialTrigger) ||
-            snippet.trigger === potentialTrigger,
-        );
+        // Check if any snippet has this potential trigger as a prefix (case-aware)
+        const normalizedPotentialTrigger =
+          this.normalizeString(potentialTrigger);
+        const hasMatchingTrigger = this.snippets.some((snippet) => {
+          const normalizedTrigger = this.normalizeString(snippet.trigger);
+          return (
+            normalizedTrigger.startsWith(normalizedPotentialTrigger) ||
+            normalizedTrigger === normalizedPotentialTrigger
+          );
+        });
 
         if (!hasMatchingTrigger) {
           hasDelimiter = true;
@@ -284,9 +437,9 @@ export class EnhancedTriggerDetector {
   ): TriggerMatch {
     let node = this.root;
 
-    // Fast trie traversal with fail-fast
+    // Fast trie traversal with fail-fast (case-aware)
     for (let i = 0; i < triggerText.length; i++) {
-      const char = triggerText[i];
+      const char = this.normalizeChar(triggerText[i]);
       const childNode = node.children.get(char);
 
       if (!childNode) {
@@ -355,30 +508,35 @@ export class EnhancedTriggerDetector {
         const afterChar = end < input.length ? input[end] : null;
 
         // Must be at start of input or after a delimiter
-        // Also treat Unicode characters (like emojis) as delimiters
+        // With static character constraint, this is much simpler
         if (
           beforeChar !== null &&
-          !this.delimiters.has(beforeChar) &&
-          /[a-zA-Z0-9_]/.test(beforeChar)
+          EnhancedTriggerDetector.isValidTriggerChar(beforeChar)
         ) {
           continue;
         }
 
         const potentialTrigger = input.slice(start, end);
 
-        // Check if this could be a valid trigger (exact match or partial match)
-        const exactMatch = this.snippets.find(
-          (snippet) =>
+        // Check if this could be a valid trigger (exact match or partial match, case-aware)
+        const normalizedPotentialTrigger =
+          this.normalizeString(potentialTrigger);
+        const exactMatch = this.snippets.find((snippet) => {
+          const normalizedTrigger = this.normalizeString(snippet.trigger);
+          return (
             !snippet.trigger.startsWith(this.prefix) &&
-            snippet.trigger === potentialTrigger,
-        );
+            normalizedTrigger === normalizedPotentialTrigger
+          );
+        });
 
-        const partialMatch = this.snippets.find(
-          (snippet) =>
+        const partialMatch = this.snippets.find((snippet) => {
+          const normalizedTrigger = this.normalizeString(snippet.trigger);
+          return (
             !snippet.trigger.startsWith(this.prefix) &&
-            snippet.trigger.startsWith(potentialTrigger) &&
-            snippet.trigger !== potentialTrigger,
-        );
+            normalizedTrigger.startsWith(normalizedPotentialTrigger) &&
+            normalizedTrigger !== normalizedPotentialTrigger
+          );
+        });
 
         if (!exactMatch && !partialMatch) {
           continue; // Not a valid trigger or partial trigger
@@ -401,14 +559,14 @@ export class EnhancedTriggerDetector {
               continue; // Same punctuation repeated
             }
             if (
-              !/[\s\t\n\r]/.test(afterChar) &&
-              !this.delimiters.has(afterChar)
+              !EnhancedTriggerDetector.isPrimaryDelimiter(afterChar) &&
+              EnhancedTriggerDetector.isValidTriggerChar(afterChar)
             ) {
               continue;
             }
           } else {
-            // For regular triggers, must not be followed by alphanumeric or underscore
-            if (/[a-zA-Z0-9_]/.test(afterChar)) {
+            // For regular triggers, must not be followed by valid trigger characters
+            if (EnhancedTriggerDetector.isValidTriggerChar(afterChar)) {
               continue;
             }
           }
@@ -438,11 +596,13 @@ export class EnhancedTriggerDetector {
     startPos: number,
     isAtEnd: boolean,
   ): TriggerMatch {
-    // Look for exact matches in our snippets that don't start with prefix
+    // Look for exact matches in our snippets that don't start with prefix (case-aware)
+    const normalizedWordText = this.normalizeString(wordText);
     for (const snippet of this.snippets) {
+      const normalizedTrigger = this.normalizeString(snippet.trigger);
       if (
         !snippet.trigger.startsWith(this.prefix) &&
-        snippet.trigger === wordText
+        normalizedTrigger === normalizedWordText
       ) {
         // For non-prefixed triggers, we complete when:
         // 1. We're at the end of the input (isAtEnd = true), OR
@@ -455,12 +615,13 @@ export class EnhancedTriggerDetector {
       }
     }
 
-    // Check for partial matches - only when we're at the end (still typing)
+    // Check for partial matches - only when we're at the end (still typing, case-aware)
     if (isAtEnd) {
       for (const snippet of this.snippets) {
+        const normalizedTrigger = this.normalizeString(snippet.trigger);
         if (
           !snippet.trigger.startsWith(this.prefix) &&
-          snippet.trigger.startsWith(wordText)
+          normalizedTrigger.startsWith(normalizedWordText)
         ) {
           return this.createMatch(false, TriggerState.TYPING, {
             potentialTrigger: wordText,
@@ -613,14 +774,10 @@ export class EnhancedTriggerDetector {
       console.warn(`❌ [TRIGGER-REGISTER] ;pony NOT registered in detector`);
     }
 
-    // Recompute optimization data
-    this.validTriggerChars.clear();
+    // Recompute optimization data (character validation is now static)
     this.maxTriggerLength = 0;
 
     for (const snippet of newSnippets) {
-      for (const char of snippet.trigger) {
-        this.validTriggerChars.add(char);
-      }
       this.maxTriggerLength = Math.max(
         this.maxTriggerLength,
         snippet.trigger.length,

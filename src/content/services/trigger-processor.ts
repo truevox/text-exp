@@ -133,7 +133,7 @@ export class ContentTriggerProcessor {
       console.warn("⚠️ Snippet has no content, skipping expansion:", {
         trigger: snippet.trigger,
         content: snippet.content,
-        id: snippet.id
+        id: snippet.id,
       });
       return;
     }
@@ -144,7 +144,7 @@ export class ContentTriggerProcessor {
       const resolvedSnippet = await this.resolveDependencies(snippet);
       console.log(
         "✅ Dependencies resolved, using content:",
-        resolvedSnippet.content 
+        resolvedSnippet.content
           ? resolvedSnippet.content.substring(0, 100) + "..."
           : "(no content)",
       );
@@ -221,7 +221,7 @@ export class ContentTriggerProcessor {
 
       if (expansionResult.success) {
         console.log("✅ Dependencies resolved successfully", {
-          originalContent: snippet.content 
+          originalContent: snippet.content
             ? snippet.content.substring(0, 50) + "..."
             : "(no content)",
           resolvedContent:
@@ -270,7 +270,7 @@ export class ContentTriggerProcessor {
       console.warn("⚠️ Fallback: Snippet has no content, skipping expansion:", {
         trigger: snippet.trigger,
         content: snippet.content,
-        id: snippet.id
+        id: snippet.id,
       });
       return;
     }
@@ -489,9 +489,12 @@ export class ContentTriggerProcessor {
     console.log("🎯 Detected target surface:", targetSurface);
     console.log("🎯 Target surface details:", {
       type: targetSurface?.type,
-      element: targetSurface?.element?.tagName + "." + targetSurface?.element?.className,
+      element:
+        targetSurface?.element?.tagName +
+        "." +
+        targetSurface?.element?.className,
       editorName: targetSurface?.metadata?.editorName,
-      capabilities: targetSurface?.capabilities
+      capabilities: targetSurface?.capabilities,
     });
 
     if (!targetSurface) {
@@ -499,8 +502,13 @@ export class ContentTriggerProcessor {
     }
 
     // Special handling for code editors - remove trigger first using clipboard approach
-    if (targetSurface.type === "code-editor" || element.classList.contains("ace_editor")) {
-      console.log("🧹 Removing trigger from code editor using clipboard approach");
+    if (
+      targetSurface.type === "code-editor" ||
+      element.classList.contains("ace_editor")
+    ) {
+      console.log(
+        "🧹 Removing trigger from code editor using clipboard approach",
+      );
       await this.clipboardBasedTriggerRemoval(element, snippet.trigger);
     } else {
       // Standard trigger removal for other element types
@@ -540,7 +548,7 @@ export class ContentTriggerProcessor {
             tagName: element.tagName,
             className: element.className,
             isContentEditable: element.contentEditable,
-            isFormInput: this.isFormInput(element)
+            isFormInput: this.isFormInput(element),
           });
         }
       }
@@ -742,87 +750,90 @@ export class ContentTriggerProcessor {
       console.error("❌ Error removing ACE trigger:", error);
     }
   }
-  
+
   /**
    * Remove trigger using clipboard-based approach
    */
-  private async clipboardBasedTriggerRemoval(element: HTMLElement, trigger: string): Promise<void> {
+  private async clipboardBasedTriggerRemoval(
+    element: HTMLElement,
+    trigger: string,
+  ): Promise<void> {
     try {
       console.log("📋 Starting clipboard-based trigger removal for:", {
         trigger,
         triggerLength: trigger.length,
-        triggerChars: trigger.split('')
+        triggerChars: trigger.split(""),
       });
-      
+
       // Focus the element first
       element.focus();
-      
+
       // Give element time to focus
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       // Method 1: Use multiple backspace events (most reliable for ACE)
-      console.log(`⌨️ Using backspace method to remove ${trigger.length} characters`);
+      console.log(
+        `⌨️ Using backspace method to remove ${trigger.length} characters`,
+      );
       for (let i = 0; i < trigger.length; i++) {
         console.log(`⌨️ Backspace ${i + 1}/${trigger.length}`);
-        
+
         // Create and dispatch keydown event
-        const backspaceDown = new KeyboardEvent('keydown', {
-          key: 'Backspace',
-          code: 'Backspace',
+        const backspaceDown = new KeyboardEvent("keydown", {
+          key: "Backspace",
+          code: "Backspace",
           keyCode: 8,
           which: 8,
           bubbles: true,
-          cancelable: true
+          cancelable: true,
         });
-        
+
         // Create and dispatch keyup event
-        const backspaceUp = new KeyboardEvent('keyup', {
-          key: 'Backspace',
-          code: 'Backspace',
+        const backspaceUp = new KeyboardEvent("keyup", {
+          key: "Backspace",
+          code: "Backspace",
           keyCode: 8,
           which: 8,
           bubbles: true,
-          cancelable: true
+          cancelable: true,
         });
-        
+
         element.dispatchEvent(backspaceDown);
-        await new Promise(resolve => setTimeout(resolve, 15));
+        await new Promise((resolve) => setTimeout(resolve, 15));
         element.dispatchEvent(backspaceUp);
-        await new Promise(resolve => setTimeout(resolve, 15));
+        await new Promise((resolve) => setTimeout(resolve, 15));
       }
-      
+
       console.log("✅ Backspace-based trigger removal completed");
-      
     } catch (error) {
       console.error("❌ Backspace-based trigger removal failed:", error);
-      
+
       // Fallback: Try selection + delete approach
       try {
         console.log("🔄 Trying selection + delete fallback");
-        
+
         // Select the trigger text using keyboard shortcuts
         for (let i = 0; i < trigger.length; i++) {
-          const selectEvent = new KeyboardEvent('keydown', {
-            key: 'ArrowLeft',
-            code: 'ArrowLeft',
+          const selectEvent = new KeyboardEvent("keydown", {
+            key: "ArrowLeft",
+            code: "ArrowLeft",
             shiftKey: true,
             bubbles: true,
-            cancelable: true
+            cancelable: true,
           });
-          
+
           element.dispatchEvent(selectEvent);
-          await new Promise(resolve => setTimeout(resolve, 5));
+          await new Promise((resolve) => setTimeout(resolve, 5));
         }
-        
+
         // Delete selected text
-        const deleteEvent = new KeyboardEvent('keydown', {
-          key: 'Delete',
-          code: 'Delete',
+        const deleteEvent = new KeyboardEvent("keydown", {
+          key: "Delete",
+          code: "Delete",
           bubbles: true,
-          cancelable: true
+          cancelable: true,
         });
         element.dispatchEvent(deleteEvent);
-        
       } catch (fallbackError) {
         console.error("❌ Selection + delete fallback failed:", fallbackError);
       }

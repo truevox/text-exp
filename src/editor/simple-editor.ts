@@ -37,11 +37,11 @@ export class SimpleEditor {
 
   private readonly options: SimpleEditorOptions;
   private readonly defaultConfig: SimpleEditorConfig = {
-    height: '300px',
-    placeholder: 'Enter your snippet content...',
+    height: "300px",
+    placeholder: "Enter your snippet content...",
     enableFormatting: true,
     enableMarkdown: true,
-    autoResize: false
+    autoResize: false,
   };
 
   constructor(options: SimpleEditorOptions = {}) {
@@ -100,8 +100,8 @@ export class SimpleEditor {
     if (!this.container) return;
 
     // Create wrapper
-    const wrapper = document.createElement('div');
-    wrapper.className = 'simple-editor-wrapper';
+    const wrapper = document.createElement("div");
+    wrapper.className = "simple-editor-wrapper";
     wrapper.style.cssText = `
       border: 1px solid #ddd;
       border-radius: 4px;
@@ -116,8 +116,8 @@ export class SimpleEditor {
     }
 
     // Create textarea
-    this.textarea = document.createElement('textarea');
-    this.textarea.placeholder = config.placeholder || '';
+    this.textarea = document.createElement("textarea");
+    this.textarea.placeholder = config.placeholder || "";
     this.textarea.style.cssText = `
       width: 100%;
       height: ${config.height};
@@ -127,7 +127,7 @@ export class SimpleEditor {
       font-family: inherit;
       font-size: 14px;
       line-height: 1.5;
-      resize: ${config.autoResize ? 'vertical' : 'none'};
+      resize: ${config.autoResize ? "vertical" : "none"};
       background: transparent;
       box-sizing: border-box;
     `;
@@ -140,8 +140,8 @@ export class SimpleEditor {
    * Create formatting toolbar
    */
   private createToolbar(): HTMLElement {
-    const toolbar = document.createElement('div');
-    toolbar.className = 'simple-editor-toolbar';
+    const toolbar = document.createElement("div");
+    toolbar.className = "simple-editor-toolbar";
     toolbar.style.cssText = `
       display: flex;
       gap: 8px;
@@ -154,19 +154,43 @@ export class SimpleEditor {
 
     // Formatting buttons
     const buttons = [
-      { label: 'B', title: 'Bold', action: () => this.wrapSelection('**', '**') },
-      { label: 'I', title: 'Italic', action: () => this.wrapSelection('*', '*') },
-      { label: 'U', title: 'Underline', action: () => this.wrapSelection('<u>', '</u>') },
-      { label: 'Code', title: 'Code', action: () => this.wrapSelection('`', '`') },
-      { label: 'Link', title: 'Link', action: () => this.insertLink() },
-      { label: '•', title: 'Bullet List', action: () => this.insertBulletList() },
-      { label: '1.', title: 'Numbered List', action: () => this.insertNumberedList() },
-      { label: '${', title: 'Variable', action: () => this.insertVariable() },
+      {
+        label: "B",
+        title: "Bold",
+        action: () => this.wrapSelection("**", "**"),
+      },
+      {
+        label: "I",
+        title: "Italic",
+        action: () => this.wrapSelection("*", "*"),
+      },
+      {
+        label: "U",
+        title: "Underline",
+        action: () => this.wrapSelection("<u>", "</u>"),
+      },
+      {
+        label: "Code",
+        title: "Code",
+        action: () => this.wrapSelection("`", "`"),
+      },
+      { label: "Link", title: "Link", action: () => this.insertLink() },
+      {
+        label: "•",
+        title: "Bullet List",
+        action: () => this.insertBulletList(),
+      },
+      {
+        label: "1.",
+        title: "Numbered List",
+        action: () => this.insertNumberedList(),
+      },
+      { label: "${", title: "Variable", action: () => this.insertVariable() },
     ];
 
-    buttons.forEach(button => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
+    buttons.forEach((button) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
       btn.textContent = button.label;
       btn.title = button.title;
       btn.style.cssText = `
@@ -176,19 +200,19 @@ export class SimpleEditor {
         border-radius: 3px;
         cursor: pointer;
         font-size: 12px;
-        font-weight: ${button.label === 'B' ? 'bold' : button.label === 'I' ? 'italic' : 'normal'};
-        text-decoration: ${button.label === 'U' ? 'underline' : 'none'};
+        font-weight: ${button.label === "B" ? "bold" : button.label === "I" ? "italic" : "normal"};
+        text-decoration: ${button.label === "U" ? "underline" : "none"};
       `;
 
-      btn.addEventListener('mouseenter', () => {
-        btn.style.background = '#f0f0f0';
+      btn.addEventListener("mouseenter", () => {
+        btn.style.background = "#f0f0f0";
       });
 
-      btn.addEventListener('mouseleave', () => {
-        btn.style.background = '#fff';
+      btn.addEventListener("mouseleave", () => {
+        btn.style.background = "#fff";
       });
 
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener("click", (e) => {
         e.preventDefault();
         button.action();
         this.textarea?.focus();
@@ -209,13 +233,13 @@ export class SimpleEditor {
     const start = this.textarea.selectionStart;
     const end = this.textarea.selectionEnd;
     const selectedText = this.textarea.value.substring(start, end);
-    const replacement = `${prefix}${selectedText || 'text'}${suffix}`;
+    const replacement = `${prefix}${selectedText || "text"}${suffix}`;
 
     this.textarea.setRangeText(replacement, start, end);
-    
+
     // Select the wrapped text
     const newStart = start + prefix.length;
-    const newEnd = newStart + (selectedText || 'text').length;
+    const newEnd = newStart + (selectedText || "text").length;
     this.textarea.setSelectionRange(newStart, newEnd);
 
     this.triggerContentChange();
@@ -230,13 +254,13 @@ export class SimpleEditor {
     const start = this.textarea.selectionStart;
     const end = this.textarea.selectionEnd;
     const selectedText = this.textarea.value.substring(start, end);
-    
-    const linkText = selectedText || 'link text';
-    const url = 'https://example.com';
+
+    const linkText = selectedText || "link text";
+    const url = "https://example.com";
     const replacement = `[${linkText}](${url})`;
 
     this.textarea.setRangeText(replacement, start, end);
-    
+
     // Select the URL for easy editing
     const urlStart = start + linkText.length + 3; // After "[text]("
     const urlEnd = urlStart + url.length;
@@ -249,14 +273,14 @@ export class SimpleEditor {
    * Insert bullet list
    */
   private insertBulletList(): void {
-    this.insertAtCursor('- ');
+    this.insertAtCursor("- ");
   }
 
   /**
    * Insert numbered list
    */
   private insertNumberedList(): void {
-    this.insertAtCursor('1. ');
+    this.insertAtCursor("1. ");
   }
 
   /**
@@ -266,13 +290,13 @@ export class SimpleEditor {
     if (!this.textarea) return;
 
     const start = this.textarea.selectionStart;
-    const replacement = '${variable_name}';
+    const replacement = "${variable_name}";
 
     this.textarea.setRangeText(replacement, start, start);
-    
+
     // Select the variable name for easy editing
     const nameStart = start + 2; // After "${"
-    const nameEnd = nameStart + 'variable_name'.length;
+    const nameEnd = nameStart + "variable_name".length;
     this.textarea.setSelectionRange(nameStart, nameEnd);
 
     this.triggerContentChange();
@@ -297,7 +321,7 @@ export class SimpleEditor {
     if (!this.textarea) return;
 
     // Content change with debouncing
-    this.textarea.addEventListener('input', () => {
+    this.textarea.addEventListener("input", () => {
       if (this.contentChangeTimeout) {
         window.clearTimeout(this.contentChangeTimeout);
       }
@@ -310,28 +334,28 @@ export class SimpleEditor {
     });
 
     // Focus and blur events
-    this.textarea.addEventListener('focus', () => {
+    this.textarea.addEventListener("focus", () => {
       if (this.options.events?.onFocus) {
         this.options.events.onFocus();
       }
     });
 
-    this.textarea.addEventListener('blur', () => {
+    this.textarea.addEventListener("blur", () => {
       if (this.options.events?.onBlur) {
         this.options.events.onBlur();
       }
     });
 
     // Keyboard shortcuts
-    this.textarea.addEventListener('keydown', (e) => {
+    this.textarea.addEventListener("keydown", (e) => {
       this.handleKeyboardShortcuts(e);
     });
 
     // Tab handling for better UX
-    this.textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
+    this.textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
         e.preventDefault();
-        this.insertAtCursor('  '); // Two spaces for indentation
+        this.insertAtCursor("  "); // Two spaces for indentation
       }
     });
   }
@@ -342,19 +366,19 @@ export class SimpleEditor {
   private handleKeyboardShortcuts(e: KeyboardEvent): void {
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
-        case 'b':
+        case "b":
           e.preventDefault();
-          this.wrapSelection('**', '**');
+          this.wrapSelection("**", "**");
           break;
-        case 'i':
+        case "i":
           e.preventDefault();
-          this.wrapSelection('*', '*');
+          this.wrapSelection("*", "*");
           break;
-        case 'u':
+        case "u":
           e.preventDefault();
-          this.wrapSelection('<u>', '</u>');
+          this.wrapSelection("<u>", "</u>");
           break;
-        case 'k':
+        case "k":
           e.preventDefault();
           this.insertLink();
           break;
@@ -362,7 +386,7 @@ export class SimpleEditor {
     }
 
     // Variable shortcut: Ctrl+Shift+$
-    if (e.ctrlKey && e.shiftKey && e.key === '$') {
+    if (e.ctrlKey && e.shiftKey && e.key === "$") {
       e.preventDefault();
       this.insertVariable();
     }
@@ -381,14 +405,17 @@ export class SimpleEditor {
    * Get current editor content
    */
   getContent(): string {
-    console.log('🔍 [SIMPLE-EDITOR-DEBUG] getContent() called');
-    console.log('🔍 [SIMPLE-EDITOR-DEBUG] Textarea exists:', !!this.textarea);
-    console.log('🔍 [SIMPLE-EDITOR-DEBUG] Is initialized:', this.isInitialized);
-    
-    const content = this.textarea?.value || '';
-    console.log('🔍 [SIMPLE-EDITOR-DEBUG] Textarea value:', content ? `"${content.substring(0, 100)}..."` : '(empty/undefined)');
-    console.log('🔍 [SIMPLE-EDITOR-DEBUG] Content length:', content.length);
-    
+    console.log("🔍 [SIMPLE-EDITOR-DEBUG] getContent() called");
+    console.log("🔍 [SIMPLE-EDITOR-DEBUG] Textarea exists:", !!this.textarea);
+    console.log("🔍 [SIMPLE-EDITOR-DEBUG] Is initialized:", this.isInitialized);
+
+    const content = this.textarea?.value || "";
+    console.log(
+      "🔍 [SIMPLE-EDITOR-DEBUG] Textarea value:",
+      content ? `"${content.substring(0, 100)}..."` : "(empty/undefined)",
+    );
+    console.log("🔍 [SIMPLE-EDITOR-DEBUG] Content length:", content.length);
+
     return content;
   }
 
@@ -426,8 +453,8 @@ export class SimpleEditor {
       this.textarea.disabled = !enabled;
     }
     if (this.toolbar) {
-      const buttons = this.toolbar.querySelectorAll('button');
-      buttons.forEach(btn => {
+      const buttons = this.toolbar.querySelectorAll("button");
+      buttons.forEach((btn) => {
         (btn as HTMLButtonElement).disabled = !enabled;
       });
     }
@@ -470,14 +497,16 @@ export class SimpleEditor {
 /**
  * Create a snippet editor with PuffPuffPaste-specific configuration
  */
-export function createSnippetEditor(options: SimpleEditorOptions = {}): SimpleEditor {
+export function createSnippetEditor(
+  options: SimpleEditorOptions = {},
+): SimpleEditor {
   const defaultOptions: SimpleEditorOptions = {
     config: {
       placeholder: "Enter your snippet content here...",
-      height: '300px',
+      height: "300px",
       enableFormatting: true,
       enableMarkdown: true,
-      autoResize: false
+      autoResize: false,
     },
     autoFocus: true,
     debounceDelay: 300,

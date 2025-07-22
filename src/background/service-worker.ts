@@ -434,6 +434,105 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
 
+        case "ADD_SNIPPET_MULTI_STORE": {
+          let snippetContentToAdd = message.snippet.content;
+          if (message.snippet.contentType === "html") {
+            snippetContentToAdd = sanitizeHtml(snippetContentToAdd);
+            snippetContentToAdd =
+              await imageProcessor.processHtmlContent(snippetContentToAdd);
+          }
+          const newSnippet = {
+            ...message.snippet,
+            content: snippetContentToAdd,
+            id: crypto.randomUUID(), // Generate a unique ID
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          const results = [];
+          let overallSuccess = true;
+
+          // Save to each selected store
+          for (const storeId of message.storeIds) {
+            try {
+              if (storeId === "/drive.appstore") {
+                // Use default storage for appdata store
+                await ExtensionStorage.addSnippet(newSnippet);
+              } else {
+                // Use scoped source manager for custom stores
+                await scopedSourceManager.addSnippetToScope(
+                  newSnippet,
+                  storeId,
+                );
+              }
+              results.push({ storeId, success: true });
+            } catch (error) {
+              overallSuccess = false;
+              results.push({
+                storeId,
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error",
+              });
+            }
+          }
+
+          sendResponse({
+            success: overallSuccess,
+            data: { snippet: newSnippet, results },
+          });
+          break;
+        }
+
+        case "UPDATE_SNIPPET_MULTI_STORE": {
+          let snippetContentToUpdate = message.updates.content;
+          if (message.updates.contentType === "html") {
+            snippetContentToUpdate = sanitizeHtml(snippetContentToUpdate);
+            snippetContentToUpdate = await imageProcessor.processHtmlContent(
+              snippetContentToUpdate,
+            );
+          }
+
+          const updatedData = {
+            ...message.updates,
+            content: snippetContentToUpdate,
+            updatedAt: new Date(),
+          };
+
+          const results = [];
+          let overallSuccess = true;
+
+          // Update in each selected store
+          for (const storeId of message.storeIds) {
+            try {
+              if (storeId === "/drive.appstore") {
+                // Use default storage for appdata store
+                await ExtensionStorage.updateSnippet(message.id, updatedData);
+              } else {
+                // Use scoped source manager for custom stores
+                await scopedSourceManager.updateSnippetInScope(
+                  message.id,
+                  updatedData,
+                  storeId,
+                );
+              }
+              results.push({ storeId, success: true });
+            } catch (error) {
+              overallSuccess = false;
+              results.push({
+                storeId,
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error",
+              });
+            }
+          }
+
+          sendResponse({
+            success: overallSuccess,
+            data: { results },
+          });
+          break;
+        }
+
         case "DELETE_SNIPPET":
           await ExtensionStorage.deleteSnippet(message.id);
           sendResponse({ success: true });
@@ -554,6 +653,103 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
 
+        case "GET_GOOGLE_DRIVE_FOLDERS": {
+          console.log("🔍 [DEBUG] Getting Google Drive folders...");
+          try {
+            if (!syncManager) {
+              console.error("❌ [DEBUG] SyncManager not available");
+              sendResponse({
+                success: false,
+                error: "Extension not initialized",
+              });
+              break;
+            }
+
+            const currentProvider = syncManager.getCurrentProvider();
+            if (currentProvider !== "google-drive") {
+              console.log("⚠️ [DEBUG] Google Drive not set as provider");
+              sendResponse({
+                success: false,
+                error: "Google Drive not connected",
+              });
+              break;
+            }
+
+            const isAuthenticated = await syncManager.isAuthenticated();
+            if (!isAuthenticated) {
+              console.log("⚠️ [DEBUG] Not authenticated with Google Drive");
+              sendResponse({
+                success: false,
+                error: "Not authenticated with Google Drive",
+              });
+              break;
+            }
+
+            // Get credentials from storage
+            const credentials = await ExtensionStorage.getCloudCredentials();
+            if (!credentials) {
+              sendResponse({
+                success: false,
+                error: "No credentials available",
+              });
+              break;
+            }
+
+            // Use GoogleDriveFileService to list folders within OAuth compliance
+            const { GoogleDriveFileService } = await import(
+              "./cloud-adapters/google-drive/file-service.js"
+            );
+
+            // Query for folders only (using mimeType filter for folders)
+            const parentId = message.parentId || "root";
+            const API_BASE = "https://www.googleapis.com";
+            const DRIVE_API = `${API_BASE}/drive/v3`;
+
+            const folderQuery =
+              parentId === "root"
+                ? `parents in 'root' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+                : `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+
+            const url = `${DRIVE_API}/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name,parents)&pageSize=100`;
+
+            console.log("🔍 [DEBUG] Folder query URL:", url);
+
+            const response = await fetch(url, {
+              headers: {
+                Authorization: `Bearer ${credentials.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("❌ [DEBUG] API request failed:", errorText);
+              throw new Error(`API request failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const folders = (data.files || []).map((file: any) => ({
+              id: file.id,
+              name: file.name,
+              parentId: file.parents?.[0],
+              isFolder: true,
+            }));
+
+            console.log("✅ [DEBUG] Found folders:", folders.length);
+            sendResponse({ success: true, data: folders });
+          } catch (error) {
+            console.error(
+              "❌ [DEBUG] Error getting Google Drive folders:",
+              error,
+            );
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          break;
+        }
+
         case "GET_DEFAULT_STORE_STATUS": {
           try {
             if (!defaultStoreInitializer) {
@@ -587,36 +783,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             // Use static import (already imported at top)
             const indexedDB = new IndexedDB();
-            
+
             // Get existing snippets and add the new one
             const existingSnippets = await indexedDB.getSnippets();
             const updatedSnippets = [...existingSnippets, message.snippet];
-            
+
             // Save all snippets including the new one
             await indexedDB.saveSnippets(updatedSnippets);
-            
+
             console.log("✅ Snippet saved to local storage");
-            
+
             // Notify content scripts to reload snippets
             await notifyContentScriptsOfSnippetUpdate();
             console.log("📢 Notified content scripts of snippet update");
-            
+
             // If sync manager is available, try to sync to cloud
             if (syncManager) {
               try {
                 await syncManager.syncNow();
                 console.log("✅ Snippet synced to cloud");
               } catch (syncError) {
-                console.warn("⚠️ Cloud sync failed, but snippet saved locally:", syncError);
+                console.warn(
+                  "⚠️ Cloud sync failed, but snippet saved locally:",
+                  syncError,
+                );
               }
             }
-            
+
             sendResponse({ success: true });
           } catch (error) {
             console.error("❌ Failed to save snippet:", error);
             sendResponse({
               success: false,
-              error: error instanceof Error ? error.message : "Failed to save snippet",
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to save snippet",
             });
           }
           break;

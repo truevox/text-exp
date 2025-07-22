@@ -318,21 +318,6 @@
   }
 }
 
-/* TinyMCE integration */
-.mce-tinymce {
-  box-shadow: none !important;
-  border: none !important;
-}
-
-.mce-container {
-  border: none !important;
-}
-
-.tox-tinymce {
-  border: none !important;
-  box-shadow: none !important;
-}
-
 /* Focus states */
 .form-group:focus-within label {
   color: #4285f4;

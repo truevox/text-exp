@@ -54,15 +54,19 @@ export class ExtensionStorage {
         : chromeStorageSnippets;
 
     // Fix corrupted snippets with "undefined" content
-    const corruptedSnippets = finalSnippets.filter(s => s.content === "undefined" || !s.content);
+    const corruptedSnippets = finalSnippets.filter(
+      (s) => s.content === "undefined" || !s.content,
+    );
     if (corruptedSnippets.length > 0) {
-      console.warn(`🚨 Found ${corruptedSnippets.length} corrupted snippets, attempting to fix...`);
-      
+      console.warn(
+        `🚨 Found ${corruptedSnippets.length} corrupted snippets, attempting to fix...`,
+      );
+
       // Create fixed versions by providing default content based on trigger
-      finalSnippets = finalSnippets.map(snippet => {
+      finalSnippets = finalSnippets.map((snippet) => {
         if (snippet.content === "undefined" || !snippet.content) {
           let fixedContent = "";
-          
+
           // Provide default content based on trigger
           if (snippet.trigger === ";hello") {
             fixedContent = "Hello! Welcome to PuffPuffPaste! 👋";
@@ -73,17 +77,19 @@ export class ExtensionStorage {
           } else {
             fixedContent = `[Content for ${snippet.trigger}]`;
           }
-          
-          console.log(`🔧 Fixed snippet "${snippet.trigger}": "${fixedContent}"`);
-          
+
+          console.log(
+            `🔧 Fixed snippet "${snippet.trigger}": "${fixedContent}"`,
+          );
+
           return {
             ...snippet,
-            content: fixedContent
+            content: fixedContent,
           };
         }
         return snippet;
       });
-      
+
       // Save the fixed snippets back to storage
       try {
         await Promise.all([
@@ -92,7 +98,9 @@ export class ExtensionStorage {
           }),
           indexedDB.saveSnippets(finalSnippets),
         ]);
-        console.log(`✅ [CORRUPTION-FIX] Fixed ${corruptedSnippets.length} corrupted snippets`);
+        console.log(
+          `✅ [CORRUPTION-FIX] Fixed ${corruptedSnippets.length} corrupted snippets`,
+        );
       } catch (error) {
         console.error("Failed to save fixed snippets:", error);
       }

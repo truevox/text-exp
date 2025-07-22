@@ -139,7 +139,7 @@ export class LaTeXPreviewRenderer {
       }
 
       // Convert LaTeX text formatting to HTML
-      let htmlContent = this.convertLaTeXToHTML(content);
+      const htmlContent = this.convertLaTeXToHTML(content);
 
       // Create a temporary container for MathJax processing
       const container = document.createElement("div");

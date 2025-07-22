@@ -1,5 +1,14 @@
 /**
- * Type definitions for multi-format snippet system
+ * Type definitions for simplified snippet system
+ *
+ * PRIORITY SYSTEM CLARIFICATION:
+ * - Stores have numeric priorities: 0 = highest, 1, 2, 3... = lower
+ * - Default store (/drive.appdata) is always priority 0
+ * - Priority is ONLY used for hover-snippet disambiguation
+ * - Hover-snippets appear when:
+ *   1. Current trigger matches 1+ snippets AND could trigger more with additional chars, OR
+ *   2. Current trigger would expand 2+ different snippets
+ * - Regular single-snippet expansion ignores priority completely
  */
 
 import type { SnippetFormat } from "../utils/detectFormat.js";
@@ -15,6 +24,7 @@ export interface VariableDef {
 
 /**
  * Canonical metadata structure for all snippet formats
+ * Simplified to remove scopes and tiers - just store association
  */
 export interface SnippetMeta {
   /** Unique identifier */
@@ -29,8 +39,8 @@ export interface SnippetMeta {
   contentType: "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX";
   /** Human-readable description */
   description: string;
-  /** Scope for priority system */
-  scope: "personal" | "team" | "org";
+  /** Which store this snippet belongs to */
+  storeId: string;
   /** Variable definitions with prompts */
   variables: VariableDef[];
   /** Drive fileIds, data URIs, etc. */
@@ -139,7 +149,8 @@ export interface FlatSnippet {
   content: string;
   contentType?: string;
   description?: string;
-  scope?: string;
+  scope?: SnippetScope;
+  priority?: SnippetPriority;
   variables?: any[];
   tags?: string[];
   createdAt?: string;
@@ -164,26 +175,22 @@ export interface ImageReference {
 }
 
 /**
- * Priority tier names for the new tier-based architecture
+ * Simple numeric priority system for FILO ordering
+ * Lower numbers = higher priority (0 = highest, newest stores get highest numbers)
  */
-export type PriorityTier =
-  | "priority-0"
-  | "personal"
-  | "department"
-  | "team"
-  | "org";
+export type StorePriority = number;
 
 /**
- * Enhanced snippet for the new priority-tier architecture
+ * Simple snippet with no scopes or tiers - just belongs to a store
  */
-export interface EnhancedSnippet {
+export interface SimpleSnippet {
   id: string;
   trigger: string;
   content: string; // HTML content by default
   contentType: "html" | "plaintext" | "markdown" | "latex" | "html+KaTeX";
   snipDependencies: string[];
   description: string;
-  scope: PriorityTier;
+  storeId: string; // Which store this snippet belongs to
   variables: VariableDef[];
   images: string[];
   tags: string[];
@@ -194,30 +201,75 @@ export interface EnhancedSnippet {
 }
 
 /**
- * Priority tier store - represents a single JSON file containing 1 or more snippets
+ * Legacy enhanced snippet interface (for backward compatibility during migration)
  */
-export interface PriorityTierStore {
-  tierName: PriorityTier;
-  fileName: string; // e.g., 'personal.json'
-  snippets: EnhancedSnippet[]; // Array of 1 or more snippets, ordered by descending priority
-  lastModified: string;
-  version: string; // Schema version for migration support
+export interface EnhancedSnippet extends SimpleSnippet {
+  /** @deprecated Use storeId instead */
+  scope?: string;
+  /** @deprecated Priority is now at store level */
+  priority?: number;
+}
+
+/**
+ * Simple store - just a Google Drive folder with snippets and a priority number
+ * Priority is ONLY used for hover-snippet disambiguation ordering
+ */
+export interface SimpleStore {
+  id: string; // Unique store identifier
+  name: string; // User-friendly name (usually folder name)
+  priority: StorePriority; // 0 = highest priority, 1, 2, 3... = lower priority
+  googleDriveFolderId: string; // Google Drive folder ID
+  isDefault: boolean; // True for /drive.appdata store (always priority 0)
+  readOnly: boolean; // True for read-only shared folders
+  lastSync: string; // ISO timestamp of last sync
+  snippetCount: number; // Number of snippets in this store
+}
+
+/**
+ * Simple store file schema - the JSON file format stored in Google Drive
+ */
+export interface SimpleStoreSchema {
+  schema: "simple-store-v1";
+  storeName: string;
+  snippets: SimpleSnippet[];
   metadata: {
-    totalSnippets: number;
-    averagePriority: number;
-    lastSync?: string;
-    owner?: string;
-    permissions?: string[];
+    version: string;
+    created: string;
+    modified: string;
+    owner: string;
   };
 }
 
 /**
- * Array-based snippet storage schema for tier files (stores 1 or more snippets)
+ * @deprecated Use SimpleStoreSchema instead
+ * Legacy array-based snippet storage schema with numeric priority ordering
+ */
+export interface NumericPriorityStorageSchema {
+  schema: "numeric-priority-v1";
+  scope: string; // Store scope
+  snippets: EnhancedSnippet[]; // Array of 1 or more snippets ordered by priority (0 = highest)
+  metadata: {
+    version: string;
+    created: string;
+    modified: string;
+    owner: string;
+    description?: string;
+    nextPriority: number; // Next priority number to assign (for FILO ordering)
+  };
+}
+
+/**
+ * Legacy tier storage schema (for backwards compatibility)
+ * @deprecated Use SimpleStoreSchema instead
  */
 export interface TierStorageSchema {
   schema: "priority-tier-v1";
-  tier: PriorityTier;
-  snippets: EnhancedSnippet[]; // Array of 1 or more snippets with complete field specification
+  tier: "priority-0" | "personal" | "department" | "team" | "org";
+  snippets: Array<
+    Omit<EnhancedSnippet, "priority"> & {
+      scope: "priority-0" | "personal" | "department" | "team" | "org";
+    }
+  >;
   metadata: {
     version: string;
     created: string;

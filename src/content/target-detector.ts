@@ -15,7 +15,6 @@ export type TargetSurfaceType =
   | "plaintext-input"
   | "plaintext-textarea"
   | "contenteditable"
-  | "tinymce-editor"
   | "gmail-composer"
   | "google-docs-editor"
   | "rich-text-editor"
@@ -161,46 +160,6 @@ export class TargetDetector {
         }),
       },
 
-      // TinyMCE Editor
-      {
-        name: "tinymce-editor",
-        priority: 90,
-        selector: 'iframe[id*="mce_"], div[id*="mce_"], .mce-content-body',
-        condition: (element) => {
-          return (
-            element.closest(".mce-tinymce") !== null ||
-            element.getAttribute("id")?.includes("mce_") ||
-            element.classList.contains("mce-content-body") ||
-            (window as any).tinymce !== undefined
-          );
-        },
-        extractor: (element) => {
-          const version = this.detectTinyMCEVersion();
-          return {
-            type: "tinymce-editor",
-            capabilities: {
-              supportsHTML: true,
-              supportsMarkdown: false,
-              supportsPlainText: true,
-              supportsImages: true,
-              supportsLinks: true,
-              supportsFormatting: true,
-              supportsLists: true,
-              supportsTables: true,
-              customPasteHandler: true,
-            },
-            metadata: {
-              editorName: "TinyMCE",
-              editorVersion: version,
-              framework: "tinymce",
-              detectionMethod: "tinymce-editor-rule",
-              detectionConfidence: 0.9,
-              timestamp: Date.now(),
-            },
-          };
-        },
-      },
-
       // Rich Text Editors (CKEditor, Quill, etc.)
       {
         name: "rich-text-editor",
@@ -327,7 +286,7 @@ export class TargetDetector {
         condition: (element) => {
           return (
             element.getAttribute("contenteditable") === "true" &&
-            !element.closest(".mce-tinymce, .ql-container, .cke_contents")
+            !element.closest(".ql-container, .cke_contents")
           );
         },
         extractor: (element) => ({
@@ -547,17 +506,6 @@ export class TargetDetector {
   }
 
   /**
-   * Detect TinyMCE version
-   */
-  private detectTinyMCEVersion(): string | undefined {
-    const tinymce = (window as any).tinymce;
-    if (tinymce?.majorVersion) {
-      return `${tinymce.majorVersion}.${tinymce.minorVersion || 0}`;
-    }
-    return undefined;
-  }
-
-  /**
    * Detect rich text editor name
    */
   private detectRichTextEditorName(element: HTMLElement): string {
@@ -669,7 +617,6 @@ export class TargetDetector {
       element.querySelector(
         'textarea, input[type="text"], [contenteditable="true"]',
       ) !== null ||
-      element.classList.contains("mce-tinymce") ||
       element.classList.contains("ql-container") ||
       element.classList.contains("CodeMirror")
     );

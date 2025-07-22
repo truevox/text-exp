@@ -738,25 +738,6 @@ body {
   min-height: 200px;
 }
 
-/* TinyMCE Styling */
-.comprehensive-snippet-editor .tox-tinymce {
-  border: 2px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-}
-
-.comprehensive-snippet-editor .tox-tinymce:focus-within {
-  border-color: var(--primary-blue) !important;
-  box-shadow: 0 0 0 3px rgba(0, 135, 210, 0.1) !important;
-}
-
-.comprehensive-snippet-editor.compact .tox-toolbar {
-  padding: 4px 8px !important;
-}
-
-.comprehensive-snippet-editor.compact .tox-toolbar__group {
-  padding: 0 4px !important;
-}
-
 /* Buttons */
 .comprehensive-snippet-editor .btn {
   padding: 8px 16px;

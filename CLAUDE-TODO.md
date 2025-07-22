@@ -38,7 +38,28 @@
 
 ---
 
-### 🚨 **EMERGENCY DEBUGGING: FOLDER SELECTION ERROR** (ACTIVE)
+### 📊 **CURRENT ACTUAL STATUS** (Updated 2025-07-22)
+
+**Version**: 0.117.5  
+**Test Success Rate**: 1628/1742 tests passing (93.5%)  
+**Major Completions Verified**: ✅ TinyMCE removal, ✅ Trigger detection unification
+
+**Actual Issues Identified (from test results)**:
+
+- **HIGH PRIORITY**: IndexedDB storage consistency errors
+- **MEDIUM**: Enhanced trigger detector delimiter issues ('ty' trigger failing)
+- **MEDIUM**: Security error message sanitization needs improvement
+- **HIGH**: Priority tier manager child process exceptions
+
+**Documentation vs Reality Gap**:
+
+- Previous documentation claimed 99.57% test success rate - actual is 93.5%
+- Claims of "folder selection error" and "multi-store saving broken" need verification
+- Many completed items (TinyMCE, trigger unification) were incorrectly listed as pending
+
+---
+
+### 🚨 **EMERGENCY DEBUGGING: FOLDER SELECTION ERROR** (NEEDS VERIFICATION)
 
 **Priority**: CRITICAL - User-blocking issue with folder selection functionality
 
@@ -153,6 +174,160 @@
   - **Expected Behavior**:
     - Phase 1: ✅ Blue field shows store selector (WORKING)
     - Phase 2: Snippet should save to all selected stores (PENDING)
+
+---
+
+### � **PHASE 8.5: PLAYWRIGHT-READY CODE ABSTRACTION** (HIGH PRIORITY)
+
+**Goal**: Extract core business logic into standalone modules that can be tested in both Jest and Playwright environments
+
+**Priority**: HIGH - Enables comprehensive E2E testing and improves code maintainability
+
+**Strategy**: Create web-embeddable versions of key components for Playwright testing while maintaining extension functionality
+
+#### **Priority 1: Core Logic Extraction** (CRITICAL)
+
+- [ ] **Extract trigger detection and conflict resolution logic**
+  - **Goal**: Isolate the logic that determines when to show hovering snippet picker
+  - **Key Logic**: When typed text completes triggers AND could be start of other triggers
+  - **Abstraction**: Pure functions that take (typedText, allSnippets, storesByPriority) → shouldShowPicker + orderedSnippets
+  - **Web-Testable**: No Chrome APIs, just text processing and array sorting
+
+- [ ] **Extract simple FILO priority management**
+  - **Goal**: Standalone priority calculation for snippet conflict resolution
+  - **Key Logic**: Default store = priority 0 (highest), additional stores = descending priority (1, 2, 3...)
+  - **Abstraction**: Functions for priority ordering, drag-drop reordering, store addition/deletion
+  - **Web-Testable**: Array manipulation and sorting logic only
+
+- [ ] **Extract snippet creation and storage logic**
+  - **Goal**: Core snippet saving logic without cloud provider dependencies
+  - **Key Logic**: Multi-store saving, validation, conflict handling
+  - **Abstraction**: Pure functions that simulate saving to multiple stores
+  - **Web-Testable**: Mock storage interfaces, validation logic
+
+#### **Priority 2: Comprehensive Test Scenarios** (HIGH)
+
+- [ ] **Snippet creation test battery**
+  - **Simple creation**: Single store, basic trigger/expansion
+  - **Multi-store creation**: Save to multiple stores with priority validation
+  - **Conflict scenarios**: Same trigger in different stores, priority resolution
+  - **Edge cases**: Empty triggers, special characters, long expansions
+  - **Validation failures**: Read-only stores, duplicate triggers
+
+- [ ] **Snippet usage test battery**
+  - **Single match**: Clean trigger expansion
+  - **Priority conflicts**: Multiple stores have same trigger, highest priority wins
+  - **Ambiguous typing**: Partial trigger that could become multiple triggers
+  - **Hovering picker behavior**: When to show, order of snippets, selection
+  - **Edge cases**: Rapid typing, backspacing, window focus changes
+
+- [ ] **Store management test battery**
+  - **Default store behavior**: Always priority 0, cannot be deleted
+  - **Store addition**: New stores get next lowest priority (FILO: newest = lowest priority)
+  - **Drag-drop reordering**: All priority positions adjustable including default store
+  - **Store deletion**: Non-default stores removable, priority gaps handled
+
+#### **Priority 3: Web Test Harness** (MEDIUM)
+
+- [ ] **Create `playwright-test-harness.html`**
+  - **Interactive UI**: Text input field, snippet creation form, store management
+  - **Visual feedback**: Hovering snippet picker simulation, priority indicators
+  - **Test controls**: Load/reset test data, trigger specific scenarios
+  - **Debug output**: Real-time display of priority calculations and conflict resolution
+
+#### **Success Metrics**:
+
+- Core business logic runs identically in Jest and Playwright
+- 90%+ of extension functionality testable in web environment
+- Playwright tests cover multi-component interaction scenarios
+- Test execution time <5 seconds for full suite
+
+---
+
+### 🧹 **CODEBASE SIMPLIFICATION** ✅ **MAJOR PROGRESS ACHIEVED**
+
+**Priority**: HIGH - Conservative approach to eliminate complexity while preserving future value
+
+**Current Status**: ✅ MAJOR COMPONENTS COMPLETED - Key simplifications achieved
+
+**User Requirements Clarified**:
+
+- **FILO Priority**: First /drive.appdata store (default) = highest priority, most recent = lowest priority
+- **Drag-and-Drop**: All priorities adjustable, including default store
+- **Conservative Approach**: Document unused features rather than delete them
+- **Google Drive Only**: Only supported cloud provider for near future
+
+**Phase 1: Documentation and Safe Removals**:
+
+- [x] **🗂️ PRIORITY 1: Document unused cloud providers** (HIGH) ✅ COMPLETED
+  - **Goal**: Add "NOT CURRENTLY SUPPORTED" headers to unused cloud adapters
+  - **Files**: dropbox-adapter.ts, onedrive-adapter.ts, local-filesystem-adapter.ts
+  - **Action**: Preserve code but make limitations crystal clear
+  - **Impact**: Users understand only Google Drive works, preserve future development
+  - **Status**: ✅ Headers added to all three adapters
+
+- [x] **📝 PRIORITY 2: Document unused parsers** (HIGH) ✅ COMPLETED
+  - **Goal**: Add "NOT CURRENTLY USED" headers to non-JSON parsers
+  - **Files**: tex.ts, md.ts, html.ts, content-type-manager.ts
+  - **Action**: Preserve code but clarify JSON is the active format
+  - **Impact**: Clear development focus while maintaining extensibility
+  - **Status**: ✅ Headers added to all four parser files
+
+- [x] **🗑️ PRIORITY 3: Remove TinyMCE integration** ✅ **COMPLETED**
+  - **Goal**: Remove confirmed unused rich text editor system
+  - **Files**: tinymce-wrapper.ts, tinymce-styles.css, tinymce.d.ts, tests
+  - **Packages**: Removed "tinymce" dependency from package.json
+  - **Reason**: User confirmed "we THOUGHT we would use but aren't"
+  - **Impact**: ~1,200 lines removed, significant bundle size reduction
+  - **Status**: ✅ COMPLETED - All TinyMCE files removed from source
+
+- [ ] **🧽 PRIORITY 4: Remove development cruft** (LOW)
+  - **Goal**: Clean up demo and example files
+  - **Files**: _-example.ts, _-demo.html, development artifacts
+  - **Impact**: Cleaner codebase, easier navigation
+
+**Phase 2: Core Functionality Fixes**:
+
+- [ ] **🚨 PRIORITY 1: Fix multi-store saving functionality** (CRITICAL)
+  - **Goal**: Complete the multi-store snippet creation feature
+  - **Current Gap**: UI selects stores but save logic only uses default store
+  - **Dependencies**: Relates to existing multi-store UI work in v0.113.10
+  - **Impact**: Core user expectation - selected stores should receive snippets
+
+- [ ] **🔢 PRIORITY 2: Implement FILO priority system** (HIGH)
+  - **Goal**: Replace complex tier system with simple FILO ordering
+  - **User Clarification**: Default = priority 0 (highest), latest = lowest priority
+  - **Features**: Drag-and-drop reordering for ALL positions including default
+  - **UI**: Replace "PRIORITY-0 TIER" with clear numbered priority list
+  - **Impact**: Matches user mental model, eliminates confusion
+
+- [x] **🎯 PRIORITY 3: Consolidate trigger detection** ✅ **COMPLETED**
+  - **Goal**: Remove competing trigger detector implementations
+  - **Keep**: EnhancedTriggerDetector (currently active)
+  - **Remove**: trigger-detector.ts, flexible-trigger-detector.ts
+  - **Impact**: Eliminate expansion reliability issues from conflicts
+  - **Status**: ✅ COMPLETED - Only enhanced-trigger-detector.ts remains
+
+**Phase 3: Architecture Simplification**:
+
+- [ ] **🏗️ PRIORITY 1: Replace multi-scope with simple ordering** (HIGH)
+  - **Goal**: Eliminate Personal/Team/Org organizational concepts
+  - **Replace**: Simple FILO-based store ordering with drag-and-drop
+  - **Preserve**: Underlying store management infrastructure
+  - **Impact**: Major complexity reduction while maintaining functionality
+
+- [ ] **💾 PRIORITY 2: Storage system changes** (DEFERRED)
+  - **Status**: User requested more details before proceeding
+  - **Action**: Document current complexity but no changes yet
+  - **Next**: Provide detailed analysis when ready
+
+**Success Metrics**:
+
+- Multi-store saving working reliably
+- Clear FILO priority system with drag-and-drop
+- "NOT CURRENTLY SUPPORTED/USED" documentation added
+- TinyMCE completely removed (~1,200 lines)
+- No loss of future extensibility value
 
 ---
 

@@ -41,25 +41,34 @@ export class QuillWrapper {
 
   private readonly options: QuillWrapperOptions;
   private readonly defaultConfig: QuillConfig = {
-    theme: 'snow',
+    theme: "snow",
     modules: {
       toolbar: [
-        [{ 'header': [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'align': [] }],
-        ['link'],
-        ['clean']
-      ]
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ color: [] }, { background: [] }],
+        [{ list: "ordered" }, { list: "bullet" }],
+        [{ indent: "-1" }, { indent: "+1" }],
+        [{ align: [] }],
+        ["link"],
+        ["clean"],
+      ],
     },
     formats: [
-      'header', 'bold', 'italic', 'underline', 'strike',
-      'color', 'background', 'list', 'bullet', 'indent',
-      'align', 'link'
+      "header",
+      "bold",
+      "italic",
+      "underline",
+      "strike",
+      "color",
+      "background",
+      "list",
+      "bullet",
+      "indent",
+      "align",
+      "link",
     ],
-    placeholder: 'Enter your snippet content...'
+    placeholder: "Enter your snippet content...",
   };
 
   constructor(options: QuillWrapperOptions = {}) {
@@ -93,7 +102,7 @@ export class QuillWrapper {
     this.editorContainer.style.background = "#fff";
     this.editorContainer.style.border = "1px solid #ccc";
     this.editorContainer.style.borderRadius = "4px";
-    
+
     container.appendChild(this.editorContainer);
 
     // Import Quill dynamically
@@ -110,7 +119,7 @@ export class QuillWrapper {
 
     // Set initial content
     if (initialContent) {
-      if (initialContent.startsWith('<')) {
+      if (initialContent.startsWith("<")) {
         // HTML content
         this.quill.root.innerHTML = initialContent;
       } else {
@@ -136,39 +145,45 @@ export class QuillWrapper {
     if (!this.quill) return;
 
     // Content change handler with debouncing
-    this.quill.on('text-change', (delta: any, oldDelta: any, source: string) => {
-      if (this.contentChangeTimeout) {
-        window.clearTimeout(this.contentChangeTimeout);
-      }
-
-      this.contentChangeTimeout = window.setTimeout(() => {
-        if (this.options.events?.onContentChange && this.quill) {
-          this.options.events.onContentChange(
-            this.getContent(),
-            delta,
-            source
-          );
+    this.quill.on(
+      "text-change",
+      (delta: any, oldDelta: any, source: string) => {
+        if (this.contentChangeTimeout) {
+          window.clearTimeout(this.contentChangeTimeout);
         }
-      }, this.options.debounceDelay);
-    });
+
+        this.contentChangeTimeout = window.setTimeout(() => {
+          if (this.options.events?.onContentChange && this.quill) {
+            this.options.events.onContentChange(
+              this.getContent(),
+              delta,
+              source,
+            );
+          }
+        }, this.options.debounceDelay);
+      },
+    );
 
     // Selection change handler
-    this.quill.on('selection-change', (range: any, oldRange: any, source: string) => {
-      if (this.options.events?.onSelectionChange) {
-        this.options.events.onSelectionChange(range, oldRange, source);
-      }
+    this.quill.on(
+      "selection-change",
+      (range: any, oldRange: any, source: string) => {
+        if (this.options.events?.onSelectionChange) {
+          this.options.events.onSelectionChange(range, oldRange, source);
+        }
 
-      // Focus/blur events
-      if (range) {
-        if (this.options.events?.onFocus) {
-          this.options.events.onFocus();
+        // Focus/blur events
+        if (range) {
+          if (this.options.events?.onFocus) {
+            this.options.events.onFocus();
+          }
+        } else {
+          if (this.options.events?.onBlur) {
+            this.options.events.onBlur();
+          }
         }
-      } else {
-        if (this.options.events?.onBlur) {
-          this.options.events.onBlur();
-        }
-      }
-    });
+      },
+    );
 
     // Extension-specific customizations
     this.addExtensionCustomizations();
@@ -181,25 +196,31 @@ export class QuillWrapper {
     if (!this.quill) return;
 
     // Add keyboard shortcuts for snippet functionality
-    this.quill.keyboard.addBinding({
-      key: 'V',
-      ctrlKey: true,
-      shiftKey: true
-    }, () => {
-      // Custom paste shortcut
-      console.log("🔧 Custom paste shortcut triggered");
-      return false; // Prevent default
-    });
+    this.quill.keyboard.addBinding(
+      {
+        key: "V",
+        ctrlKey: true,
+        shiftKey: true,
+      },
+      () => {
+        // Custom paste shortcut
+        console.log("🔧 Custom paste shortcut triggered");
+        return false; // Prevent default
+      },
+    );
 
     // Add variable placeholder helper
-    this.quill.keyboard.addBinding({
-      key: '$',
-      ctrlKey: true,
-      shiftKey: true
-    }, () => {
-      this.insertVariablePlaceholder();
-      return false;
-    });
+    this.quill.keyboard.addBinding(
+      {
+        key: "$",
+        ctrlKey: true,
+        shiftKey: true,
+      },
+      () => {
+        this.insertVariablePlaceholder();
+        return false;
+      },
+    );
   }
 
   /**
@@ -210,7 +231,7 @@ export class QuillWrapper {
 
     const range = this.quill.getSelection();
     if (range) {
-      this.quill.insertText(range.index, '${variable_name}', 'user');
+      this.quill.insertText(range.index, "${variable_name}", "user");
       this.quill.setSelection(range.index + 2, 13); // Select "variable_name"
     }
   }
@@ -221,7 +242,7 @@ export class QuillWrapper {
   private async loadQuill(): Promise<any> {
     try {
       // For now, load from CDN since we can't npm install
-      // This will work because Quill doesn't have the same CSP issues as TinyMCE
+      // This will work because Quill doesn't have CSP issues
       return new Promise((resolve, reject) => {
         if ((window as any).Quill) {
           resolve((window as any).Quill);
@@ -229,27 +250,28 @@ export class QuillWrapper {
         }
 
         // Load CSS first
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css';
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href =
+          "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css";
         document.head.appendChild(link);
 
         // Load JS
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js';
-        
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js";
+
         script.onload = () => {
           if ((window as any).Quill) {
             resolve((window as any).Quill);
           } else {
-            reject(new Error('Quill not available after script load'));
+            reject(new Error("Quill not available after script load"));
           }
         };
-        
+
         script.onerror = () => {
-          reject(new Error('Failed to load Quill from CDN'));
+          reject(new Error("Failed to load Quill from CDN"));
         };
-        
+
         document.head.appendChild(script);
       });
     } catch (error) {
@@ -285,8 +307,8 @@ export class QuillWrapper {
     if (!this.quill) {
       throw new Error("Editor not initialized");
     }
-    
-    if (content.startsWith('<')) {
+
+    if (content.startsWith("<")) {
       // HTML content
       this.quill.root.innerHTML = content;
     } else {
@@ -368,20 +390,22 @@ export class QuillWrapper {
 /**
  * Create a snippet editor with PuffPuffPaste-specific configuration
  */
-export function createSnippetEditor(options: QuillWrapperOptions = {}): QuillWrapper {
+export function createSnippetEditor(
+  options: QuillWrapperOptions = {},
+): QuillWrapper {
   const defaultOptions: QuillWrapperOptions = {
     config: {
       placeholder: "Enter your snippet content here...",
       modules: {
         toolbar: [
-          [{ 'header': [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline'],
-          [{ 'color': [] }],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          ['link'],
-          ['clean']
-        ]
-      }
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline"],
+          [{ color: [] }],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["link"],
+          ["clean"],
+        ],
+      },
     },
     autoFocus: true,
     debounceDelay: 300,

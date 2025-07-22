@@ -109,9 +109,10 @@ This document archives all completed implementation tasks for the PuffPuffPaste 
 
 ### ✅ **Appdata Usage Restrictions** - **COMPLETED 2025-07-17**
 
-- [x] **Implement drive.appdata ONLY for user config and Priority #0 snippet store**
-  - **Action**: Confirm with the developer what is currently being stored in drive.appdata. The dev may then direct you whether or not to add to it appdata usage to persistent configuration and a highest priority snippet store
-  - **Requirements**: User config storage, Priority #0 (highest priority) snippet store only
+- [x] **Implement drive.appdata ONLY for user config and default snippet store**
+  - **Action**: Confirm with the developer what is currently being stored in drive.appdata. The dev may then direct you whether or not to add to it appdata usage to persistent configuration and a default snippet store
+  - **Requirements**: User config storage, default store (highest priority) snippet store only
+  - **Note**: Default store at `/drive.appdata` always has priority 0 (highest), additional stores get descending priority
   - **File**: `src/background/cloud-adapters/google-drive-appdata-manager.ts` (new)
   - **Priority**: HIGH - Drive scope compliance
   - **Time**: 45 minutes
@@ -239,9 +240,9 @@ This document archives all completed implementation tasks for the PuffPuffPaste 
 - [x] **`SyncManager` to orchestrate adapters** ✅ **COMPLETED**
   - [x] Logic to register and coordinate multiple `CloudAdapter` instances
   - [x] Created `syncAll()` and `syncScope()` methods to manage updates
-- [x] **Multi-scope merging logic ("Org Mode")** ✅ **COMPLETED**
-  - [x] Merge snippets from all `SyncedSource` objects
-  - [x] Three-tier priority system: `personal` > `department` > `org`
+- [x] **Multi-store merging logic ("Simple Priority System")** ✅ **COMPLETED**
+  - [x] Merge snippets from all stores
+  - [x] Simple FILO priority system: Default store (priority 0) > additional stores (1, 2, 3...)
   - [x] Handle conflicts and create unified, in-memory snippet library
   - [x] **FIXED: Compilation errors in options.ts resolved** (v0.6.0)
 - [x] **Local snippet cache** ✅ **COMPLETED**

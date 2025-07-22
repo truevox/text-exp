@@ -7,7 +7,10 @@
 import { GoogleDriveAppDataManager } from "./cloud-adapters/google-drive-appdata-manager.js";
 import { ExtensionStorage } from "../shared/storage.js";
 import type { CloudCredentials } from "../shared/types.js";
-import type { TierStorageSchema, EnhancedSnippet } from "../types/snippet-formats.js";
+import type {
+  TierStorageSchema,
+  EnhancedSnippet,
+} from "../types/snippet-formats.js";
 
 export interface DefaultStoreConfig {
   autoInitialize: boolean;
@@ -134,7 +137,7 @@ export class DefaultStoreInitializer {
         : [],
       metadata: {
         created: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
+        modified: new Date().toISOString(),
         totalSnippets: this.config.createWelcomeSnippets ? 3 : 0,
         lastUsed: null,
         isDefault: true,
@@ -173,6 +176,7 @@ export class DefaultStoreInitializer {
         snipDependencies: [],
         description: "Welcome greeting snippet",
         scope: "personal" as const,
+        priority: 0, // Highest priority for welcome snippets
         variables: [],
         images: [],
         tags: ["welcome", "greeting"],
@@ -189,6 +193,7 @@ export class DefaultStoreInitializer {
         snipDependencies: [],
         description: "Your email address",
         scope: "personal" as const,
+        priority: 1, // High priority for personal info
         variables: [
           {
             name: "email",
@@ -211,6 +216,7 @@ export class DefaultStoreInitializer {
         snipDependencies: [],
         description: "Email signature template",
         scope: "personal" as const,
+        priority: 2, // Medium priority for signatures
         variables: [
           {
             name: "name",

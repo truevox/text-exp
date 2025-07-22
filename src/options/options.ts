@@ -306,9 +306,21 @@ class OptionsApp {
   }
 
   /**
-   * Show add store dialog with store type selection
+   * Show simple add store dialog - goes directly to folder selection
    */
   private showAddStoreDialog(): void {
+    // Delegate to store manager for simplified store creation
+    if (this.storeManager) {
+      this.showSimpleAddStoreDialog();
+    } else {
+      this.showStatus("Store manager not initialized", "error");
+    }
+  }
+
+  /**
+   * Show simplified add store dialog without scope selection
+   */
+  private showSimpleAddStoreDialog(): void {
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.innerHTML = `
@@ -318,26 +330,36 @@ class OptionsApp {
           <button class="modal-close" id="closeAddStoreModal">&times;</button>
         </div>
         <div class="modal-body">
-          <p>Choose the type of snippet store to add:</p>
+          <p>Choose how to set up your new snippet store:</p>
           
-          <div class="store-type-options">
-            <div class="store-type-card" data-scope="personal">
-              <div class="type-icon">👤</div>
-              <h3>Personal Store</h3>
-              <p>Private snippets for your personal use</p>
+          <div class="store-option-cards">
+            <div class="store-option-card" id="createNewStore">
+              <div class="option-icon">📝</div>
+              <h3>Create New Store</h3>
+              <p>Create a new JSON file for storing snippets</p>
+              <ul>
+                <li>✅ Privacy-focused (OAuth compliant)</li>
+                <li>✅ Ready to use immediately</li>
+                <li>✅ Properly structured format</li>
+              </ul>
+              <button class="btn btn-primary">Create New</button>
             </div>
             
-            <div class="store-type-card" data-scope="team">
-              <div class="type-icon">👥</div>
-              <h3>Team Store</h3>
-              <p>Shared snippets for team collaboration</p>
+            <div class="store-option-card" id="selectExistingStore">
+              <div class="option-icon">📁</div>
+              <h3>Select Existing File</h3>
+              <p>Choose an existing JSON snippet file from your Drive</p>
+              <ul>
+                <li>✅ Use existing snippet collections</li>
+                <li>✅ Migrate from other tools</li>
+                <li>⚠️ Must be proper JSON format</li>
+              </ul>
+              <button class="btn btn-secondary">Select File</button>
             </div>
-            
-            <div class="store-type-card" data-scope="org">
-              <div class="type-icon">🏢</div>
-              <h3>Organization Store</h3>
-              <p>Company-wide snippet collections</p>
-            </div>
+          </div>
+          
+          <div class="oauth-info">
+            <p><strong>Privacy Note:</strong> We can only access files you explicitly select or that we create. We cannot browse your Drive or see other files.</p>
           </div>
         </div>
         <div class="modal-footer">
@@ -348,10 +370,11 @@ class OptionsApp {
 
     document.body.appendChild(modal);
 
-    // Event listeners
+    // Event listeners for modal
     const closeBtn = modal.querySelector("#closeAddStoreModal");
     const cancelBtn = modal.querySelector("#cancelAddStore");
-    const typeCards = modal.querySelectorAll(".store-type-card");
+    const createBtn = modal.querySelector("#createNewStore .btn");
+    const selectBtn = modal.querySelector("#selectExistingStore .btn");
 
     const closeModal = () => {
       document.body.removeChild(modal);
@@ -363,17 +386,221 @@ class OptionsApp {
       if (e.target === modal) closeModal();
     });
 
-    // Store type selection
-    typeCards.forEach((card) => {
-      card.addEventListener("click", () => {
-        const scope = card.getAttribute("data-scope") as
-          | "personal"
-          | "team"
-          | "org";
-        closeModal();
-        this.storeManager?.showAddCustomStoreDialog(scope);
-      });
+    createBtn?.addEventListener("click", () => {
+      closeModal();
+      this.createNewStore();
     });
+
+    selectBtn?.addEventListener("click", () => {
+      closeModal();
+      this.selectExistingStore();
+    });
+  }
+
+  /**
+   * Create a new store without scope selection
+   */
+  private async createNewStore(): Promise<void> {
+    try {
+      // Show name input dialog
+      const storeName = prompt(
+        "Enter a name for your new store:",
+        "My Snippets",
+      );
+
+      if (!storeName) {
+        return; // User cancelled
+      }
+
+      this.showStatus(`Creating store: ${storeName}...`, "info");
+
+      // Create store via service worker
+      const response = await chrome.runtime.sendMessage({
+        type: "CREATE_SIMPLE_STORE",
+        storeName: storeName,
+        description: `Snippet store created by user`,
+      });
+
+      if (response.success) {
+        this.showStatus(`Successfully created store: ${storeName}`, "success");
+        console.log("✅ Simple store created:", response.data);
+
+        // Refresh the store manager UI to show the new store
+        await this.storeManager?.refreshStoreStatus();
+      } else {
+        console.error("❌ Failed to create store:", response.error);
+        this.showStatus(`Failed to create store: ${response.error}`, "error");
+      }
+    } catch (error) {
+      console.error("❌ Error creating store:", error);
+      this.showStatus("Error creating store", "error");
+    }
+  }
+
+  /**
+   * Select an existing store file without scope selection
+   */
+  private async selectExistingStore(): Promise<void> {
+    try {
+      this.showStatus("Opening file selector...", "info");
+
+      // Show file selection modal
+      this.showFileSelectionModal();
+    } catch (error) {
+      console.error("❌ Error selecting store:", error);
+      this.showStatus("Error selecting store", "error");
+    }
+  }
+
+  /**
+   * Show file selection modal for existing stores
+   */
+  private showFileSelectionModal(): void {
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Select Store File</h2>
+          <button class="modal-close" id="closeFileSelectionModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Choose how to select your existing snippet store:</p>
+          
+          <div class="file-selection-options">
+            <div class="selection-option">
+              <h3>🔗 Google Drive Share Link</h3>
+              <p>Paste a Google Drive share link to your snippet store file:</p>
+              <input type="text" id="shareLinkInput" placeholder="https://drive.google.com/file/d/..." class="form-input">
+              <button id="useShareLink" class="btn btn-primary">Use This File</button>
+            </div>
+            
+            <div class="selection-option disabled">
+              <h3>📁 Google Drive Picker (Coming Soon)</h3>
+              <p>Browse and select files directly from your Google Drive</p>
+              <button class="btn btn-secondary" disabled>Open Drive Picker</button>
+              <small>This feature will be available in a future update</small>
+            </div>
+          </div>
+          
+          <div class="oauth-info">
+            <p><strong>Privacy Note:</strong> We can only access files you explicitly select. We cannot browse your Drive or see other files.</p>
+            <p><strong>File Requirements:</strong> The selected file must be a JSON file containing snippet data.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelFileSelection">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    const closeBtn = modal.querySelector("#closeFileSelectionModal");
+    const cancelBtn = modal.querySelector("#cancelFileSelection");
+    const useShareLinkBtn = modal.querySelector("#useShareLink");
+    const shareLinkInput = modal.querySelector(
+      "#shareLinkInput",
+    ) as HTMLInputElement;
+
+    const closeModal = () => {
+      document.body.removeChild(modal);
+    };
+
+    closeBtn?.addEventListener("click", closeModal);
+    cancelBtn?.addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    useShareLinkBtn?.addEventListener("click", async () => {
+      const shareLink = shareLinkInput.value.trim();
+      if (!shareLink) {
+        this.showStatus("Please enter a Google Drive share link", "warning");
+        return;
+      }
+
+      closeModal();
+      await this.processShareLink(shareLink);
+    });
+
+    // Auto-focus the input
+    setTimeout(() => shareLinkInput?.focus(), 100);
+  }
+
+  /**
+   * Process a Google Drive share link for store selection
+   */
+  private async processShareLink(shareLink: string): Promise<void> {
+    try {
+      this.showStatus("Processing Google Drive share link...", "info");
+
+      // Extract file ID from share link
+      const response = await chrome.runtime.sendMessage({
+        type: "GET_FILE_FROM_SHARE_LINK",
+        shareLink: shareLink,
+      });
+
+      if (!response.success) {
+        this.showStatus(`Invalid share link: ${response.error}`, "error");
+        return;
+      }
+
+      const fileInfo = response.data;
+      console.log("📁 File info from share link:", fileInfo);
+
+      // Validate the file
+      const validationResponse = await chrome.runtime.sendMessage({
+        type: "VALIDATE_STORE_FILE",
+        fileId: fileInfo.fileId,
+      });
+
+      if (!validationResponse.success) {
+        this.showStatus(
+          `File validation failed: ${validationResponse.error}`,
+          "error",
+        );
+        return;
+      }
+
+      if (!validationResponse.data.isValid) {
+        this.showStatus("Selected file is not a valid snippet store", "error");
+        return;
+      }
+
+      // Configure the store
+      const displayName = prompt(
+        "Enter a name for this store:",
+        fileInfo.fileName.replace(".json", ""),
+      );
+
+      if (!displayName) {
+        return; // User cancelled
+      }
+
+      const configResponse = await chrome.runtime.sendMessage({
+        type: "SELECT_EXISTING_SIMPLE_STORE",
+        fileId: fileInfo.fileId,
+        displayName: displayName,
+      });
+
+      if (configResponse.success) {
+        this.showStatus(`Successfully added store: ${displayName}`, "success");
+        console.log("✅ Store configured:", configResponse.data);
+
+        // Refresh the store manager UI
+        await this.storeManager?.refreshStoreStatus();
+      } else {
+        this.showStatus(
+          `Failed to configure store: ${configResponse.error}`,
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error processing share link:", error);
+      this.showStatus("Error processing share link", "error");
+    }
   }
 
   /**

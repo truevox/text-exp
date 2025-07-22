@@ -52,7 +52,8 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
     test("should show variable prompt modal for snippets with placeholders", async () => {
       const snippet: TestSnippet = {
         trigger: ";email",
-        content: "Hi {{name}},\n\nI wanted to reach out regarding {{subject}}.\n\nBest regards,\n{{sender}}",
+        content:
+          "Hi {{name}},\n\nI wanted to reach out regarding {{subject}}.\n\nBest regards,\n{{sender}}",
         description: "Email template with variables",
         variables: [
           { name: "name", description: "Recipient name" },
@@ -72,11 +73,17 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await input.type(snippet.trigger);
 
       // Wait for variable modal to appear
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
-      await testPage.waitForSelector(".text-expander-variable-modal", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
+      await testPage.waitForSelector(".text-expander-variable-modal", {
+        timeout: 5000,
+      });
 
       // Verify modal title and inputs
-      const modalTitle = await testPage.locator(".text-expander-variable-modal h3").textContent();
+      const modalTitle = await testPage
+        .locator(".text-expander-variable-modal h3")
+        .textContent();
       expect(modalTitle).toBe("Enter Variable Values");
 
       // Check that variable inputs are present
@@ -100,7 +107,10 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await testPage.click('button[type="submit"]');
 
       // Wait for modal to disappear
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
 
       // Verify expanded content
       const expandedContent = await input.inputValue();
@@ -128,13 +138,18 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await input.type(snippet.trigger);
 
       // Wait for modal
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
 
       // Cancel the modal
       await testPage.click("button:has-text('Cancel')");
 
       // Verify modal disappeared and trigger remains unexpanded
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
       const inputValue = await input.inputValue();
       expect(inputValue).toBe(snippet.trigger); // Should remain as trigger
     });
@@ -144,10 +159,26 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
         trigger: ";signature",
         content: "{{greeting}}\n\n{{name}}\n{{title}}\n{{company}}",
         variables: [
-          { name: "greeting", description: "Greeting", defaultValue: "Best regards," },
-          { name: "name", description: "Your name", defaultValue: "John Smith" },
-          { name: "title", description: "Your title", defaultValue: "Software Engineer" },
-          { name: "company", description: "Company name", defaultValue: "Tech Corp" },
+          {
+            name: "greeting",
+            description: "Greeting",
+            defaultValue: "Best regards,",
+          },
+          {
+            name: "name",
+            description: "Your name",
+            defaultValue: "John Smith",
+          },
+          {
+            name: "title",
+            description: "Your title",
+            defaultValue: "Software Engineer",
+          },
+          {
+            name: "company",
+            description: "Company name",
+            defaultValue: "Tech Corp",
+          },
         ],
       };
 
@@ -158,18 +189,23 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await input.click();
       await input.type(snippet.trigger);
 
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
 
       // Verify default values are pre-filled
       const greetingInput = testPage.locator('input[name="greeting"]');
       const nameInput = testPage.locator('input[name="name"]');
-      
+
       expect(await greetingInput.inputValue()).toBe("Best regards,");
       expect(await nameInput.inputValue()).toBe("John Smith");
 
       // Submit with default values
       await testPage.click('button[type="submit"]');
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
 
       const expandedContent = await input.inputValue();
       expect(expandedContent).toContain("Best regards,");
@@ -183,7 +219,8 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
     test("should preserve HTML formatting in content editable elements", async () => {
       const htmlSnippet: TestSnippet = {
         trigger: ";htmlformat",
-        content: '<p><strong>Important:</strong> This is <em>formatted</em> content with <a href="https://example.com">a link</a>.</p>',
+        content:
+          '<p><strong>Important:</strong> This is <em>formatted</em> content with <a href="https://example.com">a link</a>.</p>',
         contentType: "html",
         description: "HTML formatted content",
       };
@@ -234,12 +271,36 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
         `,
         contentType: "html",
         variables: [
-          { name: "name1", description: "First person name", defaultValue: "Alice Johnson" },
-          { name: "role1", description: "First person role", defaultValue: "Manager" },
-          { name: "dept1", description: "First person department", defaultValue: "Engineering" },
-          { name: "name2", description: "Second person name", defaultValue: "Bob Wilson" },
-          { name: "role2", description: "Second person role", defaultValue: "Developer" },
-          { name: "dept2", description: "Second person department", defaultValue: "Engineering" },
+          {
+            name: "name1",
+            description: "First person name",
+            defaultValue: "Alice Johnson",
+          },
+          {
+            name: "role1",
+            description: "First person role",
+            defaultValue: "Manager",
+          },
+          {
+            name: "dept1",
+            description: "First person department",
+            defaultValue: "Engineering",
+          },
+          {
+            name: "name2",
+            description: "Second person name",
+            defaultValue: "Bob Wilson",
+          },
+          {
+            name: "role2",
+            description: "Second person role",
+            defaultValue: "Developer",
+          },
+          {
+            name: "dept2",
+            description: "Second person department",
+            defaultValue: "Engineering",
+          },
         ],
       };
 
@@ -251,10 +312,15 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await contentEditable.type(complexHtmlSnippet.trigger);
 
       // Handle variable modal
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
       await testPage.click('button[type="submit"]'); // Use default values
 
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
       await testPage.waitForTimeout(1000);
 
       // Verify complex HTML structure
@@ -329,7 +395,9 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await testPage.waitForTimeout(4000);
 
       const expandedContent = await textarea.inputValue();
-      expect(expandedContent).toContain("Welcome to PuffPuffPaste Extension - the ultimate text expansion tool!");
+      expect(expandedContent).toContain(
+        "Welcome to PuffPuffPaste Extension - the ultimate text expansion tool!",
+      );
       expect(expandedContent).not.toContain(";name");
       expect(expandedContent).not.toContain(";product");
     });
@@ -339,16 +407,29 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
         trigger: ";contact",
         content: "Contact: {{contact_name}} ({{contact_email}})",
         variables: [
-          { name: "contact_name", description: "Contact name", defaultValue: "John Doe" },
-          { name: "contact_email", description: "Contact email", defaultValue: "john@example.com" },
+          {
+            name: "contact_name",
+            description: "Contact name",
+            defaultValue: "John Doe",
+          },
+          {
+            name: "contact_email",
+            description: "Contact email",
+            defaultValue: "john@example.com",
+          },
         ],
       };
 
       const dependentSnippet: TestSnippet = {
         trigger: ";inquiry",
-        content: "Dear Team,\n\n;contact\n\nThank you for your assistance.\n\nBest,\n{{sender}}",
+        content:
+          "Dear Team,\n\n;contact\n\nThank you for your assistance.\n\nBest,\n{{sender}}",
         variables: [
-          { name: "sender", description: "Your name", defaultValue: "Jane Smith" },
+          {
+            name: "sender",
+            description: "Your name",
+            defaultValue: "Jane Smith",
+          },
         ],
       };
 
@@ -361,14 +442,18 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await textarea.type(dependentSnippet.trigger);
 
       // Handle variable modals (dependency first, then main snippet)
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
-      
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
+
       // Fill and submit first modal (for base dependency)
       await testPage.click('button[type="submit"]'); // Use defaults
-      
+
       // Wait for potential second modal
       try {
-        await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 2000 });
+        await testPage.waitForSelector(".text-expander-modal-overlay", {
+          timeout: 2000,
+        });
         await testPage.click('button[type="submit"]'); // Use defaults for sender
       } catch (e) {
         // Second modal might not appear if already handled
@@ -422,13 +507,17 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
 
       // Note: The exact cycling UI implementation may vary
       // Check if any cycling-related elements appear
-      const hasCyclingUI = await testPage.locator(".cycling-ui, .trigger-options, .ambiguous-trigger").count();
-      
+      const hasCyclingUI = await testPage
+        .locator(".cycling-ui, .trigger-options, .ambiguous-trigger")
+        .count();
+
       if (hasCyclingUI > 0) {
         console.log("Cycling UI detected");
         await takeDebugScreenshot(testPage, "cycling-ui-active");
       } else {
-        console.log("Cycling UI not detected - may need implementation or different trigger pattern");
+        console.log(
+          "Cycling UI not detected - may need implementation or different trigger pattern",
+        );
       }
     });
 
@@ -440,7 +529,7 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
           description: "Response option 1",
         },
         {
-          trigger: ";t2", 
+          trigger: ";t2",
           content: "Option 2: Detailed response",
           description: "Response option 2",
         },
@@ -545,7 +634,8 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
 
   test.describe("Long Content Handling", () => {
     test("should handle very long snippets efficiently", async () => {
-      const longContent = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(100);
+      const longContent =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(100);
       const longSnippet: TestSnippet = {
         trigger: ";longtext",
         content: longContent,
@@ -554,14 +644,14 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
 
       const startTime = Date.now();
       await createSnippet(popupPage, longSnippet);
-      
+
       await testPage.bringToFront();
       const textarea = testPage.locator("#test-textarea");
       await textarea.click();
-      
+
       const expansionStartTime = Date.now();
       await textarea.type(longSnippet.trigger);
-      
+
       await testPage.waitForTimeout(2000);
       const expansionEndTime = Date.now();
 
@@ -571,14 +661,18 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
 
       const expansionTime = expansionEndTime - expansionStartTime;
       console.log(`Long content expansion time: ${expansionTime}ms`);
-      
+
       // Performance check - should expand within reasonable time
       expect(expansionTime).toBeLessThan(5000); // Should be under 5 seconds
     });
 
     test("should handle multiple long snippets with dependencies", async () => {
       const longBase = "Base content: " + "A".repeat(1000);
-      const longDependent = "Dependent content: " + "B".repeat(1000) + "\n;longbase\n" + "C".repeat(1000);
+      const longDependent =
+        "Dependent content: " +
+        "B".repeat(1000) +
+        "\n;longbase\n" +
+        "C".repeat(1000);
 
       const baseSnippet: TestSnippet = {
         trigger: ";longbase",
@@ -612,14 +706,39 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
     test("should handle variables within variables (conditional expansion)", async () => {
       const conditionalSnippet: TestSnippet = {
         trigger: ";conditional",
-        content: "{{greeting_type}} {{name}}{{punctuation}}\n\n{{message_{{message_type}}}}",
+        content:
+          "{{greeting_type}} {{name}}{{punctuation}}\n\n{{message_{{message_type}}}}",
         variables: [
-          { name: "greeting_type", description: "Type of greeting", defaultValue: "Hello" },
-          { name: "name", description: "Recipient name", defaultValue: "there" },
-          { name: "punctuation", description: "Punctuation", defaultValue: "!" },
-          { name: "message_type", description: "Message type (formal/casual)", defaultValue: "casual" },
-          { name: "message_formal", description: "Formal message", defaultValue: "I hope this message finds you well." },
-          { name: "message_casual", description: "Casual message", defaultValue: "How's it going?" },
+          {
+            name: "greeting_type",
+            description: "Type of greeting",
+            defaultValue: "Hello",
+          },
+          {
+            name: "name",
+            description: "Recipient name",
+            defaultValue: "there",
+          },
+          {
+            name: "punctuation",
+            description: "Punctuation",
+            defaultValue: "!",
+          },
+          {
+            name: "message_type",
+            description: "Message type (formal/casual)",
+            defaultValue: "casual",
+          },
+          {
+            name: "message_formal",
+            description: "Formal message",
+            defaultValue: "I hope this message finds you well.",
+          },
+          {
+            name: "message_casual",
+            description: "Casual message",
+            defaultValue: "How's it going?",
+          },
         ],
       };
 
@@ -630,14 +749,19 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await textarea.click();
       await textarea.type(conditionalSnippet.trigger);
 
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
 
       // Modify message_type to test conditional logic
       const messageTypeInput = testPage.locator('input[name="message_type"]');
       await messageTypeInput.fill("formal");
 
       await testPage.click('button[type="submit"]');
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
 
       await testPage.waitForTimeout(1000);
 
@@ -652,9 +776,21 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
         trigger: ";recursive",
         content: "Level 1: {{var1}}\nLevel 2: {{var2}}\nLevel 3: {{var3}}",
         variables: [
-          { name: "var1", description: "Variable 1", defaultValue: "Value 1 includes {{var2}}" },
-          { name: "var2", description: "Variable 2", defaultValue: "Value 2 includes {{var3}}" },
-          { name: "var3", description: "Variable 3", defaultValue: "Final value" },
+          {
+            name: "var1",
+            description: "Variable 1",
+            defaultValue: "Value 1 includes {{var2}}",
+          },
+          {
+            name: "var2",
+            description: "Variable 2",
+            defaultValue: "Value 2 includes {{var3}}",
+          },
+          {
+            name: "var3",
+            description: "Variable 3",
+            defaultValue: "Final value",
+          },
         ],
       };
 
@@ -665,9 +801,14 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       await textarea.click();
       await textarea.type(recursiveSnippet.trigger);
 
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
       await testPage.click('button[type="submit"]');
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
 
       await testPage.waitForTimeout(1000);
 
@@ -675,7 +816,7 @@ test.describe("PuffPuffPaste Advanced Snippet Features", () => {
       expect(expandedContent).toContain("Level 1:");
       expect(expandedContent).toContain("Level 2:");
       expect(expandedContent).toContain("Level 3:");
-      
+
       // Should handle recursive variables safely without infinite loops
       console.log("Recursive variable expansion result:", expandedContent);
     });
@@ -691,16 +832,56 @@ Team: {{team_lead}} (Lead), {{team_members}}
 Notes: {{notes_{{status}}_details}}
         `,
         variables: [
-          { name: "project_name", description: "Project name", defaultValue: "Alpha Project" },
-          { name: "current_date", description: "Current date", defaultValue: "2024-01-15" },
-          { name: "urgency", description: "Urgency level (high/normal/low)", defaultValue: "normal" },
-          { name: "category", description: "Category (dev/design/qa)", defaultValue: "dev" },
-          { name: "status_normal_dev", description: "Normal dev status", defaultValue: "In Progress" },
-          { name: "status_high_dev", description: "High priority dev status", defaultValue: "Critical - In Progress" },
-          { name: "team_lead", description: "Team lead name", defaultValue: "Alice Johnson" },
-          { name: "team_members", description: "Team members", defaultValue: "Bob, Charlie, Diana" },
-          { name: "notes_In Progress_details", description: "In progress notes", defaultValue: "Development proceeding on schedule" },
-          { name: "status", description: "Overall status", defaultValue: "In Progress" },
+          {
+            name: "project_name",
+            description: "Project name",
+            defaultValue: "Alpha Project",
+          },
+          {
+            name: "current_date",
+            description: "Current date",
+            defaultValue: "2024-01-15",
+          },
+          {
+            name: "urgency",
+            description: "Urgency level (high/normal/low)",
+            defaultValue: "normal",
+          },
+          {
+            name: "category",
+            description: "Category (dev/design/qa)",
+            defaultValue: "dev",
+          },
+          {
+            name: "status_normal_dev",
+            description: "Normal dev status",
+            defaultValue: "In Progress",
+          },
+          {
+            name: "status_high_dev",
+            description: "High priority dev status",
+            defaultValue: "Critical - In Progress",
+          },
+          {
+            name: "team_lead",
+            description: "Team lead name",
+            defaultValue: "Alice Johnson",
+          },
+          {
+            name: "team_members",
+            description: "Team members",
+            defaultValue: "Bob, Charlie, Diana",
+          },
+          {
+            name: "notes_In Progress_details",
+            description: "In progress notes",
+            defaultValue: "Development proceeding on schedule",
+          },
+          {
+            name: "status",
+            description: "Overall status",
+            defaultValue: "In Progress",
+          },
         ],
       };
 
@@ -711,13 +892,18 @@ Notes: {{notes_{{status}}_details}}
       await textarea.click();
       await textarea.type(complexSnippet.trigger);
 
-      await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 5000 });
-      
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        timeout: 5000,
+      });
+
       // Take screenshot of complex variable modal
       await takeDebugScreenshot(testPage, "complex-variables-modal");
-      
+
       await testPage.click('button[type="submit"]');
-      await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+      await testPage.waitForSelector(".text-expander-modal-overlay", {
+        state: "hidden",
+        timeout: 5000,
+      });
 
       await testPage.waitForTimeout(1000);
 
@@ -761,7 +947,7 @@ Notes: {{notes_{{status}}_details}}
       };
 
       const circularB: TestSnippet = {
-        trigger: ";circularB", 
+        trigger: ";circularB",
         content: "B depends on ;circularA",
       };
 
@@ -774,7 +960,7 @@ Notes: {{notes_{{status}}_details}}
 
       const startTime = Date.now();
       await textarea.type(circularA.trigger);
-      
+
       await testPage.waitForTimeout(3000);
       const endTime = Date.now();
 
@@ -790,9 +976,14 @@ Notes: {{notes_{{status}}_details}}
     test("should handle malformed variable syntax", async () => {
       const malformedSnippet: TestSnippet = {
         trigger: ";malformed",
-        content: "Bad variables: {{unclosed, {single}, {{double}}, {{missing}extra}}, normal{{var}}end",
+        content:
+          "Bad variables: {{unclosed, {single}, {{double}}, {{missing}extra}}, normal{{var}}end",
         variables: [
-          { name: "var", description: "Normal variable", defaultValue: "NORMAL" },
+          {
+            name: "var",
+            description: "Normal variable",
+            defaultValue: "NORMAL",
+          },
         ],
       };
 
@@ -805,9 +996,14 @@ Notes: {{notes_{{status}}_details}}
 
       // Should handle variable modal for the valid variable
       try {
-        await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 3000 });
+        await testPage.waitForSelector(".text-expander-modal-overlay", {
+          timeout: 3000,
+        });
         await testPage.click('button[type="submit"]');
-        await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 5000 });
+        await testPage.waitForSelector(".text-expander-modal-overlay", {
+          state: "hidden",
+          timeout: 5000,
+        });
       } catch (e) {
         console.log("No variable modal appeared for malformed snippet");
       }
@@ -827,8 +1023,10 @@ Notes: {{notes_{{status}}_details}}
 
       for (let i = 1; i <= chainLength; i++) {
         const isLast = i === chainLength;
-        const content = isLast ? `End of chain level ${i}` : `Level ${i}: ;chain${i + 1}`;
-        
+        const content = isLast
+          ? `End of chain level ${i}`
+          : `Level ${i}: ;chain${i + 1}`;
+
         snippets.push({
           trigger: `;chain${i}`,
           content,
@@ -847,7 +1045,7 @@ Notes: {{notes_{{status}}_details}}
 
       const startTime = Date.now();
       await textarea.type(";chain1");
-      
+
       await testPage.waitForTimeout(5000);
       const endTime = Date.now();
 
@@ -924,7 +1122,13 @@ Notes: {{notes_{{status}}_details}}
         {
           trigger: ";varmixed",
           content: "Content with {{variable}} placeholder",
-          variables: [{ name: "variable", description: "Test var", defaultValue: "VALUE" }],
+          variables: [
+            {
+              name: "variable",
+              description: "Test var",
+              defaultValue: "VALUE",
+            },
+          ],
         },
         {
           trigger: ";depmixed",
@@ -945,23 +1149,28 @@ Notes: {{notes_{{status}}_details}}
       await textarea.click();
 
       const startTime = Date.now();
-      
+
       // Expand different types
       await textarea.type(";plain ");
       await testPage.waitForTimeout(300);
-      
+
       await textarea.type(";varmixed");
       try {
-        await testPage.waitForSelector(".text-expander-modal-overlay", { timeout: 2000 });
+        await testPage.waitForSelector(".text-expander-modal-overlay", {
+          timeout: 2000,
+        });
         await testPage.click('button[type="submit"]');
-        await testPage.waitForSelector(".text-expander-modal-overlay", { state: "hidden", timeout: 3000 });
+        await testPage.waitForSelector(".text-expander-modal-overlay", {
+          state: "hidden",
+          timeout: 3000,
+        });
       } catch (e) {
         console.log("Variable modal handling in performance test");
       }
-      
+
       await textarea.type(" ;depmixed ");
       await testPage.waitForTimeout(500);
-      
+
       await textarea.type(";longmixed");
       await testPage.waitForTimeout(1000);
 
