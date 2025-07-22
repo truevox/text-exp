@@ -1,10 +1,20 @@
+/*
+ * ⚠️  NOT CURRENTLY USED ⚠️
+ *
+ * This Content Type Manager is NOT currently used in production.
+ * It was designed for multi-format support.
+ * JSON format is the ONLY active format for snippet stores.
+ *
+ * This code is preserved for potential future development but should
+ * not be used in production. The focus is on JSON-only snippet stores.
+ */
+
 /**
  * Content Type Manager
  * Handles different content types: HTML, plaintext, and LaTeX
  * Provides conversion, validation, and editor configuration
  */
 
-import type { Editor as TinyMCEEditor } from "tinymce";
 import type { SnippetMeta } from "../types/snippet-formats.js";
 
 export type ContentType = "html" | "plaintext" | "latex";
@@ -15,7 +25,7 @@ export interface ContentTypeConfig {
   description: string;
   fileExtension: string;
   mimeType: string;
-  editorConfig: Partial<any>; // TinyMCE config
+  editorConfig: Record<string, any>; // Generic editor config
   validation: {
     maxLength?: number;
     allowedTags?: string[];
@@ -179,9 +189,9 @@ const CONTENT_TYPE_CONFIGS: Record<ContentType, ContentTypeConfig> = {
         // Strip all HTML for plaintext
         return o.content.replace(/<[^>]*>/g, "");
       },
-      setup: (editor: TinyMCEEditor) => {
+      setup: (editor: any) => {
         // Disable rich text features for plaintext
-        editor.on("BeforeSetContent", (e) => {
+        editor.on("BeforeSetContent", (e: any) => {
           if (e.content) {
             e.content = e.content.replace(/<[^>]*>/g, "");
           }
@@ -238,7 +248,7 @@ const CONTENT_TYPE_CONFIGS: Record<ContentType, ContentTypeConfig> = {
         // Preserve LaTeX commands but strip other HTML
         return o.content.replace(/<(?!\/?(em|strong|code))[^>]*>/g, "");
       },
-      setup: (editor: TinyMCEEditor) => {
+      setup: (editor: any) => {
         // Add LaTeX-specific toolbar buttons
         editor.ui.registry.addButton("insertMath", {
           text: "∑",
@@ -298,7 +308,7 @@ const CONTENT_TYPE_CONFIGS: Record<ContentType, ContentTypeConfig> = {
  */
 export class ContentTypeManager {
   private currentType: ContentType = "html";
-  private editor: TinyMCEEditor | null = null;
+  private editor: any | null = null;
 
   /**
    * Get all available content type configurations
@@ -335,7 +345,7 @@ export class ContentTypeManager {
   /**
    * Initialize with editor instance
    */
-  setEditor(editor: TinyMCEEditor): void {
+  setEditor(editor: any): void {
     this.editor = editor;
   }
 

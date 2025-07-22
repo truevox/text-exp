@@ -593,17 +593,9 @@ export class StorePermissionsManager {
   private async checkDriveFilePermission(
     fileId: string,
   ): Promise<StorePermission> {
-    try {
-      // This would integrate with Google Drive API
-      // For now, return a default permission
-      return "read-write";
-    } catch (error) {
-      console.warn(
-        `Failed to check Drive permissions for file ${fileId}:`,
-        error,
-      );
-      return "read-only";
-    }
+    // This would integrate with Google Drive API
+    // For now, return a default permission
+    return "read-write";
   }
 
   /**

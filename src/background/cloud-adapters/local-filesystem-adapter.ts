@@ -1,3 +1,13 @@
+/*
+ * ⚠️  NOT CURRENTLY SUPPORTED ⚠️
+ *
+ * This Local Filesystem adapter is NOT currently supported or tested.
+ * Google Drive is the ONLY supported cloud provider for the near future.
+ *
+ * Note: File System Access API is not available in service worker context.
+ * This is a stub implementation for compatibility only.
+ */
+
 /**
  * Local Filesystem Adapter (DISABLED)
  * Note: File System Access API is not available in service worker context

@@ -1,3 +1,13 @@
+/*
+ * ⚠️  NOT CURRENTLY SUPPORTED ⚠️
+ *
+ * This OneDrive adapter is NOT currently supported or tested.
+ * Google Drive is the ONLY supported cloud provider for the near future.
+ *
+ * This code is preserved for potential future development but should
+ * not be used in production. Any integration attempts will likely fail.
+ */
+
 /**
  * OneDrive CloudAdapter implementation
  * Handles synchronization with Microsoft OneDrive storage
