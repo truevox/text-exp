@@ -1,17 +1,18 @@
-♻️ Refactor, TC: 93.5%
+🐛 Fix, TC: 93.5%
 
-Consolidates trigger detection to a single implementation.
+Adds extensive debug logging to diagnose folder selection errors.
 
 ## What Changed
-- Removed the old `trigger-detector.ts` and `flexible-trigger-detector.ts` files.
-- The `EnhancedTriggerDetector` is now the single source of truth for trigger detection.
+- Added detailed logging to `syncManager.getCloudFolders()`.
+- Enhanced the `FolderPickerComponent` with more comprehensive error logging.
 
 ## Why This Change
-- To eliminate conflicting trigger detection logic that was causing unreliable expansions.
-- To simplify the codebase and improve maintainability.
+- To help identify the root cause of a critical user-blocking bug in the folder selection process.
+- The new logging will provide a clear execution trace and highlight where the authentication or data-fetching flow is failing.
 
 ## How It Works
-- The `EnhancedTriggerDetector` was already in place and active, so this change primarily removes the legacy, unused implementations.
+- The changes introduce `console.log` statements at key points in the folder selection and sync manager logic.
+- These logs will output debug information to the browser's developer console.
 
 ## Testing
-- The existing test suite for `EnhancedTriggerDetector` covers all necessary scenarios.
+- This change is a debugging measure and does not have specific tests. It will be validated by manually testing the folder selection process and observing the console output.
